@@ -32,12 +32,12 @@ func NewBackground() *Background {
 		},
 		image: BackgroundImage,
 		width: BackgroundImage.Bounds().Dx(),
-		speed: 2,
+		speed: BackgroundScrollSpeed,
 	}
 }
 
 func (b *Background) Update() {
-	b.X -= 0.25
+	b.X -= b.speed
 	if b.X < -float64(b.width) {
 		b.X = 0
 	}
@@ -59,9 +59,10 @@ type Tile struct {
 	srcRect     image.Rectangle
 }
 
-func (t *Tile) Draw(screen *ebiten.Image) {
+func (t *Tile) Draw(camera *Camera, screen *ebiten.Image) {
+	// TODO: check if on camera
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(t.X, t.Y)
+	op.GeoM.Translate(t.X-camera.X, t.Y-camera.Y)
 	currImage := t.spriteSheet.image.SubImage(t.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
@@ -73,6 +74,7 @@ type Item struct {
 
 type Enemy struct {
 	Location
+	Velocity
 	spriteSheet *SpriteSheet
 	animation   *Animation
 }
@@ -87,11 +89,11 @@ type Player struct {
 func NewPlayer() *Player {
 	return &Player{
 		Location: Location{
-			X: 50,
-			Y: 50,
+			X: ScreenWidth / 2,
+			Y: ScreenHeight / 2,
 		},
 		Velocity: Velocity{
-			Dx: 0,
+			Dx: PlayerSpeed,
 			Dy: 0,
 		},
 		spriteSheet: SpriteSheet{
@@ -106,12 +108,17 @@ func NewPlayer() *Player {
 }
 
 func (p *Player) Update() {
-	const gravity = 0.1
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		p.Dy = -2.5
+		p.Dy = JumpVelocity
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		p.Dx = PlayerSpeed
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		p.Dx = -PlayerSpeed
 	}
 
-	p.Dy += gravity
+	p.Dy += Gravity
 
 	p.X += p.Dx
 	p.Y += p.Dy
@@ -119,9 +126,9 @@ func (p *Player) Update() {
 	p.animation.Update()
 }
 
-func (p *Player) Draw(screen *ebiten.Image) {
+func (p *Player) Draw(camera *Camera, screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(p.X, p.Y)
+	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
 	subRect := p.spriteSheet.Rect(p.animation.Frame())
 	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)

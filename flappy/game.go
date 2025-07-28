@@ -8,10 +8,12 @@ import (
 
 type Game struct {
 	player *Player
+	camera *Camera
+
+	world *ebiten.Image
 
 	background *Background
-	ground     []*Tile
-	obstacles  []*Tile
+	tiles      []*Tile
 	items      []*Item
 	enemies    []*Enemy
 
@@ -20,7 +22,8 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	g.level.Update(&g.ground, &g.obstacles)
+	g.camera.Center(Location{X: g.player.Location.X - ScreenWidth/4, Y: 0})
+	g.level.Update(g.camera, &g.tiles)
 
 	g.background.Update()
 	g.player.Update()
@@ -30,14 +33,11 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.background.Draw(screen)
 
-	for _, t := range g.ground {
-		t.Draw(screen)
-	}
-	for _, t := range g.obstacles {
-		t.Draw(screen)
+	for _, t := range g.tiles {
+		t.Draw(g.camera, screen)
 	}
 
-	g.player.Draw(screen)
+	g.player.Draw(g.camera, screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -47,9 +47,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func NewGame() *Game {
 	return &Game{
 		player:     NewPlayer(),
+		camera:     NewCamera(),
 		background: NewBackground(),
-		ground:     []*Tile{},
-		obstacles:  []*Tile{},
+		tiles:      []*Tile{},
 		items:      nil,
 		enemies:    nil,
 		level:      NewLevel(),

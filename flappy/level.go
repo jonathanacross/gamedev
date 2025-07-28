@@ -4,16 +4,17 @@ import (
 	"math"
 	"math/rand/v2"
 	"slices"
-	"time"
 )
 
 type Level struct {
-	height   int
-	width    int
-	tileSize int
+	// view in grid coords
+	height int
+	width  int
 
-	spriteSheet   *SpriteSheet
-	obstacleTimer *Timer
+	// location of last generated column
+	lastGenX int
+
+	spriteSheet *SpriteSheet
 }
 
 const (
@@ -37,145 +38,134 @@ func NewLevel() *Level {
 	width := ScreenWidth / TileSize
 
 	return &Level{
-		height:        height,
-		width:         width,
-		tileSize:      TileSize,
-		spriteSheet:   NewSpriteSheet(TerrainImage, TileSize, TileSize, 6, 3),
-		obstacleTimer: NewTimer(1500 * time.Millisecond),
+		height:      height,
+		width:       width,
+		lastGenX:    0,
+		spriteSheet: NewSpriteSheet(TerrainImage, TileSize, TileSize, 6, 3),
 	}
 }
 
-func (l *Level) makeTile(x, y float64, id int) *Tile {
+func (l *Level) makeTile(gridX int, gridY int, id int) *Tile {
 	return &Tile{
 		Location: Location{
-			X: x,
-			Y: y,
+			X: float64(gridX) * TileSize,
+			Y: float64(gridY) * TileSize,
 		},
 		spriteSheet: l.spriteSheet,
 		srcRect:     l.spriteSheet.Rect(id),
 	}
 }
 
-func (l *Level) Update(ground *[]*Tile, obstacles *[]*Tile) {
-	// move everything as time goes on
-	const speed = 1
-	for _, t := range *ground {
-		t.X -= speed
-	}
-	for _, t := range *obstacles {
-		t.X -= speed
-	}
+func (l *Level) Update(camera *Camera, tiles *[]*Tile) {
+	cameraMinX := camera.GetViewRect().Min.X
+	cameraMaxX := camera.GetViewRect().Max.X
 
-	// remove any old stuff that has gone offscreen
-	*ground = slices.DeleteFunc(*ground, func(t *Tile) bool {
-		return t.X < float64(-l.tileSize)
-	})
-	*obstacles = slices.DeleteFunc(*obstacles, func(t *Tile) bool {
-		return t.X < float64(-l.tileSize)
+	// Remove any old stuff that has gone offscreen.
+	*tiles = slices.DeleteFunc(*tiles, func(t *Tile) bool {
+		return t.X < float64(cameraMinX)-2*TileSize
 	})
 
-	// generate new ground, as needed
-	maxTileRight := 0.0
-	for _, t := range *ground {
-		if t.X > maxTileRight {
-			maxTileRight = t.X
-		}
+	// Check camera
+	requiredGenX := (cameraMaxX / TileSize) + 1
+	if l.lastGenX >= requiredGenX {
+		return
 	}
 
-	for maxTileRight < float64(l.width*l.tileSize) {
-		floor := l.makeTile(maxTileRight, float64((l.height-1)*l.tileSize), grassUp)
-		ceiling := l.makeTile(maxTileRight, 0, grassDown)
-		*ground = append(*ground, floor)
-		*ground = append(*ground, ceiling)
+	// Camera is close to edge of world; create more stuff.
 
-		maxTileRight += float64(l.tileSize)
+	widthToGenerate := requiredGenX - l.lastGenX + 5
+	newMaxGenX := l.lastGenX + widthToGenerate
+
+	// add some floor/ceiling
+	for x := l.lastGenX + 1; x <= newMaxGenX; x++ {
+		floor := l.makeTile(x, l.height-1, grassUp)
+		ceiling := l.makeTile(x, 0, grassDown)
+		*tiles = append(*tiles, floor)
+		*tiles = append(*tiles, ceiling)
 	}
 
-	// generate new obstacles, as needed
-	l.obstacleTimer.Update()
-	if l.obstacleTimer.IsReady() {
-		l.obstacleTimer.Reset()
+	// and an obstacle
+	obstacle := l.makeNewObstacle(newMaxGenX - 3)
+	*tiles = append(*tiles, obstacle...)
 
-		obstacle := l.makeNewObstacle(maxTileRight)
-		*obstacles = append(*obstacles, obstacle...)
-	}
+	l.lastGenX = newMaxGenX
 }
 
-func (l *Level) makeNewObstacle(x float64) []*Tile {
+func (l *Level) makeNewObstacle(gridX int) []*Tile {
+	maxPipeLength := 2 * (l.height - 6) / 3
+
 	thing := rand.IntN(3)
 	switch thing {
 	case 0:
-		size := rand.IntN(3) + 3
-		return l.makeUpPipe(x, size)
+		size := rand.IntN(maxPipeLength) + 3
+		return l.makeUpPipe(gridX, size)
 	case 1:
-		size := rand.IntN(3) + 3
-		return l.makeDownPipe(x, size)
+		size := rand.IntN(maxPipeLength) + 3
+		return l.makeDownPipe(gridX, size)
 	case 2:
 		width := rand.IntN(3) + 2
 		height := rand.IntN(2) + 1
 		position := rand.Float64()
-		return l.makeBlocks(x, width, height, position)
+		return l.makeBlocks(gridX, width, height, position)
 	}
 
 	return []*Tile{}
 }
 
-func (l *Level) makeUpPipe(x float64, height int) []*Tile {
+func (l *Level) makeUpPipe(x int, height int) []*Tile {
 	pipeTiles := []*Tile{}
-	ts := float64(l.tileSize)
-	groundLevel := float64(l.height-2) * ts
+	groundLevel := l.height - 2
 
 	for j := range height {
-		y := groundLevel - float64(j)*ts
+		y := groundLevel - j
 		left := l.makeTile(x, y, pipeMiddleLeft)
-		center := l.makeTile(x+ts, y, pipeMiddleCenter)
-		right := l.makeTile(x+2*ts, y, pipeMiddleRight)
+		center := l.makeTile(x+1, y, pipeMiddleCenter)
+		right := l.makeTile(x+2, y, pipeMiddleRight)
 		pipeTiles = append(pipeTiles, left, center, right)
 	}
 
-	y := groundLevel - float64(height)*ts
+	y := groundLevel - height
 	upLeft := l.makeTile(x, y, pipeUpLeft)
-	upCenter := l.makeTile(x+ts, y, pipeUpCenter)
-	upRight := l.makeTile(x+2*ts, y, pipeUpRight)
+	upCenter := l.makeTile(x+1, y, pipeUpCenter)
+	upRight := l.makeTile(x+2, y, pipeUpRight)
 	pipeTiles = append(pipeTiles, upLeft, upCenter, upRight)
 
 	return pipeTiles
 }
 
-func (l *Level) makeDownPipe(x float64, height int) []*Tile {
+func (l *Level) makeDownPipe(x int, height int) []*Tile {
 	pipeTiles := []*Tile{}
-	ts := float64(l.tileSize)
-	ceilingLevel := ts
+	const ceilingLevel = 1
 
 	for j := range height {
-		y := ceilingLevel + float64(j)*ts
+		y := ceilingLevel + j
 		left := l.makeTile(x, y, pipeMiddleLeft)
-		center := l.makeTile(x+ts, y, pipeMiddleCenter)
-		right := l.makeTile(x+2*ts, y, pipeMiddleRight)
+		center := l.makeTile(x+1, y, pipeMiddleCenter)
+		right := l.makeTile(x+2, y, pipeMiddleRight)
 		pipeTiles = append(pipeTiles, left, center, right)
 	}
 
-	y := ceilingLevel + float64(height)*ts
+	y := ceilingLevel + height
 	downLeft := l.makeTile(x, y, pipeDownLeft)
-	downCenter := l.makeTile(x+ts, y, pipeDownCenter)
-	downRight := l.makeTile(x+2*ts, y, pipeDownRight)
+	downCenter := l.makeTile(x+1, y, pipeDownCenter)
+	downRight := l.makeTile(x+2, y, pipeDownRight)
 	pipeTiles = append(pipeTiles, downLeft, downCenter, downRight)
 
 	return pipeTiles
 }
 
-func (l *Level) makeBlocks(x float64, width, height int, position float64) []*Tile {
+func (l *Level) makeBlocks(x int, width int, height int, position float64) []*Tile {
 	blockTiles := []*Tile{}
-	ts := float64(l.tileSize)
 	lo := 2
 	hi := l.height - 3 - height
 
-	startY := math.Floor(float64(lo)+position*float64(hi-lo)) * ts
+	// TODO: change to pure int, no floating point
+	startY := int(math.Floor(float64(lo) + position*float64(hi-lo)))
 
 	for i := range width {
 		for j := range height {
-			tx := x + float64(i)*ts
-			ty := startY + float64(j)*ts
+			tx := x + i
+			ty := startY + j
 			blk := l.makeTile(tx, ty, block)
 			blockTiles = append(blockTiles, blk)
 		}

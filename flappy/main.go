@@ -10,6 +10,13 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 	TileSize     = 16
+
+	WorldSize = 1000 // width in grid coordinates
+
+	Gravity               = 0.1
+	JumpVelocity          = -2.5
+	PlayerSpeed           = 1
+	BackgroundScrollSpeed = 0.25
 )
 
 func main() {
