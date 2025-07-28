@@ -15,7 +15,7 @@ type Game struct {
 	background *Background
 	tiles      []*Tile
 	items      []*Item
-	enemies    []*Enemy
+	enemies    []Enemy
 
 	// TODO: update to level generator
 	level *Level
@@ -23,10 +23,16 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.camera.Center(Location{X: g.player.Location.X - ScreenWidth/4, Y: 0})
-	g.level.Update(g.camera, &g.tiles)
+	g.level.Update(g.camera, &g.tiles, &g.items, &g.enemies)
 
 	g.background.Update()
 	g.player.Update()
+	for _, i := range g.items {
+		i.Update()
+	}
+	for _, e := range g.enemies {
+		e.Update()
+	}
 	return nil
 }
 
@@ -35,6 +41,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, t := range g.tiles {
 		t.Draw(g.camera, screen)
+	}
+	for _, i := range g.items {
+		i.Draw(g.camera, screen)
+	}
+	for _, e := range g.enemies {
+		e.Draw(g.camera, screen)
 	}
 
 	g.player.Draw(g.camera, screen)

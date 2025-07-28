@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -60,7 +61,6 @@ type Tile struct {
 }
 
 func (t *Tile) Draw(camera *Camera, screen *ebiten.Image) {
-	// TODO: check if on camera
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(t.X-camera.X, t.Y-camera.Y)
 	currImage := t.spriteSheet.image.SubImage(t.srcRect).(*ebiten.Image)
@@ -69,14 +69,51 @@ func (t *Tile) Draw(camera *Camera, screen *ebiten.Image) {
 
 type Item struct {
 	Location
-	image *ebiten.Image
-}
-
-type Enemy struct {
-	Location
-	Velocity
 	spriteSheet *SpriteSheet
 	animation   *Animation
+}
+
+func (i *Item) Update() {
+	i.animation.Update()
+}
+
+func (i *Item) Draw(camera *Camera, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(i.X-camera.X, i.Y-camera.Y)
+	subRect := i.spriteSheet.Rect(i.animation.Frame())
+	currImage := i.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
+}
+
+type Enemy interface {
+	Update()
+	Draw(camera *Camera, screen *ebiten.Image)
+}
+
+type Octo struct {
+	Location
+	spriteSheet *SpriteSheet
+	animation   *Animation
+	minY        float64
+	maxY        float64
+	t           float64
+	speed       float64
+}
+
+func (e *Octo) Update() {
+	mid := (e.minY + e.maxY) / 2
+	amplitude := (e.maxY - e.minY) / 2
+	e.t++
+	e.Y = mid + amplitude*math.Sin(e.t*e.speed)
+	e.animation.Update()
+}
+
+func (p *Octo) Draw(camera *Camera, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
+	subRect := p.spriteSheet.Rect(p.animation.Frame())
+	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
 }
 
 type Player struct {

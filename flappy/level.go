@@ -61,7 +61,33 @@ func (l *Level) makeTile(gridX int, gridY int, id int) *Tile {
 	}
 }
 
-func (l *Level) Update(camera *Camera, tiles *[]*Tile) {
+func makeCoin(gridX int, gridY int) *Item {
+	return &Item{
+		Location: Location{
+			X: float64(gridX) * TileSize,
+			Y: float64(gridY) * TileSize,
+		},
+		spriteSheet: NewSpriteSheet(CoinImage, TileSize, TileSize, 10, 1),
+		animation:   NewAnimation(0, 9, 10),
+	}
+}
+
+func (l *Level) makeOcto(gridX int) Enemy {
+	return &Octo{
+		Location: Location{
+			X: float64(gridX) * TileSize,
+			Y: ScreenHeight / 2,
+		},
+		spriteSheet: NewSpriteSheet(OctoImage, TileSize, TileSize, 2, 1),
+		animation:   NewAnimation(0, 1, 8),
+		minY:        float64(1 * TileSize),
+		maxY:        float64(l.height-2) * TileSize,
+		t:           rand.Float64() * 1000,
+		speed:       0.01,
+	}
+}
+
+func (l *Level) Update(camera *Camera, tiles *[]*Tile, items *[]*Item, enemies *[]Enemy) {
 	cameraMinX := camera.GetViewRect().Min.X
 	cameraMaxX := camera.GetViewRect().Max.X
 
@@ -89,9 +115,11 @@ func (l *Level) Update(camera *Camera, tiles *[]*Tile) {
 		*tiles = append(*tiles, ceiling)
 	}
 
-	// and an obstacle
-	obstacle := l.makeNewObstacle(newMaxGenX - 3)
-	*tiles = append(*tiles, obstacle...)
+	// TODO: rename function
+	obstacles, coins, octos := l.makeNewObstacle(newMaxGenX - 3)
+	*tiles = append(*tiles, obstacles...)
+	*items = append(*items, coins...)
+	*enemies = append(*enemies, octos...)
 
 	l.lastGenX = newMaxGenX
 }
@@ -118,7 +146,7 @@ func twoOrderedRandomNumbersInRange(lo int, hi int) (int, int) {
 	return x1, x2
 }
 
-func (l *Level) makeNewObstacle(gridX int) []*Tile {
+func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []*Item, []Enemy) {
 	// Figure out the next safe area, by perturbing the previous
 	// safe area.  This should keep the levels feasible for the player.
 	const MaxChange = 5
@@ -183,14 +211,24 @@ func (l *Level) makeNewObstacle(gridX int) []*Tile {
 	// 	tiles = append(tiles, debugTile)
 	// }
 
+	// Add coins
+	items := []*Item{}
 	// Add coin to a safe location.
-	// TODO: replace spike symbol with coin
 	coinY := nextSafeY + uniformRand(-SafeRadius+1, SafeRadius-1)
-	coin := l.makeTile(gridX+1, coinY, spike)
-	tiles = append(tiles, coin)
+	coin := makeCoin(gridX+1, coinY)
+	items = append(items, coin)
+
+	// Add enemies
+	enemies := []Enemy{}
+	makeEnemy := uniformRand(0, 1) == 0
+	if makeEnemy {
+		octoX := uniformRand(gridX, gridX+4)
+		octo := l.makeOcto(octoX)
+		enemies = append(enemies, octo)
+	}
 
 	l.lastSafeY = nextSafeY
-	return tiles
+	return tiles, items, enemies
 }
 
 func (l *Level) makeFloorPipe(x int, height int) []*Tile {
