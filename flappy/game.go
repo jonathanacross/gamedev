@@ -10,14 +10,18 @@ type Game struct {
 	player *Player
 
 	background *Background
-	tiles      []*Tile
+	ground     []*Tile
+	obstacles  []*Tile
 	items      []*Item
 	enemies    []*Enemy
+
+	// TODO: update to level generator
+	level *Level
 }
 
-var gameInstance = NewGame()
-
 func (g *Game) Update() error {
+	g.level.Update(&g.ground, &g.obstacles)
+
 	g.background.Update()
 	g.player.Update()
 	return nil
@@ -25,6 +29,14 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.background.Draw(screen)
+
+	for _, t := range g.ground {
+		t.Draw(screen)
+	}
+	for _, t := range g.obstacles {
+		t.Draw(screen)
+	}
+
 	g.player.Draw(screen)
 }
 
@@ -36,8 +48,10 @@ func NewGame() *Game {
 	return &Game{
 		player:     NewPlayer(),
 		background: NewBackground(),
-		tiles:      nil,
+		ground:     []*Tile{},
+		obstacles:  []*Tile{},
 		items:      nil,
 		enemies:    nil,
+		level:      NewLevel(),
 	}
 }

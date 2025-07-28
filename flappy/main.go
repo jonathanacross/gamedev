@@ -8,7 +8,8 @@ import (
 
 const (
 	ScreenWidth  = 384
-	ScreenHeight = 216
+	ScreenHeight = 240
+	TileSize     = 16
 )
 
 func main() {

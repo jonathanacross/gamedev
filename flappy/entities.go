@@ -1,12 +1,20 @@
 package main
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type Location struct {
 	X float64
 	Y float64
+}
+
+type Velocity struct {
+	Dx float64
+	Dy float64
 }
 
 type Background struct {
@@ -47,8 +55,15 @@ func (b *Background) Draw(screen *ebiten.Image) {
 
 type Tile struct {
 	Location
-	image   *ebiten.Image
-	isSolid bool
+	spriteSheet *SpriteSheet
+	srcRect     image.Rectangle
+}
+
+func (t *Tile) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(t.X, t.Y)
+	currImage := t.spriteSheet.image.SubImage(t.srcRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
 }
 
 type Item struct {
@@ -64,6 +79,7 @@ type Enemy struct {
 
 type Player struct {
 	Location
+	Velocity
 	spriteSheet SpriteSheet
 	animation   *Animation
 }
@@ -73,6 +89,10 @@ func NewPlayer() *Player {
 		Location: Location{
 			X: 50,
 			Y: 50,
+		},
+		Velocity: Velocity{
+			Dx: 0,
+			Dy: 0,
 		},
 		spriteSheet: SpriteSheet{
 			image:         PlayerImage,
@@ -86,6 +106,16 @@ func NewPlayer() *Player {
 }
 
 func (p *Player) Update() {
+	const gravity = 0.1
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		p.Dy = -2.5
+	}
+
+	p.Dy += gravity
+
+	p.X += p.Dx
+	p.Y += p.Dy
+
 	p.animation.Update()
 }
 
