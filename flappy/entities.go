@@ -3,8 +3,10 @@ package main
 import (
 	"image"
 	"math"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -67,6 +69,19 @@ func (t *Tile) Draw(camera *Camera, screen *ebiten.Image) {
 	screen.DrawImage(currImage, op)
 }
 
+func (t *Tile) HitRect() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(t.X),
+			Y: int(t.Y),
+		},
+		Max: image.Point{
+			X: int(t.X + TileSize),
+			Y: int(t.Y + TileSize),
+		},
+	}
+}
+
 type Item struct {
 	Location
 	spriteSheet *SpriteSheet
@@ -85,11 +100,25 @@ func (i *Item) Draw(camera *Camera, screen *ebiten.Image) {
 	screen.DrawImage(currImage, op)
 }
 
+func (t *Item) HitRect() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(t.X),
+			Y: int(t.Y),
+		},
+		Max: image.Point{
+			X: int(t.X + TileSize),
+			Y: int(t.Y + TileSize),
+		},
+	}
+}
+
 type Enemy interface {
 	GetX() float64
 	GetY() float64
 	Update()
 	Draw(camera *Camera, screen *ebiten.Image)
+	HitRect() image.Rectangle
 }
 
 type Octo struct {
@@ -118,6 +147,22 @@ func (p *Octo) Draw(camera *Camera, screen *ebiten.Image) {
 	screen.DrawImage(currImage, op)
 }
 
+func (e *Octo) GetX() float64 { return e.X }
+func (e *Octo) GetY() float64 { return e.Y }
+
+func (t *Octo) HitRect() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(t.X),
+			Y: int(t.Y),
+		},
+		Max: image.Point{
+			X: int(t.X + TileSize),
+			Y: int(t.Y + TileSize),
+		},
+	}
+}
+
 type Bee struct {
 	Location
 	spriteSheet *SpriteSheet
@@ -133,8 +178,18 @@ func (e *Bee) Update() {
 func (e *Bee) GetX() float64 { return e.X }
 func (e *Bee) GetY() float64 { return e.Y }
 
-func (e *Octo) GetX() float64 { return e.X }
-func (e *Octo) GetY() float64 { return e.Y }
+func (t *Bee) HitRect() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(t.X),
+			Y: int(t.Y),
+		},
+		Max: image.Point{
+			X: int(t.X + TileSize),
+			Y: int(t.Y + TileSize),
+		},
+	}
+}
 
 func (b *Bee) Draw(camera *Camera, screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
@@ -147,8 +202,12 @@ func (b *Bee) Draw(camera *Camera, screen *ebiten.Image) {
 type Player struct {
 	Location
 	Velocity
-	spriteSheet SpriteSheet
-	animation   *Animation
+	spriteSheet     SpriteSheet
+	animation       *Animation
+	health          int
+	invincible      bool
+	invincibleFrame int
+	invincibleTimer *Timer
 }
 
 func NewPlayer() *Player {
@@ -168,7 +227,11 @@ func NewPlayer() *Player {
 			widthInTiles:  8,
 			heightInTiles: 3,
 		},
-		animation: NewAnimation(8, 15, 5),
+		animation:       NewAnimation(8, 15, 5),
+		health:          3,
+		invincible:      false,
+		invincibleFrame: 0,
+		invincibleTimer: NewTimer(1500 * time.Millisecond),
 	}
 }
 
@@ -185,6 +248,14 @@ func (p *Player) Update() {
 
 	p.Dy += Gravity
 
+	if p.invincible {
+		p.invincibleFrame++
+		p.invincibleTimer.Update()
+		if p.invincibleTimer.IsReady() {
+			p.invincible = false
+		}
+	}
+
 	p.X += p.Dx
 	p.Y += p.Dy
 
@@ -192,9 +263,41 @@ func (p *Player) Update() {
 }
 
 func (p *Player) Draw(camera *Camera, screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
+	op := &colorm.DrawImageOptions{}
 	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
+
+	cm := colorm.ColorM{}
+	if p.invincible && ((p.invincibleFrame/5)%2 == 0) {
+		// Change the color of the sprite to pure white
+		cm.Translate(1.0, 1.0, 1.0, 0.0)
+	}
+
 	subRect := p.spriteSheet.Rect(p.animation.Frame())
 	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
-	screen.DrawImage(currImage, op)
+	colorm.DrawImage(screen, currImage, cm, op)
+}
+
+func (t *Player) HitRect() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(t.X),
+			Y: int(t.Y),
+		},
+		Max: image.Point{
+			X: int(t.X + TileSize),
+			Y: int(t.Y + TileSize),
+		},
+	}
+}
+
+func (p *Player) DoHit() {
+	if p.invincible {
+		return
+	}
+
+	p.health--
+
+	p.invincible = true
+	p.invincibleFrame = 0
+	p.invincibleTimer.Reset()
 }

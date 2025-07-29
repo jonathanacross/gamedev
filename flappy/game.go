@@ -19,11 +19,36 @@ type Game struct {
 
 	// TODO: update to level generator
 	level *Level
+
+	score int
+}
+
+func (g *Game) CheckCollisions() {
+	for _, t := range g.tiles {
+		if t.HitRect().Overlaps(g.player.HitRect()) {
+			g.player.DoHit()
+		}
+	}
+	for _, e := range g.enemies {
+		if e.HitRect().Overlaps(g.player.HitRect()) {
+			g.player.DoHit()
+		}
+	}
+
+	for j, item := range g.items {
+		if item.HitRect().Overlaps(g.player.HitRect()) {
+			g.items = append(g.items[:j], g.items[j+1:]...)
+			g.score++
+		}
+	}
+
 }
 
 func (g *Game) Update() error {
 	g.camera.Center(Location{X: g.player.Location.X - ScreenWidth/4, Y: 0})
 	g.level.Update(g.camera, &g.tiles, &g.items, &g.enemies)
+
+	g.CheckCollisions()
 
 	g.background.Update()
 	g.player.Update()
@@ -65,5 +90,6 @@ func NewGame() *Game {
 		items:      nil,
 		enemies:    nil,
 		level:      NewLevel(),
+		score:      0,
 	}
 }
