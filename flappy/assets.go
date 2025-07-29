@@ -8,6 +8,7 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -22,6 +23,7 @@ var OctoImage = loadImage("assets/octopus.png")
 var BeeImage = loadImage("assets/bee.png")
 var HeartImage = loadImage("assets/heart.png")
 var ArcadeFaceSource = loadFaceSource("assets/pressstart2p.ttf")
+var Music = loadSound("assets/meditating_beat.mp3")
 
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
@@ -49,4 +51,18 @@ func loadFaceSource(name string) *text.GoTextFaceSource {
 		panic(err)
 	}
 	return face
+}
+
+func loadSound(name string) *mp3.Stream {
+	content, err := assets.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	soundStream, err := mp3.DecodeWithoutResampling(bytes.NewReader(content))
+	if err != nil {
+		panic(err)
+	}
+
+	return soundStream
 }

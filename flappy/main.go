@@ -12,12 +12,11 @@ const (
 	TileSize     = 16
 	ScoreOffset  = 3
 
-	WorldSize = 1000 // width in grid coordinates
-
 	Gravity               = 0.1
 	JumpVelocity          = -2.5
 	PlayerSpeed           = 1
 	BackgroundScrollSpeed = 0.25
+	PlayerMaxHealth       = 3
 )
 
 func main() {

@@ -215,7 +215,7 @@ func NewPlayer() *Player {
 	return &Player{
 		Location: Location{
 			X: ScreenWidth / 2,
-			Y: ScreenHeight / 2,
+			Y: 3 * TileSize,
 		},
 		Velocity: Velocity{
 			Dx: PlayerSpeed,
@@ -229,8 +229,8 @@ func NewPlayer() *Player {
 			heightInTiles: 3,
 		},
 		animation:       NewAnimation(8, 15, 5),
-		maxHealth:       3,
-		health:          3,
+		maxHealth:       PlayerMaxHealth,
+		health:          PlayerMaxHealth,
 		invincible:      false,
 		invincibleFrame: 0,
 		invincibleTimer: NewTimer(1500 * time.Millisecond),
