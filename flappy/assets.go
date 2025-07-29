@@ -18,6 +18,7 @@ var TerrainImage = loadImage("assets/terrain.png")
 var CoinImage = loadImage("assets/coin.png")
 var OctoImage = loadImage("assets/octopus.png")
 var BeeImage = loadImage("assets/bee.png")
+var HeartImage = loadImage("assets/heart.png")
 
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)

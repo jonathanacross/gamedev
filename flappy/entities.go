@@ -204,6 +204,7 @@ type Player struct {
 	Velocity
 	spriteSheet     SpriteSheet
 	animation       *Animation
+	maxHealth       int
 	health          int
 	invincible      bool
 	invincibleFrame int
@@ -228,6 +229,7 @@ func NewPlayer() *Player {
 			heightInTiles: 3,
 		},
 		animation:       NewAnimation(8, 15, 5),
+		maxHealth:       3,
 		health:          3,
 		invincible:      false,
 		invincibleFrame: 0,
@@ -275,6 +277,14 @@ func (p *Player) Draw(camera *Camera, screen *ebiten.Image) {
 	subRect := p.spriteSheet.Rect(p.animation.Frame())
 	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
 	colorm.DrawImage(screen, currImage, cm, op)
+
+	// Draw player life
+	for i := range p.maxHealth {
+		x := float64(7 + i*HeartWidth)
+		y := float64(7)
+		filled := i < p.health
+		DrawHeart(screen, x, y, filled)
+	}
 }
 
 func (t *Player) HitRect() image.Rectangle {
