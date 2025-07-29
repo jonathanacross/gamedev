@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"image/color"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 type Game struct {
@@ -61,6 +64,21 @@ func (g *Game) Update() error {
 	return nil
 }
 
+func (g *Game) drawScore(screen *ebiten.Image) {
+	op := &text.DrawOptions{}
+	fontSize := float64(8)
+	op.GeoM.Translate(ScreenWidth/2, ScoreOffset+1)
+	op.ColorScale.ScaleWithColor(color.White)
+	op.LineSpacing = fontSize
+	op.PrimaryAlign = text.AlignCenter
+
+	scoreText := fmt.Sprintf("%05d", g.score)
+	text.Draw(screen, scoreText, &text.GoTextFace{
+		Source: ArcadeFaceSource,
+		Size:   fontSize,
+	}, op)
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.background.Draw(screen)
 
@@ -75,6 +93,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	g.player.Draw(g.camera, screen)
+	g.drawScore(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

@@ -10,6 +10,7 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 	TileSize     = 16
+	ScoreOffset  = 3
 
 	WorldSize = 1000 // width in grid coordinates
 

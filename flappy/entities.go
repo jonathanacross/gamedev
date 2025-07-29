@@ -280,8 +280,8 @@ func (p *Player) Draw(camera *Camera, screen *ebiten.Image) {
 
 	// Draw player life
 	for i := range p.maxHealth {
-		x := float64(7 + i*HeartWidth)
-		y := float64(7)
+		x := float64(2*ScoreOffset + i*HeartWidth)
+		y := float64(ScoreOffset)
 		filled := i < p.health
 		DrawHeart(screen, x, y, filled)
 	}
