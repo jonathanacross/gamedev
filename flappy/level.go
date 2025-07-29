@@ -87,6 +87,18 @@ func (l *Level) makeOcto(gridX int) Enemy {
 	}
 }
 
+func (l *Level) makeBee(gridX int, gridY int) Enemy {
+	return &Bee{
+		Location: Location{
+			X: float64(gridX) * TileSize,
+			Y: float64(gridY) * TileSize,
+		},
+		spriteSheet: NewSpriteSheet(BeeImage, TileSize, TileSize, 2, 1),
+		animation:   NewAnimation(0, 1, 8),
+		speed:       1,
+	}
+}
+
 func (l *Level) Update(camera *Camera, tiles *[]*Tile, items *[]*Item, enemies *[]Enemy) {
 	cameraMinX := camera.GetViewRect().Min.X
 	cameraMaxX := camera.GetViewRect().Max.X
@@ -94,6 +106,12 @@ func (l *Level) Update(camera *Camera, tiles *[]*Tile, items *[]*Item, enemies *
 	// Remove any old stuff that has gone offscreen.
 	*tiles = slices.DeleteFunc(*tiles, func(t *Tile) bool {
 		return t.X < float64(cameraMinX)-2*TileSize
+	})
+	*items = slices.DeleteFunc(*items, func(t *Item) bool {
+		return t.X < float64(cameraMinX)-2*TileSize
+	})
+	*enemies = slices.DeleteFunc(*enemies, func(t Enemy) bool {
+		return t.GetX() < float64(cameraMinX)-2*TileSize
 	})
 
 	// Check camera
@@ -222,9 +240,17 @@ func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []*Item, []Enemy) {
 	enemies := []Enemy{}
 	makeEnemy := uniformRand(0, 1) == 0
 	if makeEnemy {
-		octoX := uniformRand(gridX, gridX+4)
-		octo := l.makeOcto(octoX)
-		enemies = append(enemies, octo)
+		makeBee := uniformRand(0, 1) == 0
+		if makeBee {
+			beeX := gridX + 5
+			beeY := uniformRand(safeTop, safeBottom)
+			bee := l.makeBee(beeX, beeY)
+			enemies = append(enemies, bee)
+		} else {
+			octoX := uniformRand(gridX, gridX+4)
+			octo := l.makeOcto(octoX)
+			enemies = append(enemies, octo)
+		}
 	}
 
 	l.lastSafeY = nextSafeY

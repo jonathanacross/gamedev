@@ -86,6 +86,8 @@ func (i *Item) Draw(camera *Camera, screen *ebiten.Image) {
 }
 
 type Enemy interface {
+	GetX() float64
+	GetY() float64
 	Update()
 	Draw(camera *Camera, screen *ebiten.Image)
 }
@@ -113,6 +115,32 @@ func (p *Octo) Draw(camera *Camera, screen *ebiten.Image) {
 	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
 	subRect := p.spriteSheet.Rect(p.animation.Frame())
 	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
+}
+
+type Bee struct {
+	Location
+	spriteSheet *SpriteSheet
+	animation   *Animation
+	speed       float64
+}
+
+func (e *Bee) Update() {
+	e.X -= e.speed
+	e.animation.Update()
+}
+
+func (e *Bee) GetX() float64 { return e.X }
+func (e *Bee) GetY() float64 { return e.Y }
+
+func (e *Octo) GetX() float64 { return e.X }
+func (e *Octo) GetY() float64 { return e.Y }
+
+func (b *Bee) Draw(camera *Camera, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(b.X-camera.X, b.Y-camera.Y)
+	subRect := b.spriteSheet.Rect(b.animation.Frame())
+	currImage := b.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
 
