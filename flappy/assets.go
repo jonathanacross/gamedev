@@ -22,6 +22,7 @@ var CoinImage = loadImage("assets/coin.png")
 var OctoImage = loadImage("assets/octopus.png")
 var BeeImage = loadImage("assets/bee.png")
 var HeartImage = loadImage("assets/heart.png")
+var HeartItemImage = loadImage("assets/heart_item.png")
 var ArcadeFaceSource = loadFaceSource("assets/pressstart2p.ttf")
 var Music = loadSound("assets/meditating_beat.mp3")
 

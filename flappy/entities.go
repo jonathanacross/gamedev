@@ -82,25 +82,40 @@ func (t *Tile) HitRect() image.Rectangle {
 	}
 }
 
-type Item struct {
+type Item interface {
+	GetX() float64
+	GetY() float64
+	Update()
+	Draw(camera *Camera, screen *ebiten.Image)
+	HitRect() image.Rectangle
+	UseItem(g *Game)
+}
+
+type CoinItem struct {
 	Location
 	spriteSheet *SpriteSheet
 	animation   *Animation
 }
 
-func (i *Item) Update() {
+func (i *CoinItem) Update() {
 	i.animation.Update()
 }
 
-func (i *Item) Draw(camera *Camera, screen *ebiten.Image) {
+func (p *CoinItem) Draw(camera *Camera, screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(i.X-camera.X, i.Y-camera.Y)
-	subRect := i.spriteSheet.Rect(i.animation.Frame())
-	currImage := i.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
+	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
+	subRect := p.spriteSheet.Rect(p.animation.Frame())
+	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
 
-func (t *Item) HitRect() image.Rectangle {
+func (e *CoinItem) UseItem(g *Game) {
+	g.score++
+}
+
+func (e *CoinItem) GetX() float64 { return e.X }
+func (e *CoinItem) GetY() float64 { return e.Y }
+func (t *CoinItem) HitRect() image.Rectangle {
 	return image.Rectangle{
 		Min: image.Point{
 			X: int(t.X),
@@ -112,6 +127,74 @@ func (t *Item) HitRect() image.Rectangle {
 		},
 	}
 }
+
+type HeartItem struct {
+	Location
+	spriteSheet *SpriteSheet
+	animation   *Animation
+}
+
+func (i *HeartItem) Update() {
+	i.animation.Update()
+}
+
+func (p *HeartItem) Draw(camera *Camera, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
+	subRect := p.spriteSheet.Rect(p.animation.Frame())
+	currImage := p.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
+}
+
+func (e *HeartItem) UseItem(g *Game) {
+	g.player.AddHeath()
+}
+
+func (e *HeartItem) GetX() float64 { return e.X }
+func (e *HeartItem) GetY() float64 { return e.Y }
+func (t *HeartItem) HitRect() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(t.X),
+			Y: int(t.Y),
+		},
+		Max: image.Point{
+			X: int(t.X + TileSize),
+			Y: int(t.Y + TileSize),
+		},
+	}
+}
+
+// type Item struct {
+// 	Location
+// 	spriteSheet *SpriteSheet
+// 	animation   *Animation
+// }
+//
+// func (i *Item) Update() {
+// 	i.animation.Update()
+// }
+
+// func (i *Item) Draw(camera *Camera, screen *ebiten.Image) {
+// 	op := &ebiten.DrawImageOptions{}
+// 	op.GeoM.Translate(i.X-camera.X, i.Y-camera.Y)
+// 	subRect := i.spriteSheet.Rect(i.animation.Frame())
+// 	currImage := i.spriteSheet.image.SubImage(subRect).(*ebiten.Image)
+// 	screen.DrawImage(currImage, op)
+// }
+
+// func (t *Item) HitRect() image.Rectangle {
+// 	return image.Rectangle{
+// 		Min: image.Point{
+// 			X: int(t.X),
+// 			Y: int(t.Y),
+// 		},
+// 		Max: image.Point{
+// 			X: int(t.X + TileSize),
+// 			Y: int(t.Y + TileSize),
+// 		},
+// 	}
+// }
 
 type Enemy interface {
 	GetX() float64
@@ -310,4 +393,11 @@ func (p *Player) DoHit() {
 	p.invincible = true
 	p.invincibleFrame = 0
 	p.invincibleTimer.Reset()
+}
+
+func (p *Player) AddHeath() {
+	p.health++
+	if p.health > p.maxHealth {
+		p.health = p.maxHealth
+	}
 }

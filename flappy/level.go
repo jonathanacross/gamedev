@@ -17,6 +17,9 @@ type Level struct {
 	lastSafeY int
 
 	spriteSheet *SpriteSheet
+
+	// how many coins we've generated
+	coinCounter int
 }
 
 const (
@@ -47,6 +50,7 @@ func NewLevel() *Level {
 		lastGenX:    0,
 		lastSafeY:   height / 2,
 		spriteSheet: NewSpriteSheet(TerrainImage, TileSize, TileSize, 6, 3),
+		coinCounter: 0,
 	}
 }
 
@@ -61,14 +65,25 @@ func (l *Level) makeTile(gridX int, gridY int, id int) *Tile {
 	}
 }
 
-func makeCoin(gridX int, gridY int) *Item {
-	return &Item{
+func makeCoin(gridX int, gridY int) Item {
+	return &CoinItem{
 		Location: Location{
 			X: float64(gridX) * TileSize,
 			Y: float64(gridY) * TileSize,
 		},
 		spriteSheet: NewSpriteSheet(CoinImage, TileSize, TileSize, 10, 1),
 		animation:   NewAnimation(0, 9, 10),
+	}
+}
+
+func makeHeart(gridX int, gridY int) Item {
+	return &HeartItem{
+		Location: Location{
+			X: float64(gridX) * TileSize,
+			Y: float64(gridY) * TileSize,
+		},
+		spriteSheet: NewSpriteSheet(HeartItemImage, TileSize, TileSize, 2, 1),
+		animation:   NewAnimation(0, 1, 10),
 	}
 }
 
@@ -99,16 +114,16 @@ func (l *Level) makeBee(gridX int, gridY int) Enemy {
 	}
 }
 
-func (l *Level) Update(camera *Camera, tiles *[]*Tile, items *[]*Item, enemies *[]Enemy) {
+func (l *Level) Update(camera *Camera, tiles *[]*Tile, items *[]Item, enemies *[]Enemy) {
 	cameraMinX := camera.GetViewRect().Min.X
 	cameraMaxX := camera.GetViewRect().Max.X
 
-	// Remove any old stuff that has gone offscreen.
+	// Remove things that have gone off screen.
 	*tiles = slices.DeleteFunc(*tiles, func(t *Tile) bool {
 		return t.X < float64(cameraMinX)-2*TileSize
 	})
-	*items = slices.DeleteFunc(*items, func(t *Item) bool {
-		return t.X < float64(cameraMinX)-2*TileSize
+	*items = slices.DeleteFunc(*items, func(t Item) bool {
+		return t.GetX() < float64(cameraMinX)-2*TileSize
 	})
 	*enemies = slices.DeleteFunc(*enemies, func(t Enemy) bool {
 		return t.GetX() < float64(cameraMinX)-2*TileSize
@@ -164,7 +179,7 @@ func twoOrderedRandomNumbersInRange(lo int, hi int) (int, int) {
 	return x1, x2
 }
 
-func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []*Item, []Enemy) {
+func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []Item, []Enemy) {
 	// Figure out the next safe area, by perturbing the previous
 	// safe area.  This should keep the levels feasible for the player.
 	const MaxChange = 5
@@ -202,7 +217,7 @@ func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []*Item, []Enemy) {
 			ceilPipe := l.makeCeilingPipe(gridX, ceilPipeLen)
 			tiles = append(tiles, ceilPipe...)
 		} else {
-			blockWidth := uniformRand(3, 5)
+			blockWidth := uniformRand(2, 4)
 			blockLo, blockHi := twoOrderedRandomNumbersInRange(ceilingLevel, safeTop-1)
 			ceilBlocks := l.makeBlocks(gridX, blockWidth, blockLo, blockHi)
 			tiles = append(tiles, ceilBlocks...)
@@ -229,12 +244,21 @@ func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []*Item, []Enemy) {
 	// 	tiles = append(tiles, debugTile)
 	// }
 
-	// Add coins
-	items := []*Item{}
+	// Add item
+	items := []Item{}
 	// Add coin to a safe location.
-	coinY := nextSafeY + uniformRand(-SafeRadius+1, SafeRadius-1)
-	coin := makeCoin(gridX+1, coinY)
-	items = append(items, coin)
+	itemX := gridX + 1
+	itemY := nextSafeY + uniformRand(-SafeRadius+1, SafeRadius-1)
+	if l.coinCounter == DropHeartsEveryNCoins {
+		// we've made 20 coins, make a heart to ease the player's life
+		l.coinCounter = 0
+		heart := makeHeart(itemX, itemY)
+		items = append(items, heart)
+	} else {
+		l.coinCounter++
+		coin := makeCoin(itemX, itemY)
+		items = append(items, coin)
+	}
 
 	// Add enemies
 	enemies := []Enemy{}

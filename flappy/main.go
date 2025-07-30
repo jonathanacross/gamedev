@@ -17,6 +17,7 @@ const (
 	PlayerSpeed           = 1
 	BackgroundScrollSpeed = 0.25
 	PlayerMaxHealth       = 3
+	DropHeartsEveryNCoins = 20
 )
 
 func main() {

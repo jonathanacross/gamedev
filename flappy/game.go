@@ -28,7 +28,7 @@ type Game struct {
 
 	background *Background
 	tiles      []*Tile
-	items      []*Item
+	items      []Item
 	enemies    []Enemy
 
 	// TODO: update to level generator
@@ -52,8 +52,8 @@ func (g *Game) CheckCollisions() {
 
 	for j, item := range g.items {
 		if item.HitRect().Overlaps(g.player.HitRect()) {
+			item.UseItem(g)
 			g.items = append(g.items[:j], g.items[j+1:]...)
-			g.score++
 		}
 	}
 }
