@@ -5,6 +5,7 @@ import (
 	"slices"
 )
 
+// Level manages the procedural generation of game obstacles, items, and enemies.
 type Level struct {
 	// view in grid coords
 	height int
@@ -22,6 +23,7 @@ type Level struct {
 	coinCounter int
 }
 
+// Constants for tile sprite sheet indices.
 const (
 	grassUp          = 0
 	block            = 1
@@ -33,14 +35,14 @@ const (
 	pipeDownLeft     = 9
 	pipeDownCenter   = 10
 	pipeDownRight    = 11
-	target           = 14
+	target           = 14 // For debug or special markers
 	pipeMiddleLeft   = 15
 	pipeMiddleCenter = 16
 	pipeMiddleRight  = 17
 )
 
+// NewLevel creates and initializes a new Level generator.
 func NewLevel() *Level {
-
 	height := ScreenHeight / TileSize
 	width := ScreenWidth / TileSize
 
@@ -48,121 +50,135 @@ func NewLevel() *Level {
 		height:      height,
 		width:       width,
 		lastGenX:    0,
-		lastSafeY:   height / 2,
+		lastSafeY:   height / 2, // Start with a safe vertical position in the middle
 		spriteSheet: NewSpriteSheet(TerrainImage, TileSize, TileSize, 6, 3),
 		coinCounter: 0,
 	}
 }
 
+// makeTile creates a new Tile entity at the given grid coordinates with the specified sprite ID.
 func (l *Level) makeTile(gridX int, gridY int, id int) *Tile {
+	ss := l.spriteSheet
 	return &Tile{
-		Location: Location{
-			X: float64(gridX) * TileSize,
-			Y: float64(gridY) * TileSize,
-		},
-		spriteSheet: l.spriteSheet,
-		srcRect:     l.spriteSheet.Rect(id),
+		BaseSprite: NewBaseSprite(
+			float64(gridX)*TileSize,
+			float64(gridY)*TileSize,
+			ss,
+			ss.Rect(id),
+		),
 	}
 }
 
+// makeCoin creates a new CoinItem entity at the given grid coordinates.
 func makeCoin(gridX int, gridY int) Item {
+	coinSS := NewSpriteSheet(CoinImage, TileSize, TileSize, 10, 1)
+	anim := NewAnimation(0, 9, 10)
 	return &CoinItem{
-		Location: Location{
-			X: float64(gridX) * TileSize,
-			Y: float64(gridY) * TileSize,
-		},
-		spriteSheet: NewSpriteSheet(CoinImage, TileSize, TileSize, 10, 1),
-		animation:   NewAnimation(0, 9, 10),
+		AnimatedSprite: NewAnimatedSprite(
+			float64(gridX)*TileSize,
+			float64(gridY)*TileSize,
+			coinSS,
+			anim,
+		),
 	}
 }
 
+// makeHeart creates a new HeartItem entity at the given grid coordinates.
 func makeHeart(gridX int, gridY int) Item {
+	heartSS := NewSpriteSheet(HeartItemImage, TileSize, TileSize, 2, 1)
+	anim := NewAnimation(0, 1, 10)
 	return &HeartItem{
-		Location: Location{
-			X: float64(gridX) * TileSize,
-			Y: float64(gridY) * TileSize,
-		},
-		spriteSheet: NewSpriteSheet(HeartItemImage, TileSize, TileSize, 2, 1),
-		animation:   NewAnimation(0, 1, 10),
+		AnimatedSprite: NewAnimatedSprite(
+			float64(gridX)*TileSize,
+			float64(gridY)*TileSize,
+			heartSS,
+			anim,
+		),
 	}
 }
 
+// makeOcto creates a new Octo enemy entity at the given grid X coordinate.
 func (l *Level) makeOcto(gridX int) Enemy {
+	octoSS := NewSpriteSheet(OctoImage, TileSize, TileSize, 2, 1)
+	anim := NewAnimation(0, 1, 8)
 	return &Octo{
-		Location: Location{
-			X: float64(gridX) * TileSize,
-			Y: ScreenHeight / 2,
-		},
-		spriteSheet: NewSpriteSheet(OctoImage, TileSize, TileSize, 2, 1),
-		animation:   NewAnimation(0, 1, 8),
-		minY:        float64(1 * TileSize),
-		maxY:        float64(l.height-2) * TileSize,
-		t:           rand.Float64() * 1000,
-		speed:       0.01,
+		AnimatedSprite: NewAnimatedSprite(
+			float64(gridX)*TileSize,
+			ScreenHeight/2, // Initial Y, will be adjusted by Octo's update logic
+			octoSS,
+			anim,
+		),
+		minY:  float64(1 * TileSize),
+		maxY:  float64(l.height-2) * TileSize,
+		t:     rand.Float64() * 1000, // Random starting point for sine wave
+		speed: 0.01,
 	}
 }
 
+// makeBee creates a new Bee enemy entity at the given grid coordinates.
 func (l *Level) makeBee(gridX int, gridY int) Enemy {
+	beeSS := NewSpriteSheet(BeeImage, TileSize, TileSize, 2, 1)
+	anim := NewAnimation(0, 1, 8)
 	return &Bee{
-		Location: Location{
-			X: float64(gridX) * TileSize,
-			Y: float64(gridY) * TileSize,
-		},
-		spriteSheet: NewSpriteSheet(BeeImage, TileSize, TileSize, 2, 1),
-		animation:   NewAnimation(0, 1, 8),
-		speed:       1,
+		AnimatedSprite: NewAnimatedSprite(
+			float64(gridX)*TileSize,
+			float64(gridY)*TileSize,
+			beeSS,
+			anim,
+		),
+		speed: 1, // Horizontal speed
 	}
 }
 
+// Update manages the level's procedural generation, adding new content as the camera moves.
 func (l *Level) Update(camera *Camera, tiles *[]*Tile, items *[]Item, enemies *[]Enemy) {
 	cameraMinX := camera.GetViewRect().Min.X
 	cameraMaxX := camera.GetViewRect().Max.X
 
-	// Remove things that have gone off screen.
+	// Remove entities that have gone off-screen to save memory and processing.
 	*tiles = slices.DeleteFunc(*tiles, func(t *Tile) bool {
 		return t.X < float64(cameraMinX)-2*TileSize
 	})
-	*items = slices.DeleteFunc(*items, func(t Item) bool {
-		return t.GetX() < float64(cameraMinX)-2*TileSize
+	*items = slices.DeleteFunc(*items, func(i Item) bool {
+		return i.GetX() < float64(cameraMinX)-2*TileSize
 	})
-	*enemies = slices.DeleteFunc(*enemies, func(t Enemy) bool {
-		return t.GetX() < float64(cameraMinX)-2*TileSize
+	*enemies = slices.DeleteFunc(*enemies, func(e Enemy) bool {
+		return e.GetX() < float64(cameraMinX)-2*TileSize
 	})
 
-	// Check camera
+	// Determine if new content needs to be generated.
 	requiredGenX := (cameraMaxX / TileSize) + 1
 	if l.lastGenX >= requiredGenX {
-		return
+		return // No generation needed yet
 	}
 
-	// Camera is close to edge of world; create more stuff.
-
+	// Generate new content for the level.
 	widthToGenerate := requiredGenX - l.lastGenX + 5
 	newMaxGenX := l.lastGenX + widthToGenerate
 
-	// add some floor/ceiling
+	// Add floor and ceiling tiles for the newly generated width.
 	for x := l.lastGenX + 1; x <= newMaxGenX; x++ {
 		floor := l.makeTile(x, l.height-1, grassUp)
 		ceiling := l.makeTile(x, 0, grassDown)
-		*tiles = append(*tiles, floor)
-		*tiles = append(*tiles, ceiling)
+		*tiles = append(*tiles, floor, ceiling)
 	}
 
-	// TODO: rename function
-	obstacles, coins, octos := l.makeNewObstacle(newMaxGenX - 3)
+	// Generate obstacles, coins, and enemies for the new section.
+	obstacles, coins, octos := l.makeNewObstacle(newMaxGenX - 3) // Adjust X for obstacle placement
 	*tiles = append(*tiles, obstacles...)
 	*items = append(*items, coins...)
 	*enemies = append(*enemies, octos...)
 
-	l.lastGenX = newMaxGenX
+	l.lastGenX = newMaxGenX // Update the last generated column
 }
 
-// generates a number from lo to hi, inclusive
-func uniformRand(lo int, hi int) int {
+// uniformRandInt generates a random integer between lo and hi, inclusive.
+func uniformRandInt(lo int, hi int) int {
 	return lo + rand.IntN(hi-lo+1)
 }
 
-func twoOrderedRandomNumbersInRange(lo int, hi int) (int, int) {
+// twoOrderedRandomIntsInRange generates two random integers within a range, ensuring x1 <= x2.
+func twoOrderedRandomIntsInRange(lo int, hi int) (int, int) {
 	if hi < lo {
 		return 0, -1
 	}
@@ -170,8 +186,8 @@ func twoOrderedRandomNumbersInRange(lo int, hi int) (int, int) {
 		return lo, hi
 	}
 
-	x1 := uniformRand(lo, hi)
-	x2 := uniformRand(lo, hi)
+	x1 := uniformRandInt(lo, hi)
+	x2 := uniformRandInt(lo, hi)
 	if x2 < x1 {
 		x1, x2 = x2, x1
 	}
@@ -179,9 +195,10 @@ func twoOrderedRandomNumbersInRange(lo int, hi int) (int, int) {
 	return x1, x2
 }
 
+// makeNewObstacle generates a section of the level including obstacles, items, and enemies.
 func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []Item, []Enemy) {
-	// Figure out the next safe area, by perturbing the previous
-	// safe area.  This should keep the levels feasible for the player.
+	// Figure out the next safe area for the player by perturbing the previous safe area.
+	// This ensures the level remains traversable.
 	const MaxChange = 5
 	const SafeRadius = 2
 	groundLevel := l.height - 3
@@ -192,7 +209,7 @@ func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []Item, []Enemy) {
 	} else if l.lastSafeY >= groundLevel-SafeRadius {
 		nextSafeY = l.lastSafeY - MaxChange
 	} else {
-		nextSafeY = l.lastSafeY + uniformRand(-MaxChange, MaxChange)
+		nextSafeY = l.lastSafeY + uniformRandInt(-MaxChange, MaxChange)
 		if nextSafeY > groundLevel-SafeRadius {
 			nextSafeY = groundLevel - SafeRadius
 		}
@@ -206,51 +223,43 @@ func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []Item, []Enemy) {
 	// Add obstacles
 	tiles := []*Tile{}
 
-	obstacleLocs := uniformRand(0, 2)
+	obstacleLocs := uniformRandInt(0, 2) // 0: ceiling, 1: floor, 2: both
 	addCeilingObstacle := obstacleLocs == 0 || obstacleLocs == 2
 	addFloorObstacle := obstacleLocs == 1 || obstacleLocs == 2
 
 	if addCeilingObstacle {
-		addPipe := uniformRand(0, 1) == 0
+		addPipe := uniformRandInt(0, 1) == 0 // Randomly choose between pipe or blocks
 		if addPipe {
 			ceilPipeLen := safeTop - ceilingLevel + 1
 			ceilPipe := l.makeCeilingPipe(gridX, ceilPipeLen)
 			tiles = append(tiles, ceilPipe...)
 		} else {
-			blockWidth := uniformRand(2, 4)
-			blockLo, blockHi := twoOrderedRandomNumbersInRange(ceilingLevel, safeTop-1)
+			blockWidth := uniformRandInt(1, 4)
+			blockLo, blockHi := twoOrderedRandomIntsInRange(ceilingLevel, safeTop-1)
 			ceilBlocks := l.makeBlocks(gridX, blockWidth, blockLo, blockHi)
 			tiles = append(tiles, ceilBlocks...)
 		}
 	}
 
 	if addFloorObstacle {
-		addPipe := uniformRand(0, 1) == 0
+		addPipe := uniformRandInt(0, 1) == 0 // Randomly choose between pipe or blocks
 		if addPipe {
 			floorPipeLen := groundLevel - safeBottom + 1
 			floorPipe := l.makeFloorPipe(gridX, floorPipeLen)
 			tiles = append(tiles, floorPipe...)
 		} else {
-			blockWidth := uniformRand(3, 5)
-			blockLo, blockHi := twoOrderedRandomNumbersInRange(safeBottom+1, groundLevel)
+			blockWidth := uniformRandInt(1, 4)
+			blockLo, blockHi := twoOrderedRandomIntsInRange(safeBottom+1, groundLevel)
 			floorBlocks := l.makeBlocks(gridX, blockWidth, blockLo, blockHi)
 			tiles = append(tiles, floorBlocks...)
 		}
 	}
 
-	// debug: show safe path
-	// for j := safeTop; j <= safeBottom; j++ {
-	// 	debugTile := l.makeTile(gridX+1, j, target)
-	// 	tiles = append(tiles, debugTile)
-	// }
-
-	// Add item
+	// Add item (coin or heart) to a safe location.
 	items := []Item{}
-	// Add coin to a safe location.
 	itemX := gridX + 1
-	itemY := nextSafeY + uniformRand(-SafeRadius+1, SafeRadius-1)
+	itemY := nextSafeY + uniformRandInt(-SafeRadius+1, SafeRadius-1)
 	if l.coinCounter == DropHeartsEveryNCoins {
-		// we've made 20 coins, make a heart to ease the player's life
 		l.coinCounter = 0
 		heart := makeHeart(itemX, itemY)
 		items = append(items, heart)
@@ -262,30 +271,32 @@ func (l *Level) makeNewObstacle(gridX int) ([]*Tile, []Item, []Enemy) {
 
 	// Add enemies
 	enemies := []Enemy{}
-	makeEnemy := uniformRand(0, 1) == 0
+	makeEnemy := uniformRandInt(0, 1) == 0 // 50% chance to make an enemy
 	if makeEnemy {
-		makeBee := uniformRand(0, 1) == 0
+		makeBee := uniformRandInt(0, 1) == 0 // Randomly choose between Bee or Octo
 		if makeBee {
 			beeX := gridX + 5
-			beeY := uniformRand(safeTop, safeBottom)
+			beeY := uniformRandInt(safeTop, safeBottom)
 			bee := l.makeBee(beeX, beeY)
 			enemies = append(enemies, bee)
 		} else {
-			octoX := uniformRand(gridX, gridX+4)
+			octoX := uniformRandInt(gridX, gridX+4)
 			octo := l.makeOcto(octoX)
 			enemies = append(enemies, octo)
 		}
 	}
 
-	l.lastSafeY = nextSafeY
+	l.lastSafeY = nextSafeY // Update the last safe Y coordinate for the next generation cycle
 	return tiles, items, enemies
 }
 
+// makeFloorPipe generates a vertical pipe structure extending from the floor upwards.
 func (l *Level) makeFloorPipe(x int, height int) []*Tile {
 	pipeTiles := []*Tile{}
-	groundLevel := l.height - 2
+	groundLevel := l.height - 2 // Ground level is 2 tiles from bottom
 
-	for j := range height - 1 {
+	// Middle sections of the pipe
+	for j := 0; j < height-1; j++ {
 		y := groundLevel - j
 		left := l.makeTile(x, y, pipeMiddleLeft)
 		center := l.makeTile(x+1, y, pipeMiddleCenter)
@@ -293,6 +304,7 @@ func (l *Level) makeFloorPipe(x int, height int) []*Tile {
 		pipeTiles = append(pipeTiles, left, center, right)
 	}
 
+	// Top cap of the pipe
 	y := groundLevel - height + 1
 	upLeft := l.makeTile(x, y, pipeUpLeft)
 	upCenter := l.makeTile(x+1, y, pipeUpCenter)
@@ -302,11 +314,13 @@ func (l *Level) makeFloorPipe(x int, height int) []*Tile {
 	return pipeTiles
 }
 
+// makeCeilingPipe generates a vertical pipe structure extending from the ceiling downwards.
 func (l *Level) makeCeilingPipe(x int, height int) []*Tile {
 	pipeTiles := []*Tile{}
-	const ceilingLevel = 1
+	const ceilingLevel = 1 // Ceiling level is 1 tile from top
 
-	for j := range height - 1 {
+	// Middle sections of the pipe
+	for j := 0; j < height-1; j++ {
 		y := ceilingLevel + j
 		left := l.makeTile(x, y, pipeMiddleLeft)
 		center := l.makeTile(x+1, y, pipeMiddleCenter)
@@ -314,6 +328,7 @@ func (l *Level) makeCeilingPipe(x int, height int) []*Tile {
 		pipeTiles = append(pipeTiles, left, center, right)
 	}
 
+	// Bottom cap of the pipe
 	y := ceilingLevel + height - 1
 	downLeft := l.makeTile(x, y, pipeDownLeft)
 	downCenter := l.makeTile(x+1, y, pipeDownCenter)
@@ -323,10 +338,11 @@ func (l *Level) makeCeilingPipe(x int, height int) []*Tile {
 	return pipeTiles
 }
 
+// makeBlocks generates a rectangular block obstacle.
 func (l *Level) makeBlocks(x int, width int, top int, bottom int) []*Tile {
 	blockTiles := []*Tile{}
 
-	for i := range width {
+	for i := 0; i < width; i++ {
 		for j := 0; j <= bottom-top; j++ {
 			blk := l.makeTile(x+i, top+j, block)
 			blockTiles = append(blockTiles, blk)
