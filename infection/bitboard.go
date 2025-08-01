@@ -31,6 +31,10 @@ func (b BitBoard) GetSetBitIndices() []int {
 	return indices
 }
 
+func (b BitBoard) GetNumSetBits() int {
+	return bits.OnesCount64(uint64(b))
+}
+
 func (b BitBoard) ToString(boardSize int) string {
 	var s string
 	idx := 0

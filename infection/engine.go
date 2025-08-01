@@ -6,7 +6,7 @@ type Engine interface {
 	GenMove(board *Board) Move
 }
 
-func (b *Board) GetLegalMovees() []Move {
+func (b *Board) GetLegalMoves() []Move {
 	moves := []Move{}
 
 	startingLocs := []int{}
@@ -19,12 +19,31 @@ func (b *Board) GetLegalMovees() []Move {
 	for _, from := range startingLocs {
 		stepLocs := (adjacentBitboards[from] & b.empty).GetSetBitIndices()
 		for _, to := range stepLocs {
-			moves = append(moves, Move{from, to, false})
+			moves = append(moves, Move{
+				from: from,
+				to:   to,
+				jump: false,
+				pass: false,
+			})
 		}
 		jumpLocs := (jumpBitboards[from] & b.empty).GetSetBitIndices()
 		for _, to := range jumpLocs {
-			moves = append(moves, Move{from, to, true})
+			moves = append(moves, Move{
+				from: from,
+				to:   to,
+				jump: true,
+				pass: false,
+			})
 		}
+	}
+
+	if len(moves) == 0 {
+		moves = append(moves, Move{
+			from: -1,
+			to:   -1,
+			jump: false,
+			pass: true,
+		})
 	}
 
 	return moves
@@ -33,14 +52,44 @@ func (b *Board) GetLegalMovees() []Move {
 type RandomEngine struct{}
 
 func (e *RandomEngine) GenMove(board *Board) Move {
-	moves := board.GetLegalMovees()
-	if len(moves) == 0 {
-		// TODO: handle pass
-		return Move{}
-	}
-
+	moves := board.GetLegalMoves()
 	idx := rand.Intn(len(moves))
 	return moves[idx]
+}
+
+type GreedyEngine struct{}
+
+func ScoreForPlayer(b *Board, p Player) int {
+	whiteScore, blackScore := b.Score()
+	if p == White {
+		return whiteScore - blackScore
+	}
+	return blackScore - whiteScore
+}
+
+func (e *GreedyEngine) GenMove(board *Board) Move {
+	moves := board.GetLegalMoves()
+	if len(moves) == 1 {
+		return moves[0]
+	}
+	rand.Shuffle(len(moves), func(i, j int) {
+		moves[i], moves[j] = moves[j], moves[i]
+	})
+
+	currPlayer := board.playerToMove
+	bestMove := moves[0]
+	bestScore := -9999
+	for _, move := range moves {
+		tmpBoard := board.Copy()
+		tmpBoard.Move(move)
+		score := ScoreForPlayer(tmpBoard, currPlayer)
+		if score > bestScore {
+			bestMove = move
+			bestScore = score
+		}
+	}
+
+	return bestMove
 }
 
 type Human struct{}

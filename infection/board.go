@@ -67,6 +67,15 @@ func NewBoard() *Board {
 	return &b
 }
 
+func (b *Board) Copy() *Board {
+	copy := NewBoard()
+	copy.white = b.white
+	copy.black = b.black
+	copy.empty = b.empty
+	copy.playerToMove = b.playerToMove
+	return copy
+}
+
 func (b *Board) String() string {
 	result := ""
 	for r := range BoardSize {
@@ -152,9 +161,16 @@ type Move struct {
 	from int
 	to   int
 	jump bool
+	pass bool
 }
 
 func (b *Board) Move(m Move) {
+
+	if m.pass {
+		b.playerToMove = b.playerToMove.Other()
+		return
+	}
+
 	if b.playerToMove == White {
 		b.white = b.white.Set(m.to)
 		if m.jump {
@@ -177,6 +193,12 @@ func (b *Board) Move(m Move) {
 
 	b.syncEmpty()
 	b.playerToMove = b.playerToMove.Other()
+}
+
+func (b *Board) Score() (whiteScore, blackScore int) {
+	whiteScore = b.white.GetNumSetBits()
+	blackScore = b.black.GetNumSetBits()
+	return
 }
 
 func NewBoardFromText(text string) (*Board, error) {
@@ -203,13 +225,21 @@ func NewBoardFromText(text string) (*Board, error) {
 func main() {
 	engines := map[Player]Engine{
 		White: &Human{},
-		Black: &RandomEngine{},
+		Black: &GreedyEngine{},
 	}
 	b := NewBoard()
-	for {
+	ctr := 0
+	for ctr < 49 {
+		ctr++
 		fmt.Println(DrawBoard(b))
+		if b.playerToMove == White {
+			fmt.Printf("White (o) move ")
+		} else {
+			fmt.Printf("Black (x) move ")
+		}
 
 		move := engines[b.playerToMove].GenMove(b)
+		fmt.Println(move)
 		b.Move(move)
 	}
 
