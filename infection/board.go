@@ -5,14 +5,29 @@ import (
 	"regexp"
 )
 
+type Player int
+
+const (
+	White Player = iota
+	Black
+)
+
+func (p Player) Other() Player {
+	if p == White {
+		return Black
+	}
+	return White
+}
+
 // BoardSize must be <= 8
 const BoardSize = 7
 const NumSquares = BoardSize * BoardSize
 
 type Board struct {
-	white BitBoard
-	black BitBoard
-	empty BitBoard
+	white        BitBoard
+	black        BitBoard
+	empty        BitBoard
+	playerToMove Player
 }
 
 // used for making moves (and generating moves)
@@ -38,9 +53,10 @@ func (b *Board) syncEmpty() {
 
 func NewBoard() *Board {
 	b := Board{
-		white: BitBoard(0),
-		black: BitBoard(0),
-		empty: BitBoard(0),
+		white:        BitBoard(0),
+		black:        BitBoard(0),
+		empty:        BitBoard(0),
+		playerToMove: White,
 	}
 	// Set white/black pieces in opposite corners
 	b.white = b.white.Set(GetIndex(0, 0))
@@ -139,7 +155,7 @@ type Move struct {
 }
 
 func (b *Board) Move(m Move) {
-	if b.white.Get(m.from) {
+	if b.playerToMove == White {
 		b.white = b.white.Set(m.to)
 		if m.jump {
 			b.white = b.white.Clear(m.from)
@@ -148,7 +164,7 @@ func (b *Board) Move(m Move) {
 		infectedSquares := b.black & adjacentBitboards[m.to]
 		b.black &^= infectedSquares
 		b.white |= infectedSquares
-	} else if b.black.Get(m.from) {
+	} else {
 		b.black = b.black.Set(m.to)
 		if m.jump {
 			b.black = b.black.Clear(m.from)
@@ -160,6 +176,7 @@ func (b *Board) Move(m Move) {
 	}
 
 	b.syncEmpty()
+	b.playerToMove = b.playerToMove.Other()
 }
 
 func NewBoardFromText(text string) (*Board, error) {
@@ -184,14 +201,16 @@ func NewBoardFromText(text string) (*Board, error) {
 }
 
 func main() {
+	engines := map[Player]Engine{
+		White: &Human{},
+		Black: &RandomEngine{},
+	}
 	b := NewBoard()
-	b.black = b.black.Set(GetIndex(1, 2))
-	b.white = b.white.Set(GetIndex(0, 5))
-	b.white = b.white.Set(GetIndex(0, 4))
-	b.Move(Move{
-		from: GetIndex(0, 0),
-		to:   GetIndex(1, 1),
-		jump: false,
-	})
-	fmt.Println(b.String())
+	for {
+		fmt.Println(DrawBoard(b))
+
+		move := engines[b.playerToMove].GenMove(b)
+		b.Move(move)
+	}
+
 }
