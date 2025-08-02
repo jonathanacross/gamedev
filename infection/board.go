@@ -221,26 +221,3 @@ func NewBoardFromText(text string) (*Board, error) {
 	}
 	return &b, nil
 }
-
-func main() {
-	engines := map[Player]Engine{
-		White: &Human{},
-		Black: &GreedyEngine{},
-	}
-	b := NewBoard()
-	ctr := 0
-	for ctr < 49 {
-		ctr++
-		fmt.Println(DrawBoard(b))
-		if b.playerToMove == White {
-			fmt.Printf("White (o) move ")
-		} else {
-			fmt.Printf("Black (x) move ")
-		}
-
-		move := engines[b.playerToMove].GenMove(b)
-		fmt.Println(move)
-		b.Move(move)
-	}
-
-}

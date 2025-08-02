@@ -72,6 +72,7 @@ func ParseMove(input string) (Move, error) {
 	}
 	return m, fmt.Errorf("invalid move: from %d to %d is neither a step nor a jump", m.from, m.to)
 }
+
 func getMoveFromUser(b *Board) Move {
 	scanner := bufio.NewScanner(os.Stdin)
 	var move Move
@@ -99,3 +100,24 @@ func getMoveFromUser(b *Board) Move {
 	}
 	return move
 }
+
+// func main() {
+// 	engines := map[Player]Engine{
+// 		White: &Human{},
+// 		Black: &GreedyEngine{},
+// 	}
+// 	b := NewBoard()
+// 	ctr := 0
+// 	for ctr < 49 {
+// 		ctr++
+// 		fmt.Println(DrawBoard(b))
+// 		if b.playerToMove == White {
+// 			fmt.Printf("White (o) move ")
+// 		} else {
+// 			fmt.Printf("Black (x) move ")
+// 		}
+// 		move := engines[b.playerToMove].GenMove(b)
+// 		fmt.Println(move)
+// 		b.Move(move)
+// 	}
+// }
