@@ -12,8 +12,8 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-var WhiteSquare = loadImage("assets/whitetile.png")
-var BlackSquare = loadImage("assets/blacktile.png")
+var WhiteSquare = loadImage("assets/yellowvirus.png")
+var BlackSquare = loadImage("assets/redvirus.png")
 var Empty1Square = loadImage("assets/empty1.png")
 var Empty2Square = loadImage("assets/empty2.png")
 

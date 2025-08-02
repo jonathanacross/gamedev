@@ -38,6 +38,12 @@ func DrawBoard(b *Board) string {
 }
 
 func IsValidMove(b *Board, m Move) (bool, string) {
+	if m.from < 0 || m.from >= NumSquares {
+		return false, "from index out of bounds"
+	}
+	if m.to < 0 || m.to >= NumSquares {
+		return false, "to index out of bounds"
+	}
 	if !b.empty.Get(m.to) {
 		return false, "target square is not empty"
 	}
@@ -48,6 +54,27 @@ func IsValidMove(b *Board, m Move) (bool, string) {
 		return false, "from square is not occupied by black"
 	}
 	return true, ""
+}
+
+func CreateMove(from, to int) (Move, error) {
+	var m Move
+	m.from = from
+	m.to = to
+	if m.from < 0 || m.from >= NumSquares {
+		return m, fmt.Errorf("from index %v out of bounds", m.from)
+	}
+	if m.to < 0 || m.to >= NumSquares {
+		return m, fmt.Errorf("to index %v out of bounds", m.to)
+	}
+	if adjacentBitboards[m.from].Get(m.to) {
+		m.jump = false
+		return m, nil
+	}
+	if jumpBitboards[m.from].Get(m.to) {
+		m.jump = true
+		return m, nil
+	}
+	return m, fmt.Errorf("invalid move: from %d to %d is neither a step nor a jump", m.from, m.to)
 }
 
 func ParseMove(input string) (Move, error) {
