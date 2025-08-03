@@ -1,9 +1,13 @@
 package main
 
-import "math/rand"
+import (
+	"math/rand"
+	"time"
+)
 
 type Engine interface {
 	GenMove(board *Board) Move
+	RequiresHumanInput() bool
 }
 
 func (b *Board) GetLegalMoves() []Move {
@@ -57,6 +61,10 @@ func (e *RandomEngine) GenMove(board *Board) Move {
 	return moves[idx]
 }
 
+func (e *RandomEngine) RequiresHumanInput() bool {
+	return false
+}
+
 type GreedyEngine struct{}
 
 func ScoreForPlayer(b *Board, p Player) int {
@@ -92,8 +100,28 @@ func (e *GreedyEngine) GenMove(board *Board) Move {
 	return bestMove
 }
 
+func (e *GreedyEngine) RequiresHumanInput() bool {
+	return false
+}
+
+type SlowEngine struct{}
+
+func (e *SlowEngine) GenMove(board *Board) Move {
+	dummyEngine := RandomEngine{}
+	time.Sleep(1 * time.Second)
+	return dummyEngine.GenMove(board)
+}
+
+func (e *SlowEngine) RequiresHumanInput() bool {
+	return false
+}
+
 type Human struct{}
 
 func (h *Human) GenMove(board *Board) Move {
 	return getMoveFromUser(board)
+}
+
+func (e *Human) RequiresHumanInput() bool {
+	return true
 }
