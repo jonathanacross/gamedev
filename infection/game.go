@@ -17,6 +17,7 @@ const (
 
 type Game struct {
 	state       GameState
+	gameBoard   *Board
 	boardWidget *BoardWidget
 	whiteEngine Engine
 	blackEngine Engine
@@ -26,6 +27,7 @@ type Game struct {
 func NewGame() *Game {
 	g := Game{
 		state:       GameInProgress,
+		gameBoard:   NewBoard(),
 		boardWidget: NewBoardWidget(),
 		whiteEngine: &HumanEngine{},
 		blackEngine: &GreedyEngine{}, // Use GreedyEngine for the computer player
@@ -35,7 +37,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) getCurrentEngine() Engine {
-	if g.boardWidget.gameBoard.playerToMove == White {
+	if g.gameBoard.playerToMove == White {
 		return g.whiteEngine
 	}
 	return g.blackEngine
@@ -55,10 +57,10 @@ func (g *Game) Update() error {
 		}
 
 	case WaitingForHuman:
-		g.boardWidget.Update()
+		g.boardWidget.Update(g.gameBoard)
 		if move, ok := g.boardWidget.GetAndClearHumanMove(); ok {
-			if valid, _ := IsValidMove(g.boardWidget.gameBoard, move); valid {
-				g.boardWidget.gameBoard.Move(move)
+			if valid, _ := IsValidMove(g.gameBoard, move); valid {
+				g.gameBoard.Move(move)
 			}
 			g.state = GameInProgress
 		}
@@ -67,14 +69,15 @@ func (g *Game) Update() error {
 		g.spinner.SetVisible(true)
 		go func() {
 			currEngine := g.getCurrentEngine()
-			move := currEngine.GenMove(g.boardWidget.gameBoard)
-			g.boardWidget.DoComputerMove(move)
+			move := currEngine.GenMove(g.gameBoard)
+			g.boardWidget.DoComputerMove(move, g.gameBoard.playerToMove)
 			g.state = AnimatingComputerMove
 		}()
 
 	case AnimatingComputerMove:
 		g.boardWidget.UpdateComputerDragInfo()
-		if !g.boardWidget.computerDragInfo.isAnimating {
+		if move, ok := g.boardWidget.GetAndClearComputerMove(); ok {
+			g.gameBoard.Move(move)
 			g.state = GameInProgress
 		}
 	}
@@ -83,7 +86,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.boardWidget.Draw(screen)
+	g.boardWidget.Draw(screen, g.gameBoard)
 	if g.spinner.IsVisible() {
 		g.spinner.Draw(screen)
 	}

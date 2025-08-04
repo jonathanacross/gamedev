@@ -53,9 +53,9 @@ func NewComputerDragInfo() *ComputerDragInfo {
 	}
 }
 
-func (g *BoardWidget) makeComputerDragInfo(m Move) {
+func (g *BoardWidget) makeComputerDragInfo(m Move, playerToMove Player) {
 	image := WhiteSquare
-	if g.gameBoard.playerToMove == Black {
+	if playerToMove == Black {
 		image = BlackSquare
 	}
 	g.computerDragInfo.isAnimating = true
@@ -70,13 +70,9 @@ func (g *BoardWidget) UpdateComputerDragInfo() {
 		return
 	}
 	d.currFrameCount++
-	if d.currFrameCount >= d.totalFrameCount {
-		d.isAnimating = false
-		g.gameBoard.Move(d.move)
-	}
 }
 
-func (g *BoardWidget) DrawComputerDragInfo(screen *ebiten.Image) {
+func (g *BoardWidget) DrawComputerDragInfo(screen *ebiten.Image, gameBoard *Board) {
 	d := g.computerDragInfo
 	if !d.isAnimating {
 		return
@@ -99,12 +95,10 @@ func (g *BoardWidget) DrawComputerDragInfo(screen *ebiten.Image) {
 }
 
 type BoardWidget struct {
-	gameBoard *Board
-
 	bounds           image.Rectangle
 	dragInfo         DragInfo
 	computerDragInfo *ComputerDragInfo
-	humanMove        *Move // move from human input to be processed by Game
+	humanMove        *Move
 }
 
 func NewBoardWidget() *BoardWidget {
@@ -114,7 +108,6 @@ func NewBoardWidget() *BoardWidget {
 			Min: image.Point{X: margin, Y: margin},
 			Max: image.Point{X: margin + BoardSize*TileSize, Y: margin + BoardSize*TileSize},
 		},
-		gameBoard:        NewBoard(),
 		dragInfo:         EmptyDragInfo(),
 		computerDragInfo: NewComputerDragInfo(),
 		humanMove:        nil,
@@ -122,11 +115,11 @@ func NewBoardWidget() *BoardWidget {
 	return &widget
 }
 
-func (g *BoardWidget) DoComputerMove(m Move) {
-	g.makeComputerDragInfo(m)
+func (g *BoardWidget) DoComputerMove(m Move, playerToMove Player) {
+	g.makeComputerDragInfo(m, playerToMove)
 }
 
-func (g *BoardWidget) Draw(screen *ebiten.Image) {
+func (g *BoardWidget) Draw(screen *ebiten.Image, gameBoard *Board) {
 	for r := 0; r < BoardSize; r++ {
 		for c := 0; c < BoardSize; c++ {
 			x := float64(c*TileSize + g.bounds.Min.X)
@@ -141,9 +134,9 @@ func (g *BoardWidget) Draw(screen *ebiten.Image) {
 			screen.DrawImage(backgroundImge, op)
 
 			idx := GetIndex(r, c)
-			if g.gameBoard.white.Get(idx) {
+			if gameBoard.white.Get(idx) {
 				screen.DrawImage(WhiteSquare, op)
-			} else if g.gameBoard.black.Get(idx) {
+			} else if gameBoard.black.Get(idx) {
 				screen.DrawImage(BlackSquare, op)
 			}
 		}
@@ -157,7 +150,7 @@ func (g *BoardWidget) Draw(screen *ebiten.Image) {
 	}
 
 	if g.computerDragInfo.isAnimating {
-		g.DrawComputerDragInfo(screen)
+		g.DrawComputerDragInfo(screen, gameBoard)
 	}
 }
 
@@ -170,18 +163,16 @@ func (g *BoardWidget) pointToIndex(x, y int) int {
 	return GetIndex(sqY, sqX)
 }
 
-// Update handles user input and records a move.
-// No validation done here.
-func (g *BoardWidget) Update() {
+func (g *BoardWidget) Update(gameBoard *Board) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		index := g.pointToIndex(x, y)
 		if index >= 0 {
 			sqX := ((x-g.bounds.Min.X)/TileSize)*TileSize + g.bounds.Min.X
 			sqY := ((y-g.bounds.Min.Y)/TileSize)*TileSize + g.bounds.Min.Y
-			if g.gameBoard.playerToMove == White && g.gameBoard.white.Get(index) {
+			if gameBoard.playerToMove == White && gameBoard.white.Get(index) {
 				g.dragInfo = NewDragInfo(index, x-sqX, y-sqY, WhiteSquare)
-			} else if g.gameBoard.playerToMove == Black && g.gameBoard.black.Get(index) {
+			} else if gameBoard.playerToMove == Black && gameBoard.black.Get(index) {
 				g.dragInfo = NewDragInfo(index, x-sqX, y-sqY, BlackSquare)
 			} else {
 				g.dragInfo = EmptyDragInfo()
@@ -193,20 +184,30 @@ func (g *BoardWidget) Update() {
 		if g.dragInfo.isDragging {
 			startPos := g.dragInfo.startLoc
 			endPos := g.pointToIndex(x, y)
-			m, err := CreateMove(startPos, endPos)
-			if err == nil {
-				g.humanMove = &m
+			if endPos != -1 {
+				m, err := CreateMove(startPos, endPos)
+				if err == nil {
+					g.humanMove = &m
+				}
 			}
 		}
 		g.dragInfo = EmptyDragInfo()
 	}
 }
 
-// GetAndClearHumanMove retrieves a completed human move and clears it from the widget.
 func (g *BoardWidget) GetAndClearHumanMove() (Move, bool) {
 	if g.humanMove != nil {
 		move := *g.humanMove
 		g.humanMove = nil
+		return move, true
+	}
+	return Move{}, false
+}
+
+func (g *BoardWidget) GetAndClearComputerMove() (Move, bool) {
+	if g.computerDragInfo.isAnimating && g.computerDragInfo.currFrameCount >= g.computerDragInfo.totalFrameCount {
+		move := g.computerDragInfo.move
+		g.computerDragInfo.isAnimating = false
 		return move, true
 	}
 	return Move{}, false
