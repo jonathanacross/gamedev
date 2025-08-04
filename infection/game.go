@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	_ "image/png" // Import for image decoding
 	"time"
 
@@ -15,6 +14,7 @@ const (
 	GameInProgress
 	WaitingForHuman
 	ComputerThinking
+	AnimatingComputerMove
 	GameOver
 )
 
@@ -40,11 +40,6 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) doComputerMove(engine Engine) {
-	move := engine.GenMove(g.boardWidget.gameBoard)
-	g.boardWidget.DoComputerMove(move)
-}
-
 func (g *Game) getCurrentEngine() Engine {
 	if g.boardWidget.gameBoard.playerToMove == White {
 		return g.engineWhite
@@ -54,33 +49,47 @@ func (g *Game) getCurrentEngine() Engine {
 }
 
 func (g *Game) Update() error {
-	g.boardWidget.Update()
-	g.spinner.Update()
+	switch g.state {
+	case GameInProgress:
+		// Logic to determine whose turn it is
+		g.boardWidget.allowUserInput = false // Ensure input is off by default
+		g.spinner.SetVisible(false)          // Ensure spinner is off by default
 
-	// check for change at end of move
-	if g.state == ComputerThinking || g.state == WaitingForHuman {
-		if g.prevPlayerToMove != g.boardWidget.gameBoard.playerToMove {
-			fmt.Printf("Player to move: %v\n", g.boardWidget.gameBoard.playerToMove)
+		currEngine := g.getCurrentEngine()
+		if currEngine.RequiresHumanInput() {
+			g.state = WaitingForHuman
+		} else {
+			g.state = ComputerThinking
+		}
+
+	case WaitingForHuman:
+		g.boardWidget.allowUserInput = true
+		g.boardWidget.Update()
+
+		// If the player has changed (a move was made), transition
+		if g.boardWidget.gameBoard.playerToMove != g.prevPlayerToMove {
+			g.prevPlayerToMove = g.boardWidget.gameBoard.playerToMove
+			g.state = GameInProgress
+		}
+
+	case ComputerThinking:
+		g.spinner.SetVisible(true)
+		// Start the computer move in a goroutine
+		go func() {
+			currEngine := g.getCurrentEngine()
+			move := currEngine.GenMove(g.boardWidget.gameBoard)
+			g.boardWidget.DoComputerMove(move)
+			g.state = AnimatingComputerMove
+		}()
+
+	case AnimatingComputerMove:
+		g.boardWidget.UpdateComputerDragInfo()
+		if !g.boardWidget.computerDragInfo.isAnimating {
 			g.prevPlayerToMove = g.boardWidget.gameBoard.playerToMove
 			g.state = GameInProgress
 		}
 	}
-
-	if g.state == GameInProgress {
-		currEngine := g.getCurrentEngine()
-		if currEngine.RequiresHumanInput() {
-			g.state = WaitingForHuman
-			g.boardWidget.allowUserInput = true
-			g.spinner.SetVisible(false)
-		} else {
-			g.state = ComputerThinking
-			g.boardWidget.allowUserInput = false
-			g.spinner.SetVisible(true)
-			go g.doComputerMove(currEngine)
-		}
-	}
-	g.moveTimer.Update()
-
+	g.spinner.Update() // Spinner update can be outside, as it's a general animation
 	return nil
 }
 

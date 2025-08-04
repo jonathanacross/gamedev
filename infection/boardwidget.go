@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -37,70 +36,49 @@ func NewDragInfo(startLoc int, x, y int, image *ebiten.Image) DragInfo {
 }
 
 type ComputerDragInfo struct {
-	isDragging      bool
+	isAnimating     bool
 	totalFrameCount int
 	currFrameCount  int
 	image           *ebiten.Image
 	move            Move
-	// fromX           int
-	// fromY           int
-	// toX             int
-	// toY             int
 }
 
 func NewComputerDragInfo() *ComputerDragInfo {
 	return &ComputerDragInfo{
-		isDragging:      false,
+		isAnimating:     false,
 		totalFrameCount: 30,
 		currFrameCount:  0,
 		image:           nil,
 		move:            Move{},
-		// fromX:           0,
-		// fromY:           0,
-		// toX:             0,
-		// toY:             0,
 	}
 }
 
-func (g *BoardWidget) makeComputerDragInfo(m Move) *ComputerDragInfo {
-	// TODO: handle the case where the move is a pass better
+func (g *BoardWidget) makeComputerDragInfo(m Move) {
 	image := WhiteSquare
 	if g.gameBoard.playerToMove == Black {
 		image = BlackSquare
 	}
-
-	return &ComputerDragInfo{
-		isDragging:      true,
-		totalFrameCount: 30,
-		currFrameCount:  0,
-		image:           image,
-		move:            m,
-		// fromX:           fromX*TileSize + g.bounds.Min.X,
-		// fromY:           fromY*TileSize + g.bounds.Min.Y,
-		// toX:             toX*TileSize + g.bounds.Min.X,
-		// toY:             toY*TileSize + g.bounds.Min.Y,
-	}
+	g.computerDragInfo.isAnimating = true
+	g.computerDragInfo.currFrameCount = 0
+	g.computerDragInfo.image = image
+	g.computerDragInfo.move = m
 }
 
 func (g *BoardWidget) UpdateComputerDragInfo() {
 	d := g.computerDragInfo
-	if !d.isDragging {
+	if !d.isAnimating {
 		return
 	}
 	d.currFrameCount++
-	fmt.Printf("draginfo = %v\n", d)
 	if d.currFrameCount >= d.totalFrameCount {
-		d.isDragging = false
-		// make the computer move
-		fmt.Printf("BoardWidget.UpdateComputerDragInfo: making move = %v\n", d.move)
+		d.isAnimating = false
 		g.gameBoard.Move(d.move)
-		fmt.Println(g.gameBoard.String())
 	}
 }
 
 func (g *BoardWidget) DrawComputerDragInfo(screen *ebiten.Image) {
 	d := g.computerDragInfo
-	if !d.isDragging {
+	if !d.isAnimating {
 		return
 	}
 	gameFromY, gameFromX := IndexToRowCol(d.move.from)
@@ -145,11 +123,7 @@ func NewBoardWidget() *BoardWidget {
 }
 
 func (g *BoardWidget) DoComputerMove(m Move) {
-	g.computerDragInfo = g.makeComputerDragInfo(m)
-	fmt.Printf("BoardWidget.DoComputerMove: draginfo = %v\n", g.computerDragInfo)
-	// Update will update the drag position, which will
-	// be drawn in the next Draw call.
-	// At the end of the drag, the move will be applied.
+	g.makeComputerDragInfo(m)
 }
 
 func (g *BoardWidget) Draw(screen *ebiten.Image) {
@@ -182,7 +156,7 @@ func (g *BoardWidget) Draw(screen *ebiten.Image) {
 		screen.DrawImage(g.dragInfo.image, op)
 	}
 
-	if g.computerDragInfo.isDragging {
+	if g.computerDragInfo.isAnimating {
 		g.DrawComputerDragInfo(screen)
 	}
 }
@@ -197,9 +171,6 @@ func (g *BoardWidget) pointToIndex(x, y int) int {
 }
 
 func (g *BoardWidget) Update() {
-
-	g.UpdateComputerDragInfo()
-
 	if !g.allowUserInput {
 		return
 	}
@@ -222,10 +193,8 @@ func (g *BoardWidget) Update() {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		if g.dragInfo.isDragging {
-
 			startPos := g.dragInfo.startLoc
 			endPos := g.pointToIndex(x, y)
-
 			m, err := CreateMove(startPos, endPos)
 			if err == nil {
 				valid, _ := IsValidMove(g.gameBoard, m)
