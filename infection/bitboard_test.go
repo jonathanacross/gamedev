@@ -46,12 +46,12 @@ func TestBitBoardGetSetBitIndices(t *testing.T) {
 	tests := []struct {
 		name string
 		bb   BitBoard
-		want []int
+		want []SquareIndex
 	}{
-		{"empty", 0, []int{}},
-		{"single bit", 1 << 5, []int{5}},
-		{"multiple bits", (1 << 1) | (1 << 3) | (1 << 7), []int{1, 3, 7}},
-		{"high bits", (1 << 62) | (1 << 63), []int{62, 63}},
+		{"empty", 0, []SquareIndex{}},
+		{"single bit", 1 << 5, []SquareIndex{5}},
+		{"multiple bits", (1 << 1) | (1 << 3) | (1 << 7), []SquareIndex{1, 3, 7}},
+		{"high bits", (1 << 62) | (1 << 63), []SquareIndex{62, 63}},
 	}
 
 	for _, tc := range tests {

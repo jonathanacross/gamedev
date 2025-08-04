@@ -28,7 +28,7 @@ func TestNewBoard(t *testing.T) {
 	expectedEmptyCount := NumSquares - 4
 	actualEmptyCount := 0
 	for i := 0; i < NumSquares; i++ {
-		if board.empty.Get(i) {
+		if board.empty.Get(SquareIndex(i)) {
 			actualEmptyCount++
 		}
 	}
