@@ -13,7 +13,7 @@ type Engine interface {
 func (b *Board) GetLegalMoves() []Move {
 	moves := []Move{}
 
-	startingLocs := []int{}
+	startingLocs := []SquareIndex{}
 	if b.playerToMove == White {
 		startingLocs = b.white.GetSetBitIndices()
 	} else {

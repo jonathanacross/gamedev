@@ -43,7 +43,7 @@ func parseMove(input string) (Move, error) {
 	if err != nil {
 		return Move{}, fmt.Errorf("invalid move format: %v", err)
 	}
-	return CreateMove(from, to)
+	return CreateMove(SquareIndex(from), SquareIndex(to))
 }
 
 func getMoveFromUser(b *Board) Move {

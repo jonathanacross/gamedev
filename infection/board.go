@@ -39,12 +39,12 @@ func init() {
 	jumpBitboards = genJumpBitboards()
 }
 
-func GetIndex(row, col int) int {
-	return row*BoardSize + col
+func GetIndex(row, col int) SquareIndex {
+	return SquareIndex(row*BoardSize + col)
 }
 
-func IndexToRowCol(index int) (int, int) {
-	return index / BoardSize, index % BoardSize
+func IndexToRowCol(index SquareIndex) (row int, col int) {
+	return int(index) / BoardSize, int(index) % BoardSize
 }
 
 func (b *Board) syncEmpty() {
@@ -105,7 +105,7 @@ func genOffsetBitboards(offsets []Offset) [NumSquares]BitBoard {
 	bitboards := [NumSquares]BitBoard{}
 
 	for idx := range NumSquares {
-		row, col := IndexToRowCol(idx)
+		row, col := IndexToRowCol(SquareIndex(idx))
 
 		bb := BitBoard(0)
 		for _, offset := range offsets {
@@ -204,11 +204,11 @@ func NewBoardFromText(text string) (*Board, error) {
 	for i, char := range importantChars {
 		switch char {
 		case 'o':
-			b.white = b.white.Set(i)
+			b.white = b.white.Set(SquareIndex(i))
 		case 'x':
-			b.black = b.black.Set(i)
+			b.black = b.black.Set(SquareIndex(i))
 		default:
-			b.empty = b.empty.Set(i)
+			b.empty = b.empty.Set(SquareIndex(i))
 		}
 	}
 	return &b, nil

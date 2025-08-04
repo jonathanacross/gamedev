@@ -6,23 +6,23 @@ import (
 
 type BitBoard uint64
 
-func (b BitBoard) Set(index int) BitBoard {
+func (b BitBoard) Set(index SquareIndex) BitBoard {
 	return b | (1 << index)
 }
 
-func (b BitBoard) Clear(index int) BitBoard {
+func (b BitBoard) Clear(index SquareIndex) BitBoard {
 	return b &^ (1 << index)
 }
 
-func (b BitBoard) Get(index int) bool {
+func (b BitBoard) Get(index SquareIndex) bool {
 	return b&(1<<index) != 0
 }
 
-func (b BitBoard) GetSetBitIndices() []int {
-	indices := []int{}
+func (b BitBoard) GetSetBitIndices() []SquareIndex {
+	indices := []SquareIndex{}
 	for b != 0 {
 		// Find the index of the least significant set bit
-		idx := bits.TrailingZeros64(uint64(b))
+		idx := SquareIndex(bits.TrailingZeros64(uint64(b)))
 		indices = append(indices, idx)
 
 		// Clear the least significant set bit
@@ -40,7 +40,7 @@ func (b BitBoard) ToString(boardSize int) string {
 	idx := 0
 	for row := 0; row < boardSize; row++ {
 		for col := 0; col < boardSize; col++ {
-			if b.Get(idx) {
+			if b.Get(SquareIndex(idx)) {
 				s += "1 "
 			} else {
 				s += ". "

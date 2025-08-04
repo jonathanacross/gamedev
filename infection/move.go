@@ -4,17 +4,19 @@ import (
 	"fmt"
 )
 
+type SquareIndex int
+
 // Move represents a single action on the board.
 type Move struct {
-	from int
-	to   int
+	from SquareIndex
+	to   SquareIndex
 	jump bool
 	pass bool
 }
 
 // CreateMove attempts to create a valid Move from a start and end square.
 // It returns a Move and an error.
-func CreateMove(from, to int) (Move, error) {
+func CreateMove(from, to SquareIndex) (Move, error) {
 	if from < 0 || from >= NumSquares {
 		return Move{}, fmt.Errorf("from index %v out of bounds", from)
 	}

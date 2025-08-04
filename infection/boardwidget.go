@@ -9,7 +9,7 @@ import (
 
 type DragInfo struct {
 	isDragging bool
-	startLoc   int
+	startLoc   SquareIndex
 	offsetX    int
 	offsetY    int
 	image      *ebiten.Image
@@ -25,7 +25,7 @@ func EmptyDragInfo() DragInfo {
 	}
 }
 
-func NewDragInfo(startLoc int, x, y int, image *ebiten.Image) DragInfo {
+func NewDragInfo(startLoc SquareIndex, x, y int, image *ebiten.Image) DragInfo {
 	return DragInfo{
 		isDragging: true,
 		startLoc:   startLoc,
@@ -154,7 +154,7 @@ func (g *BoardWidget) Draw(screen *ebiten.Image, gameBoard *Board) {
 	}
 }
 
-func (g *BoardWidget) pointToIndex(x, y int) int {
+func (g *BoardWidget) pointToIndex(x, y int) SquareIndex {
 	sqX := (x - g.bounds.Min.X) / TileSize
 	sqY := (y - g.bounds.Min.Y) / TileSize
 	if sqX < 0 || sqX >= BoardSize || sqY < 0 || sqY >= BoardSize {
