@@ -59,7 +59,7 @@ func (g *Game) Update() error {
 	case WaitingForHuman:
 		g.boardWidget.Update(g.gameBoard)
 		if move, ok := g.boardWidget.GetAndClearHumanMove(); ok {
-			if valid, _ := IsValidMove(g.gameBoard, move); valid {
+			if valid, _ := move.IsValid(g.gameBoard); valid {
 				g.gameBoard.Move(move)
 			}
 			g.state = GameInProgress

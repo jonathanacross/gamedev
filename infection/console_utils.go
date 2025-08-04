@@ -37,67 +37,13 @@ func DrawBoard(b *Board) string {
 	return result
 }
 
-func IsValidMove(b *Board, m Move) (bool, string) {
-	if m.from < 0 || m.from >= NumSquares {
-		return false, "from index out of bounds"
-	}
-	if m.to < 0 || m.to >= NumSquares {
-		return false, "to index out of bounds"
-	}
-	if !b.empty.Get(m.to) {
-		return false, "target square is not empty"
-	}
-	if b.playerToMove == White && !b.white.Get(m.from) {
-		return false, "from square is not occupied by white"
-	}
-	if b.playerToMove == Black && !b.black.Get(m.from) {
-		return false, "from square is not occupied by black"
-	}
-	return true, ""
-}
-
-func CreateMove(from, to int) (Move, error) {
-	var m Move
-	m.from = from
-	m.to = to
-	if m.from < 0 || m.from >= NumSquares {
-		return m, fmt.Errorf("from index %v out of bounds", m.from)
-	}
-	if m.to < 0 || m.to >= NumSquares {
-		return m, fmt.Errorf("to index %v out of bounds", m.to)
-	}
-	if adjacentBitboards[m.from].Get(m.to) {
-		m.jump = false
-		return m, nil
-	}
-	if jumpBitboards[m.from].Get(m.to) {
-		m.jump = true
-		return m, nil
-	}
-	return m, fmt.Errorf("invalid move: from %d to %d is neither a step nor a jump", m.from, m.to)
-}
-
-func ParseMove(input string) (Move, error) {
-	var m Move
-	_, err := fmt.Sscanf(input, "%d %d", &m.from, &m.to)
+func parseMove(input string) (Move, error) {
+	var from, to int
+	_, err := fmt.Sscanf(input, "%d %d", from, to)
 	if err != nil {
-		return m, fmt.Errorf("invalid move format: %v", err)
+		return Move{}, fmt.Errorf("invalid move format: %v", err)
 	}
-	if m.from < 0 || m.from >= NumSquares {
-		return m, fmt.Errorf("from index %v out of bounds", m.from)
-	}
-	if m.to < 0 || m.to >= NumSquares {
-		return m, fmt.Errorf("to index %v out of bounds", m.to)
-	}
-	if adjacentBitboards[m.from].Get(m.to) {
-		m.jump = false
-		return m, nil
-	}
-	if jumpBitboards[m.from].Get(m.to) {
-		m.jump = true
-		return m, nil
-	}
-	return m, fmt.Errorf("invalid move: from %d to %d is neither a step nor a jump", m.from, m.to)
+	return CreateMove(from, to)
 }
 
 func getMoveFromUser(b *Board) Move {
@@ -112,12 +58,12 @@ func getMoveFromUser(b *Board) Move {
 			os.Exit(1)
 		}
 
-		move, err = ParseMove(input)
+		move, err = parseMove(input)
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		valid, msg := IsValidMove(b, move)
+		valid, msg := move.IsValid(b)
 		if !valid {
 			fmt.Println(msg)
 			continue

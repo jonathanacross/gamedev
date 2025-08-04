@@ -157,15 +157,7 @@ func genJumpBitboards() [NumSquares]BitBoard {
 	return genOffsetBitboards(offsets)
 }
 
-type Move struct {
-	from int
-	to   int
-	jump bool
-	pass bool
-}
-
 func (b *Board) Move(m Move) {
-
 	if m.pass {
 		b.playerToMove = b.playerToMove.Other()
 		return
