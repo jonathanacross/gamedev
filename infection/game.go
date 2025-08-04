@@ -1,9 +1,6 @@
 package main
 
 import (
-	_ "image/png" // Import for image decoding
-	"time"
-
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -19,42 +16,37 @@ const (
 )
 
 type Game struct {
-	boardWidget      *BoardWidget
-	moveTimer        *Timer
-	engineWhite      Engine
-	engineBlack      Engine
-	spinner          *Spinner
-	state            GameState
-	prevPlayerToMove Player
+	state       GameState
+	boardWidget *BoardWidget
+	whiteEngine Engine
+	blackEngine Engine
+	spinner     *Spinner
 }
 
 func NewGame() *Game {
-	return &Game{
-		boardWidget:      NewBoardWidget(),
-		moveTimer:        NewTimer(2 * time.Second),
-		engineWhite:      &Human{},
-		engineBlack:      &SlowEngine{},
-		spinner:          NewSpinner(),
-		state:            GameInProgress,
-		prevPlayerToMove: Black,
+	g := Game{
+		state:       GameInProgress,
+		boardWidget: NewBoardWidget(),
+		whiteEngine: &HumanEngine{},
+		blackEngine: &GreedyEngine{}, // Use GreedyEngine for the computer player
+		spinner:     NewSpinner(),
 	}
+	return &g
 }
 
 func (g *Game) getCurrentEngine() Engine {
 	if g.boardWidget.gameBoard.playerToMove == White {
-		return g.engineWhite
-	} else {
-		return g.engineBlack
+		return g.whiteEngine
 	}
+	return g.blackEngine
 }
 
 func (g *Game) Update() error {
+	g.spinner.Update()
+
 	switch g.state {
 	case GameInProgress:
-		// Logic to determine whose turn it is
-		g.boardWidget.allowUserInput = false // Ensure input is off by default
-		g.spinner.SetVisible(false)          // Ensure spinner is off by default
-
+		g.spinner.SetVisible(false)
 		currEngine := g.getCurrentEngine()
 		if currEngine.RequiresHumanInput() {
 			g.state = WaitingForHuman
@@ -63,18 +55,16 @@ func (g *Game) Update() error {
 		}
 
 	case WaitingForHuman:
-		g.boardWidget.allowUserInput = true
 		g.boardWidget.Update()
-
-		// If the player has changed (a move was made), transition
-		if g.boardWidget.gameBoard.playerToMove != g.prevPlayerToMove {
-			g.prevPlayerToMove = g.boardWidget.gameBoard.playerToMove
+		if move, ok := g.boardWidget.GetAndClearHumanMove(); ok {
+			if valid, _ := IsValidMove(g.boardWidget.gameBoard, move); valid {
+				g.boardWidget.gameBoard.Move(move)
+			}
 			g.state = GameInProgress
 		}
 
 	case ComputerThinking:
 		g.spinner.SetVisible(true)
-		// Start the computer move in a goroutine
 		go func() {
 			currEngine := g.getCurrentEngine()
 			move := currEngine.GenMove(g.boardWidget.gameBoard)
@@ -85,20 +75,20 @@ func (g *Game) Update() error {
 	case AnimatingComputerMove:
 		g.boardWidget.UpdateComputerDragInfo()
 		if !g.boardWidget.computerDragInfo.isAnimating {
-			g.prevPlayerToMove = g.boardWidget.gameBoard.playerToMove
 			g.state = GameInProgress
 		}
 	}
-	g.spinner.Update() // Spinner update can be outside, as it's a general animation
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.boardWidget.Draw(screen)
-	g.spinner.Draw(screen)
+	if g.spinner.IsVisible() {
+		g.spinner.Draw(screen)
+	}
 }
 
-// Layout returns the game's logical screen dimensions.
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return ScreenWidth, ScreenHeight
+	return outsideWidth, outsideHeight
 }

@@ -116,12 +116,12 @@ func (e *SlowEngine) RequiresHumanInput() bool {
 	return false
 }
 
-type Human struct{}
+type HumanEngine struct{}
 
-func (h *Human) GenMove(board *Board) Move {
-	return getMoveFromUser(board)
+func (e HumanEngine) GenMove(b *Board) Move {
+	return getMoveFromUser(b)
 }
 
-func (e *Human) RequiresHumanInput() bool {
+func (e HumanEngine) RequiresHumanInput() bool {
 	return true
 }

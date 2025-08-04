@@ -104,7 +104,7 @@ type BoardWidget struct {
 	bounds           image.Rectangle
 	dragInfo         DragInfo
 	computerDragInfo *ComputerDragInfo
-	allowUserInput   bool
+	humanMove        *Move // move from human input to be processed by Game
 }
 
 func NewBoardWidget() *BoardWidget {
@@ -117,7 +117,7 @@ func NewBoardWidget() *BoardWidget {
 		gameBoard:        NewBoard(),
 		dragInfo:         EmptyDragInfo(),
 		computerDragInfo: NewComputerDragInfo(),
-		allowUserInput:   false,
+		humanMove:        nil,
 	}
 	return &widget
 }
@@ -170,11 +170,9 @@ func (g *BoardWidget) pointToIndex(x, y int) int {
 	return GetIndex(sqY, sqX)
 }
 
+// Update handles user input and records a move.
+// No validation done here.
 func (g *BoardWidget) Update() {
-	if !g.allowUserInput {
-		return
-	}
-
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		index := g.pointToIndex(x, y)
@@ -197,12 +195,19 @@ func (g *BoardWidget) Update() {
 			endPos := g.pointToIndex(x, y)
 			m, err := CreateMove(startPos, endPos)
 			if err == nil {
-				valid, _ := IsValidMove(g.gameBoard, m)
-				if valid {
-					g.gameBoard.Move(m)
-				}
+				g.humanMove = &m
 			}
 		}
 		g.dragInfo = EmptyDragInfo()
 	}
+}
+
+// GetAndClearHumanMove retrieves a completed human move and clears it from the widget.
+func (g *BoardWidget) GetAndClearHumanMove() (Move, bool) {
+	if g.humanMove != nil {
+		move := *g.humanMove
+		g.humanMove = nil
+		return move, true
+	}
+	return Move{}, false
 }

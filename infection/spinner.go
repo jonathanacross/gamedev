@@ -22,6 +22,8 @@ func NewSpinner() *Spinner {
 	}
 }
 
+func (s *Spinner) IsVisible() bool { return s.visible }
+
 func (s *Spinner) SetVisible(visible bool) {
 	s.visible = visible
 }
