@@ -29,8 +29,8 @@ func NewGame() *Game {
 		state:       GameInProgress,
 		gameBoard:   NewBoard(),
 		boardWidget: NewBoardWidget(),
-		whiteEngine: &HumanEngine{},
-		blackEngine: &GreedyEngine{}, // Use GreedyEngine for the computer player
+		whiteEngine: &MinimaxEngine{maxDepth: 4},
+		blackEngine: &GreedyEngine{},
 		spinner:     NewSpinner(),
 	}
 	return &g

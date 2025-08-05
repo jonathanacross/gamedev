@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -101,6 +103,85 @@ func (e *GreedyEngine) GenMove(board *Board) Move {
 }
 
 func (e *GreedyEngine) RequiresHumanInput() bool {
+	return false
+}
+
+type MinimaxEngine struct {
+	maxDepth int
+}
+
+// alpha represents the minimum score that white can guarantee.
+// Beta is the max score that black can guarantee
+func minimax(board *Board, depth int, alpha int, beta int, player Player) (bestMove Move, score int, numEvals int) {
+	if depth == 0 || board.IsGameOver() {
+		//fmt.Printf("depth 0, board = \n%s\n", board.String())
+		w, b := board.Score()
+		return Move{}, w - b, 1
+	}
+	bestMove = Move{}
+	numEvals = 0
+
+	if player == White {
+		//fmt.Printf("evaluating white, depth: %d\n, alpha = %d, beta = %d\n", depth, alpha, beta)
+		maxEval := math.MinInt
+		moves := board.GetLegalMoves()
+		for _, move := range moves {
+			child := board.Copy()
+			child.Move(move)
+			//fmt.Printf("%*s  move %v for player %v\n", 2*depth, "", move, player)
+			_, eval, evalCount := minimax(child, depth-1, alpha, beta, Black)
+			numEvals += evalCount
+			//fmt.Printf("%*s  eval = %d\n", 2*depth, "", eval)
+			if eval > maxEval {
+				bestMove = move
+				maxEval = eval
+				//fmt.Printf("found new best move %v with score %d\n", move, eval)
+			}
+			// update worst possible score for white
+			alpha = max(alpha, eval)
+			if beta <= alpha {
+				// black can guarantee a score of beta,
+				// so would never pick this branch.  No
+				// need to explore further
+				break
+			}
+		}
+		return bestMove, maxEval, numEvals
+	} else {
+		//fmt.Printf("evaluating black, depth: %d\n, alpha = %d, beta = %d\n", depth, alpha, beta)
+		minEval := math.MaxInt
+		moves := board.GetLegalMoves()
+		for _, move := range moves {
+			child := board.Copy()
+			child.Move(move)
+			_, eval, evalCount := minimax(child, depth-1, alpha, beta, White)
+			numEvals += evalCount
+			//fmt.Printf("%*s  move %v for player %v\n", 2*depth, "", move, player)
+			minEval = min(eval, minEval)
+			//fmt.Printf("%*s  eval = %d\n", 2*depth, "", eval)
+			if eval < minEval {
+				bestMove = move
+				minEval = eval
+			}
+			beta = min(beta, eval)
+			if beta <= alpha {
+				// white can guarantee a score of alpha,
+				// so would never pick this branch.  No
+				// need to explore further
+				break
+			}
+		}
+		return bestMove, minEval, numEvals
+	}
+}
+
+func (e *MinimaxEngine) GenMove(board *Board) Move {
+	bestMove, _, numEvals := minimax(board, e.maxDepth, math.MinInt, math.MaxInt, board.playerToMove)
+	fmt.Printf("Minimax evaluated %d moves\n", numEvals)
+	return bestMove
+}
+
+func (e *MinimaxEngine) RequiresHumanInput() bool {
 	return false
 }
 

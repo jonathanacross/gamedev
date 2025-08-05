@@ -193,6 +193,21 @@ func (b *Board) Score() (whiteScore, blackScore int) {
 	return
 }
 
+func (b *Board) IsGameOver() bool {
+	// A game is over if one player has no pieces left
+	if b.white.GetNumSetBits() == 0 || b.black.GetNumSetBits() == 0 {
+		return true
+	}
+
+	// or if there are no spaces left to move
+	if b.empty == 0 {
+		return true
+	}
+
+	return false
+
+}
+
 func NewBoardFromText(text string) (*Board, error) {
 	reg := regexp.MustCompile(`[^xo.]+`)
 	importantChars := reg.ReplaceAllString(text, "")
