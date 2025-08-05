@@ -29,8 +29,8 @@ func NewGame() *Game {
 		state:       GameInProgress,
 		gameBoard:   NewBoard(),
 		boardWidget: NewBoardWidget(),
-		whiteEngine: &MinimaxEngine{maxDepth: 4},
-		blackEngine: &GreedyEngine{},
+		whiteEngine: &HumanEngine{},
+		blackEngine: &MinimaxEngine{maxDepth: 5},
 		spinner:     NewSpinner(),
 	}
 	return &g
@@ -54,6 +54,15 @@ func (g *Game) Update() error {
 			g.state = WaitingForHuman
 		} else {
 			g.state = ComputerThinking
+			// Launch the goroutine to generate the move;
+			// not called in ComputerThinking state to avoid
+			// multiple goroutines being launched as Update is called repeatedly.
+			go func() {
+				currEngine := g.getCurrentEngine()
+				move := currEngine.GenMove(g.gameBoard)
+				g.boardWidget.DoComputerMove(move, g.gameBoard.playerToMove)
+				g.state = AnimatingComputerMove
+			}()
 		}
 
 	case WaitingForHuman:
@@ -67,12 +76,6 @@ func (g *Game) Update() error {
 
 	case ComputerThinking:
 		g.spinner.SetVisible(true)
-		go func() {
-			currEngine := g.getCurrentEngine()
-			move := currEngine.GenMove(g.gameBoard)
-			g.boardWidget.DoComputerMove(move, g.gameBoard.playerToMove)
-			g.state = AnimatingComputerMove
-		}()
 
 	case AnimatingComputerMove:
 		g.boardWidget.UpdateComputerDragInfo()

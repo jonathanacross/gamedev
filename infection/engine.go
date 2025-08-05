@@ -114,7 +114,7 @@ type MinimaxEngine struct {
 // Beta is the max score that black can guarantee
 func minimax(board *Board, depth int, alpha int, beta int, player Player) (bestMove Move, score int, numEvals int) {
 	if depth == 0 || board.IsGameOver() {
-		//fmt.Printf("depth 0, board = \n%s\n", board.String())
+		// fmt.Printf("depth 0, board = \n%s\n", board.String())
 		w, b := board.Score()
 		return Move{}, w - b, 1
 	}
@@ -148,7 +148,7 @@ func minimax(board *Board, depth int, alpha int, beta int, player Player) (bestM
 		}
 		return bestMove, maxEval, numEvals
 	} else {
-		//fmt.Printf("evaluating black, depth: %d\n, alpha = %d, beta = %d\n", depth, alpha, beta)
+		// fmt.Printf("evaluating black, depth: %d\n, alpha = %d, beta = %d\n", depth, alpha, beta)
 		minEval := math.MaxInt
 		moves := board.GetLegalMoves()
 		for _, move := range moves {
@@ -156,10 +156,10 @@ func minimax(board *Board, depth int, alpha int, beta int, player Player) (bestM
 			child.Move(move)
 			_, eval, evalCount := minimax(child, depth-1, alpha, beta, White)
 			numEvals += evalCount
-			//fmt.Printf("%*s  move %v for player %v\n", 2*depth, "", move, player)
-			minEval = min(eval, minEval)
-			//fmt.Printf("%*s  eval = %d\n", 2*depth, "", eval)
+			// fmt.Printf("%*s  move %v for player %v\n", 2*depth, "", move, player)
+			// fmt.Printf("%*s  eval = %d\n", 2*depth, "", eval)
 			if eval < minEval {
+				// fmt.Printf("found new best move %v with score %d\n", move, eval)
 				bestMove = move
 				minEval = eval
 			}
@@ -178,6 +178,7 @@ func minimax(board *Board, depth int, alpha int, beta int, player Player) (bestM
 func (e *MinimaxEngine) GenMove(board *Board) Move {
 	bestMove, _, numEvals := minimax(board, e.maxDepth, math.MinInt, math.MaxInt, board.playerToMove)
 	fmt.Printf("Minimax evaluated %d moves\n", numEvals)
+	// fmt.Printf("best move: %v, score = %v\n", bestMove, score)
 	return bestMove
 }
 
