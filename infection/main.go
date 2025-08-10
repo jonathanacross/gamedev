@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	ScreenWidth  = 600
-	ScreenHeight = 800
+	ScreenWidth  = 508
+	ScreenHeight = 680
 	TileSize     = 64
 )
 

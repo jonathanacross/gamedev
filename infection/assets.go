@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"image"
 
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 //go:embed assets/*
@@ -24,6 +26,18 @@ var SpinnerImage = loadImage("assets/spinner.png")
 // var Empty1Square = loadImage("assets/woodlight.png")
 // var Empty2Square = loadImage("assets/wooddark.png")
 
+// UI elements
+// var ButtonImage = loadImage("assets/button.png")
+// var ButtonPressedImage = loadImage("assets/buttonpressed.png")
+var PlayPausePlayImage = loadImage("assets/playpause-play.png")
+var PlayPausePauseImage = loadImage("assets/playpause-pause.png")
+var RightArrowIdleImage = loadImage("assets/rightarrowidle.png")
+var RightArrowPressedImage = loadImage("assets/rightarrowpressed.png")
+var LeftArrowIdleImage = loadImage("assets/leftarrowidle.png")
+var LeftArrowPressedImage = loadImage("assets/leftarrowpressed.png")
+
+var DisplayFont = loadFaceSource("assets/notosans-regular.ttf")
+
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
 	if err != nil {
@@ -37,4 +51,17 @@ func loadImage(name string) *ebiten.Image {
 	}
 
 	return ebiten.NewImageFromImage(img)
+}
+
+func loadFaceSource(name string) *text.GoTextFaceSource {
+	f, err := assets.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	face, err := text.NewGoTextFaceSource(bytes.NewReader(f))
+	if err != nil {
+		panic(err)
+	}
+	return face
 }

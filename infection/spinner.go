@@ -9,15 +9,17 @@ type Spinner struct {
 	x       int
 	y       int
 	theta   float64
+	speed   float64
 	visible bool
 }
 
-func NewSpinner() *Spinner {
+func NewSpinner(x, y int, speed float64) *Spinner {
 	return &Spinner{
 		image:   SpinnerImage,
-		x:       50,
-		y:       ScreenHeight - 100,
+		x:       x,
+		y:       y,
 		theta:   0,
+		speed:   speed,
 		visible: false,
 	}
 }
@@ -29,7 +31,7 @@ func (s *Spinner) SetVisible(visible bool) {
 }
 
 func (s *Spinner) Update() {
-	s.theta += 0.01
+	s.theta += s.speed
 }
 
 func (s *Spinner) Draw(screen *ebiten.Image) {

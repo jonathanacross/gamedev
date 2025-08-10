@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"time"
@@ -176,8 +175,8 @@ func minimax(board *Board, depth int, alpha int, beta int, player Player) (bestM
 }
 
 func (e *MinimaxEngine) GenMove(board *Board) Move {
-	bestMove, _, numEvals := minimax(board, e.maxDepth, math.MinInt, math.MaxInt, board.playerToMove)
-	fmt.Printf("Minimax evaluated %d moves\n", numEvals)
+	bestMove, _, _ := minimax(board, e.maxDepth, math.MinInt, math.MaxInt, board.playerToMove)
+	// fmt.Printf("Minimax evaluated %d moves\n", numEvals)
 	// fmt.Printf("best move: %v, score = %v\n", bestMove, score)
 	return bestMove
 }

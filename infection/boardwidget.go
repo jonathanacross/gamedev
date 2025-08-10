@@ -101,12 +101,11 @@ type BoardWidget struct {
 	humanMove        *Move
 }
 
-func NewBoardWidget() *BoardWidget {
-	margin := 40
+func NewBoardWidget(x, y int) *BoardWidget {
 	widget := BoardWidget{
 		bounds: image.Rectangle{
-			Min: image.Point{X: margin, Y: margin},
-			Max: image.Point{X: margin + BoardSize*TileSize, Y: margin + BoardSize*TileSize},
+			Min: image.Point{X: x, Y: y},
+			Max: image.Point{X: x + BoardSize*TileSize, Y: y + BoardSize*TileSize},
 		},
 		dragInfo:         EmptyDragInfo(),
 		computerDragInfo: NewComputerDragInfo(),
