@@ -6,12 +6,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const (
-	ScreenWidth  = 508
-	ScreenHeight = 680
-	TileSize     = 64
-)
-
 func main() {
 	game := NewGame()
 	ebiten.SetWindowSize(ScreenWidth, ScreenHeight)

@@ -8,6 +8,32 @@ import (
 
 type GameState int
 
+// Layout
+const (
+	ScreenWidth  = 508
+	ScreenHeight = 680
+	TileSize     = 64
+
+	Margin = 30
+
+	Player1ViewX = Margin
+	Player1ViewY = Margin
+	Player2ViewX = 300
+	Player2ViewY = Margin
+
+	BoardWidgetX = Margin
+	BoardWidgetY = 135
+
+	NewGameButtonX      = Margin
+	NewGameButtonY      = 608
+	NewGameButtonWidth  = 150
+	NewGameButtonHeight = 40
+
+	SpinnerSize = 48
+	SpinnerX    = (ScreenWidth) / 2
+	SpinnerY    = 628
+)
+
 const (
 	GameNotStarted GameState = iota
 	GameInProgress
@@ -32,18 +58,16 @@ func NewGame() *Game {
 	g := Game{
 		state:         GameInProgress,
 		gameBoard:     NewBoard(),
-		boardWidget:   NewBoardWidget(30, 130),
-		spinner:       NewSpinner(255, 628, 0.03),
+		boardWidget:   NewBoardWidget(BoardWidgetX, BoardWidgetY),
+		spinner:       NewSpinner(SpinnerX, SpinnerY, 0.03),
 		newGameButton: nil,
-		player1View:   NewPlayerView(30, 30, 0, color.RGBA{255, 255, 0, 255}),
-		player2View:   NewPlayerView(300, 30, 0, color.RGBA{255, 0, 0, 255}),
+		player1View:   NewPlayerView(Player1ViewX, Player1ViewY, 0, color.RGBA{255, 255, 0, 255}),
+		player2View:   NewPlayerView(Player2ViewX, Player2ViewY, 0, color.RGBA{255, 0, 0, 255}),
 	}
 
-	buttonWidth := 150
-	buttonHeight := 40
-	g.newGameButton = NewButton(30, 608, buttonWidth, buttonHeight,
-		GenerateButtonImage(buttonWidth, buttonHeight, "New Game", color.RGBA{55, 148, 110, 255}, color.RGBA{0, 0, 0, 255}),
-		GenerateButtonImage(buttonWidth, buttonHeight, "New Game", color.RGBA{153, 229, 80, 255}, color.RGBA{0, 0, 0, 255}),
+	g.newGameButton = NewButton(NewGameButtonX, NewGameButtonY, NewGameButtonWidth, NewGameButtonHeight,
+		GenerateButtonImage(NewGameButtonWidth, NewGameButtonHeight, "New Game", color.RGBA{55, 148, 110, 255}, color.RGBA{0, 0, 0, 255}),
+		GenerateButtonImage(NewGameButtonWidth, NewGameButtonHeight, "New Game", color.RGBA{153, 229, 80, 255}, color.RGBA{0, 0, 0, 255}),
 		func() { g.gameBoard = NewBoard() },
 	)
 	return &g
@@ -65,20 +89,24 @@ func (g *Game) Update() error {
 	switch g.state {
 	case GameInProgress:
 		g.spinner.SetVisible(false)
-		currEngine := g.getCurrentEngine()
-		if currEngine.RequiresHumanInput() {
-			g.state = WaitingForHuman
+		if g.gameBoard.IsGameOver() {
+			g.state = GameOver
 		} else {
-			g.state = ComputerThinking
-			// Launch the goroutine to generate the move;
-			// not called in ComputerThinking state to avoid
-			// multiple goroutines being launched as Update is called repeatedly.
-			go func() {
-				currEngine := g.getCurrentEngine()
-				move := currEngine.GenMove(g.gameBoard)
-				g.boardWidget.DoComputerMove(move, g.gameBoard.playerToMove)
-				g.state = AnimatingComputerMove
-			}()
+			currEngine := g.getCurrentEngine()
+			if currEngine.RequiresHumanInput() {
+				g.state = WaitingForHuman
+			} else {
+				g.state = ComputerThinking
+				// Launch the goroutine to generate the move;
+				// not called in ComputerThinking state to avoid
+				// multiple goroutines being launched as Update is called repeatedly.
+				go func() {
+					currEngine := g.getCurrentEngine()
+					move := currEngine.GenMove(g.gameBoard)
+					g.boardWidget.DoComputerMove(move, g.gameBoard.playerToMove)
+					g.state = AnimatingComputerMove
+				}()
+			}
 		}
 
 	case WaitingForHuman:
@@ -102,6 +130,12 @@ func (g *Game) Update() error {
 			g.gameBoard.Move(move)
 			g.state = GameInProgress
 		}
+
+	case GameOver:
+		if !g.gameBoard.IsGameOver() {
+			g.state = GameInProgress
+		}
+
 	}
 
 	return nil

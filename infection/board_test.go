@@ -159,3 +159,74 @@ func TestBoardMove(t *testing.T) {
 		}
 	}
 }
+
+func TestGameOver(t *testing.T) {
+	type TestCase struct {
+		name       string
+		startBoard string
+		want       bool
+	}
+
+	testCases := []TestCase{
+		{
+			name: "not game over",
+			startBoard: `
+				o . . . o o x 
+				. . x . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				x . . . . . o`,
+			want: false,
+		},
+		{
+			name: "board full",
+			startBoard: `
+				o x o x o o x 
+				o x x x o x x 
+				o x o x o x x 
+				o x o x o x o 
+				o x o x o o o 
+				o x o x o x o 
+				x x o x o x o`,
+			want: true,
+		},
+		{
+			name: "all x",
+			startBoard: `
+				x . . . x x x 
+				. . x . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . .`,
+			want: true,
+		},
+		{
+			name: "all o",
+			startBoard: `
+				o . . . o o o 
+				. . o . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . . 
+				. . . . . . .`,
+			want: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		board, err := NewBoardFromText(tc.startBoard)
+		if err != nil {
+			t.Fatalf("%s: Failed to create inital board from text: %v", tc.name, err)
+		}
+		want := tc.want
+		got := board.IsGameOver()
+		if want != got {
+			t.Errorf("%s: want: %v, got %v", tc.name, want, got)
+		}
+	}
+}

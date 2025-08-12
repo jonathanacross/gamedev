@@ -33,10 +33,12 @@ type Board struct {
 // used for making moves (and generating moves)
 var adjacentBitboards [NumSquares]BitBoard
 var jumpBitboards [NumSquares]BitBoard
+var onGameBitboard BitBoard
 
 func init() {
 	adjacentBitboards = genAdjacentBitboards()
 	jumpBitboards = genJumpBitboards()
+	onGameBitboard = genOnGameBitboard()
 }
 
 func GetIndex(row, col int) SquareIndex {
@@ -121,6 +123,14 @@ func genOffsetBitboards(offsets []Offset) [NumSquares]BitBoard {
 	return bitboards
 }
 
+func genOnGameBitboard() BitBoard {
+	bb := BitBoard(0)
+	for idx := range NumSquares {
+		bb = bb.Set(SquareIndex(idx))
+	}
+	return bb
+}
+
 func genAdjacentBitboards() [NumSquares]BitBoard {
 	offsets := []Offset{
 		{-1, -1},
@@ -200,12 +210,11 @@ func (b *Board) IsGameOver() bool {
 	}
 
 	// or if there are no spaces left to move
-	if b.empty == 0 {
+	if b.empty&onGameBitboard == 0 {
 		return true
 	}
 
 	return false
-
 }
 
 func NewBoardFromText(text string) (*Board, error) {
