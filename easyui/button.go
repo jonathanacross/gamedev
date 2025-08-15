@@ -27,6 +27,8 @@ type Button struct {
 
 	state   ButtonState // Current state of the button
 	onClick func()      // Function to call when the button is clicked
+
+	isPressedInside bool // New internal state: true if the mouse button was initially pressed while cursor was inside the button's bounds
 }
 
 // SetClickHandler sets the function to be executed when the button is clicked.
@@ -39,36 +41,55 @@ func (b *Button) Update() {
 	// Get current cursor position
 	cx, cy := ebiten.CursorPosition()
 
-	// Use the new ContainsPoint method from the embedded component
+	// Use the ContainsPoint method from the embedded component to check if cursor is over the button
 	cursorInBounds := b.ContainsPoint(cx, cy)
 
-	// Check for disabled state first
+	// If the button is disabled, do not process any input and return immediately.
 	if b.state == ButtonDisabled {
-		return // Do not process input if disabled
+		return
 	}
 
-	// Handle button press
+	// Step 1: Handle mouse button just pressed
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if cursorInBounds {
 			b.state = ButtonPressed
-		}
-	} else if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		if b.state == ButtonPressed && cursorInBounds {
-			b.state = ButtonIdle // Return to idle after release
-			if b.onClick != nil {
-				b.onClick() // Trigger click handler
-			}
-		} else if b.state == ButtonPressed {
-			b.state = ButtonIdle // If released outside, go back to idle
-		}
-	}
-
-	// Handle hover state
-	if b.state != ButtonPressed { // Do not change to hover if currently pressed
-		if cursorInBounds {
-			b.state = ButtonHover
+			b.isPressedInside = true // Mark that the press originated inside
 		} else {
-			b.state = ButtonIdle
+			b.isPressedInside = false // Mark that the press originated outside
+		}
+	} else if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		// Step 2: Handle mouse button currently held down
+		if b.isPressedInside { // Only if the press originated inside the button
+			if cursorInBounds {
+				b.state = ButtonPressed // Keep showing pressed if still over the button
+			} else {
+				b.state = ButtonIdle // Revert to idle if mouse moves off while held
+			}
+		}
+		// If isPressedInside is false, it means the click started outside, so we don't change state based on drag.
+	} else if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
+		// Step 3: Handle mouse button just released
+		if b.isPressedInside && cursorInBounds {
+			// If released inside AND press originated inside, trigger click
+			if b.onClick != nil {
+				b.onClick()
+			}
+			b.state = ButtonIdle // Reset to idle after click
+		} else {
+			// If released outside, or released after an outside press, revert to idle/hover based on cursor position
+			if cursorInBounds {
+				b.state = ButtonHover
+			} else {
+				b.state = ButtonIdle
+			}
+		}
+		b.isPressedInside = false // Always reset this flag on release
+	} else {
+		// Step 4: Handle hover state when no mouse button is pressed
+		if cursorInBounds {
+			b.state = ButtonHover // Show hover if cursor is over and not pressed
+		} else {
+			b.state = ButtonIdle // Otherwise, return to idle
 		}
 	}
 }
