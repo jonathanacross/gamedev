@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"log" // Import for logging
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -22,6 +23,7 @@ type MenuItem struct {
 
 // NewMenuItem creates a new MenuItem instance.
 func NewMenuItem(x, y, width, height int, label string, idle, hover, pressed *ebiten.Image) *MenuItem {
+	log.Printf("NewMenuItem: Creating item '%s' with bounds (%d,%d,%d,%d)", label, x, y, width, height)
 	return &MenuItem{
 		component: component{
 			Bounds: image.Rectangle{
@@ -47,6 +49,8 @@ func (m *MenuItem) Update() {
 	cx, cy := ebiten.CursorPosition()
 	cursorInBounds := m.ContainsPoint(cx, cy)
 
+	oldState := m.state // For logging state changes
+
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if cursorInBounds {
 			m.state = ButtonPressed
@@ -54,6 +58,7 @@ func (m *MenuItem) Update() {
 	} else if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		if m.state == ButtonPressed && cursorInBounds {
 			if m.onClick != nil {
+				log.Printf("MenuItem '%s': Click handler triggered.", m.Label)
 				m.onClick()
 			}
 			m.state = ButtonHover // Go to hover if released inside
@@ -67,19 +72,35 @@ func (m *MenuItem) Update() {
 			m.state = ButtonIdle
 		}
 	}
+
+	if oldState != m.state {
+		log.Printf("MenuItem '%s': State changed from %v to %v. Cursor in bounds: %t", m.Label, oldState, m.state, cursorInBounds)
+	}
 }
 
 // Draw draws the menu item, including its background color based on state and its label.
 func (m *MenuItem) Draw(screen *ebiten.Image) {
+	if m.idleImage == nil || m.hoverImage == nil || m.pressedImage == nil {
+		log.Printf("MenuItem '%s': WARNING: One or more state images are nil! Idle: %t, Hover: %t, Pressed: %t", m.Label, m.idleImage != nil, m.hoverImage != nil, m.pressedImage != nil)
+		return // Don't attempt to draw if images are missing
+	}
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(m.Bounds.Min.X), float64(m.Bounds.Min.Y))
 
+	var imgToDraw *ebiten.Image
+
 	switch m.state {
 	case ButtonIdle:
-		screen.DrawImage(m.idleImage, op)
+		imgToDraw = m.idleImage
 	case ButtonHover:
-		screen.DrawImage(m.hoverImage, op)
+		imgToDraw = m.hoverImage
 	case ButtonPressed:
-		screen.DrawImage(m.pressedImage, op)
+		imgToDraw = m.pressedImage
+	default:
+		imgToDraw = m.idleImage // Fallback
 	}
+
+	log.Printf("MenuItem '%s': Drawing in state %v. Image bounds: %v", m.Label, m.state, imgToDraw.Bounds())
+	screen.DrawImage(imgToDraw, op)
 }

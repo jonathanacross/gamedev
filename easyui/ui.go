@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"log" // Import for logging
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -30,7 +31,6 @@ func NewUi(x, y, width, height int) *Ui {
 func (u *Ui) Update() {
 	if u.modalComponent != nil {
 		// If a modal component exists, only update it.
-		// This ensures that input is directed exclusively to the modal UI.
 		u.modalComponent.Update()
 	} else {
 		// If no modal component, update all regular child components.
@@ -49,16 +49,21 @@ func (u *Ui) Draw(screen *ebiten.Image) {
 	}
 	// If a modal component exists, draw it last so it appears on top of other UI elements.
 	if u.modalComponent != nil {
+		log.Printf("Ui.Draw: Drawing modal component of type %T at bounds %v", u.modalComponent, u.modalComponent.GetBounds())
 		u.modalComponent.Draw(screen)
+	} else {
+		// log.Printf("Ui.Draw: No modal component to draw.") // Uncomment for more frequent logs
 	}
 }
 
 // SetModal sets a component as the current modal, giving it exclusive input focus and drawing priority.
 func (u *Ui) SetModal(c Component) {
 	u.modalComponent = c
+	log.Printf("Ui: Modal component set to type %T", c)
 }
 
 // ClearModal removes the current modal component, returning input focus to the regular UI.
 func (u *Ui) ClearModal() {
+	log.Printf("Ui: Modal component cleared.")
 	u.modalComponent = nil
 }
