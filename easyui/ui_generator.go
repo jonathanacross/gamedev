@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 
+	// "log" // Removed log import as no longer needed for every image generation
+
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
@@ -29,7 +31,7 @@ type BareBonesUiGenerator struct {
 func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) *Button {
 	idle := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label)
 	pressed := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
-	hover := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label) // Could be a different hover color
+	hover := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label) // Could be a different hover color
 	disabled := b.generateButtonImage(width, height, b.theme.BackgroundColor, b.theme.OnPrimaryColor, label)
 
 	return &Button{
