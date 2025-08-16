@@ -11,11 +11,13 @@ import (
 
 // BareBonesTheme defines the color and font theme for UI elements.
 type BareBonesTheme struct {
-	BackgroundColor color.RGBA // e.g. dark gray
-	PrimaryColor    color.RGBA // your color theme
-	OnPrimaryColor  color.RGBA // probably white/near white. color of text/border
-	AccentColor     color.RGBA // for accents when pressed
-	Face            font.Face  // The loaded font face
+	BackgroundColor    color.RGBA // e.g. dark gray
+	PrimaryColor       color.RGBA // your color theme (for buttons, dropdowns)
+	OnPrimaryColor     color.RGBA // probably white/near white. color of text/border on primary elements
+	AccentColor        color.RGBA // for accents when pressed
+	MenuColor          color.RGBA // Color for the menu background
+	MenuItemHoverColor color.RGBA // Color for menu items on hover
+	Face               font.Face  // The loaded font face
 }
 
 // BareBonesUiGenerator helps instantiate UI components with the defined theme.
@@ -24,14 +26,12 @@ type BareBonesUiGenerator struct {
 }
 
 // NewButton creates a new Button instance with the specified dimensions, label, and theme.
+// Corrected type from BareBasesUiGenerator to BareBonesUiGenerator
 func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) *Button {
-	// Generate images for different button states
 	idle := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label)
-	// For simplicity, using the same image for pressed and hover states for now.
-	// You can create distinct images for each state later if desired.
-	pressed := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label) // Use accent color when pressed
-	hover := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label)
-	disabled := b.generateButtonImage(width, height, b.theme.BackgroundColor, b.theme.OnPrimaryColor, label) // Greyed out for disabled
+	pressed := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
+	hover := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label) // Could be a different hover color
+	disabled := b.generateButtonImage(width, height, b.theme.BackgroundColor, b.theme.OnPrimaryColor, label)
 
 	return &Button{
 		component: component{
@@ -44,7 +44,7 @@ func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) 
 		pressed:  pressed,
 		hover:    hover,
 		disabled: disabled,
-		state:    ButtonIdle, // Initial state
+		state:    ButtonIdle,
 	}
 }
 
@@ -56,28 +56,90 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Set background color for the button
 	dc.SetRGBA255(int(buttonColor.R), int(buttonColor.G), int(buttonColor.B), int(buttonColor.A))
-	// Draw a rounded rectangle for the button background
-	cornerRadius := float64(height) / 4 // Adjust as needed for desired roundness
+	cornerRadius := float64(height) / 4
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
-	dc.Fill()
+	dc.FillPreserve()
 
-	// Draw a frame (border) around the button
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(2) // Border thickness
+	dc.SetLineWidth(2)
 	dc.Stroke()
 
-	// Use the font face provided in the theme
 	if b.theme.Face != nil {
 		dc.SetFontFace(b.theme.Face)
 	}
 
-	// Set text color
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	// Draw text centered on the button
 	dc.DrawStringWrapped(buttonText, float64(width)/2, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignCenter)
 
-	// Convert gg.Context image to ebiten.Image
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateMenuItemImage draws a single menu item with text and a background color that changes on hover/press.
+func (b *BareBonesUiGenerator) generateMenuItemImage(
+	width, height int,
+	bgColor, textColor color.RGBA,
+	itemText string,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height)) // Menu items typically have sharp corners
+	dc.Fill()
+
+	if b.theme.Face != nil {
+		dc.SetFontFace(b.theme.Face)
+	}
+
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	dc.DrawStringWrapped(itemText, float64(width)/2, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignCenter)
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateMenuImage draws a solid background for the entire menu.
+func (b *BareBonesUiGenerator) generateMenuImage(
+	width, height int,
+	bgColor color.RGBA,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Fill()
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateMenuImage draws a solid background for the entire menu.
+func (b *BareBonesUiGenerator) generateDropdownImage(
+	width, height int,
+	bgColor, textColor color.RGBA,
+	text string,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.FillPreserve()
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	dc.SetLineWidth(2)
+	dc.Stroke()
+
+	// Draw the V arrow on the right side of the menu
+	delta := float64(height) / 7
+	dc.MoveTo(float64(width)-2*delta, 3*delta)
+	dc.LineTo(float64(width)-3*delta, 4*delta)
+	dc.LineTo(float64(width)-4*delta, 3*delta)
+	dc.Stroke()
+
+	if b.theme.Face != nil {
+		dc.SetFontFace(b.theme.Face)
+	}
+
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	dc.DrawString(text, 2*delta, float64(height)/2)
+	//dc.DrawStringWrapped(text, delta, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignLeft)
+
 	return ebiten.NewImageFromImage(dc.Image())
 }
