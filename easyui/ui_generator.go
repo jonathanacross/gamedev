@@ -1,10 +1,7 @@
 package main
 
 import (
-	"image"
 	"image/color"
-
-	// "log" // Removed log import as no longer needed for every image generation
 
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -31,37 +28,28 @@ type BareBonesUiGenerator struct {
 func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) *Button {
 	idle := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label)
 	pressed := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
-	hover := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label) // Could be a different hover color
-	disabled := b.generateButtonImage(width, height, b.theme.BackgroundColor, b.theme.OnPrimaryColor, label)
+	hover := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
+	disabled := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label) // Example: disabled state image
 
 	return &Button{
-		component: component{
-			Bounds: image.Rectangle{
-				Min: image.Point{X: x, Y: y},
-				Max: image.Point{X: x + width, Y: y + height},
-			},
-		},
-		idle:     idle,
-		pressed:  pressed,
-		hover:    hover,
-		disabled: disabled,
-		state:    ButtonIdle,
+		interactiveComponent: NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled),
+		onClick:              nil, // Will be set by SetClickHandler
 	}
 }
 
-// generateButtonImage draws a rounded rectangle button with text using the gg framework.
+// generateButtonImage creates an Ebiten image for a button's specific state.
 func (b *BareBonesUiGenerator) generateButtonImage(
 	width, height int,
-	buttonColor, textColor color.RGBA,
-	buttonText string,
+	bgColor, textColor color.RGBA,
+	text string,
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	dc.SetRGBA255(int(buttonColor.R), int(buttonColor.G), int(buttonColor.B), int(buttonColor.A))
-	cornerRadius := float64(height) / 4
+	// Draw button background with rounded corners
+	cornerRadius := float64(height) * 0.2 // 20% of height for radius
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.FillPreserve()
-
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
 	dc.SetLineWidth(2)
 	dc.Stroke()
@@ -70,52 +58,14 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 		dc.SetFontFace(b.theme.Face)
 	}
 
+	// Draw button text
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.DrawStringWrapped(buttonText, float64(width)/2, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignCenter)
+	dc.DrawStringAnchored(text, float64(width)/2, float64(height)/2, 0.5, 0.5)
 
-	img := ebiten.NewImageFromImage(dc.Image())
-	return img
+	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateMenuItemImage draws a single menu item with text and a background color that changes on hover/press.
-func (b *BareBonesUiGenerator) generateMenuItemImage(
-	width, height int,
-	bgColor, textColor color.RGBA,
-	itemText string,
-) *ebiten.Image {
-	dc := gg.NewContext(width, height)
-
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height)) // Menu items typically have sharp corners
-	dc.Fill()
-
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
-	}
-
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.DrawStringWrapped(itemText, float64(width)/2, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignCenter)
-
-	img := ebiten.NewImageFromImage(dc.Image())
-	return img
-}
-
-// generateMenuImage draws a solid background for the entire menu.
-func (b *BareBonesUiGenerator) generateMenuImage(
-	width, height int,
-	bgColor color.RGBA,
-) *ebiten.Image {
-	dc := gg.NewContext(width, height)
-
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height))
-	dc.Fill()
-
-	img := ebiten.NewImageFromImage(dc.Image())
-	return img
-}
-
-// generateDropdownImage draws the dropdown button with text and a small arrow.
+// generateDropdownImage creates an Ebiten image for a dropdown's specific state.
 func (b *BareBonesUiGenerator) generateDropdownImage(
 	width, height int,
 	bgColor, textColor color.RGBA,
@@ -150,17 +100,47 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 
 	// Set text color and draw the text
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	textWidth, _ := dc.MeasureString(text)
-	textX := padding
-	maxTextWidth := float64(width) - (arrowWidth + padding*2)
+	dc.DrawStringAnchored(text, float64(width)/2-arrowWidth/2, float64(height)/2, 0.5, 0.5)
 
-	if textWidth > maxTextWidth {
-		dc.DrawString(text, textX, float64(height)/2+dc.FontHeight()/3)
-	} else {
-		centeredTextX := (maxTextWidth-textWidth)/2 + padding
-		dc.DrawString(text, centeredTextX, float64(height)/2+dc.FontHeight()/3)
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateMenuItemImage creates an Ebiten image for a menu item.
+func (b *BareBonesUiGenerator) generateMenuItemImage(
+	width, height int,
+	bgColor, textColor color.RGBA,
+	text string,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Draw menu item background
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Fill()
+
+	if b.theme.Face != nil {
+		dc.SetFontFace(b.theme.Face)
 	}
 
-	img := ebiten.NewImageFromImage(dc.Image())
-	return img
+	// Draw menu item text
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	textPadding := 10.0                                                   // Small padding from the left edge
+	dc.DrawStringAnchored(text, textPadding, float64(height)/2, 0.0, 0.5) // Anchor left-center
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// New: generateMenuImage creates an Ebiten image for the menu background.
+func (b *BareBonesUiGenerator) generateMenuImage(
+	width, height int,
+	bgColor color.RGBA,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Draw menu background (e.g., a simple rectangle)
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Fill()
+
+	return ebiten.NewImageFromImage(dc.Image())
 }
