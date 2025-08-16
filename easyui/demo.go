@@ -11,9 +11,9 @@ import (
 )
 
 type Demo struct {
-	ui       Ui
+	ui       *Ui // CHANGED: Now a pointer to Ui
 	button   *Button
-	dropdown *DropDown // New field for the dropdown
+	dropdown *DropDown
 }
 
 func (g *Demo) Update() error {
@@ -68,7 +68,7 @@ func NewDemo() *Demo {
 	}
 	uiGenerator := &BareBonesUiGenerator{theme}
 
-	// Create the root UI container
+	// Create the root UI container (already returns a pointer, so keep as is)
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
 	// Create a regular button and add it to the UI
@@ -79,36 +79,26 @@ func NewDemo() *Demo {
 	ui.AddChild(button)
 
 	// --- Dropdown Menu Implementation ---
-	// 1. Create the Menu component
-	// The Menu's position will be set by the DropDown when it opens.
-	// Its width will match the dropdown. Initial Y is just a placeholder.
+	// 1. Create the Menu component first
 	menuWidth := 200
-	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui)
+	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui) // Pass ui pointer here
 
-	// 2. Add animal items to the menu
-	animals := []string{"Lion", "Tiger", "Bear", "Wolf", "Deer", "Fox", "Eagle", "Shark"}
-	// Forward declaration for dropdown to be used in menu item handlers
-	var dropdown *DropDown
-
+	// 2. Add animal items to the menu (with a placeholder handler for now, we'll update it)
+	animals := []string{"Lion", "Tiger", "Bear"}
+	// We'll update the handlers after 'dropdown' is defined.
 	for _, animal := range animals {
-		currentAnimal := animal // Capture loop variable
-		animalMenu.AddItem(currentAnimal, func() {
-			log.Printf("Selected animal: %s\n", currentAnimal)
-			// When an item is clicked, it will hide the menu automatically (handled in Menu.AddItem handler)
-			// The dropdown's text needs to update to the selected animal.
-			if dropdown != nil { // Ensure dropdown is not nil before using
-				dropdown.SelectedOption = currentAnimal // Update the dropdown's displayed text
-			}
+		animalMenu.AddItem(animal, func() {
+			log.Printf("Selected animal (placeholder handler): %s\n", animal)
 		})
 	}
 
-	// 3. Create the DropDown component
+	// 3. Create the DropDown component (now 'dropdown' is explicitly assigned)
 	dropdownWidth := 200
 	dropdownHeight := 50
 	dropdownX := 350
 	dropdownY := 100
 
-	dropdown = NewDropDown( // Assign to the declared variable
+	dropdown := NewDropDown(
 		dropdownX,
 		dropdownY,
 		dropdownWidth,
@@ -119,11 +109,23 @@ func NewDemo() *Demo {
 		uiGenerator,
 	)
 
-	// 4. Add the dropdown to the root UI
+	// 4. AFTER 'dropdown' is initialized, re-assign/update the click handlers for menu items
+	// This ensures that 'dropdown' is not nil when captured by the closures.
+	for _, item := range animalMenu.items {
+		// Capture the current item's label for the closure
+		itemLabel := item.Label
+		item.SetClickHandler(func() {
+			log.Printf("Selected animal: %s\n", itemLabel) // Log the selected item
+			dropdown.SelectedOption = itemLabel            // Update the dropdown's displayed text
+			animalMenu.Hide()                              // Hide the menu
+		})
+	}
+
+	// 5. Add the dropdown to the root UI
 	ui.AddChild(dropdown)
 
 	return &Demo{
-		ui:       *ui,
+		ui:       ui, // Pass the pointer directly
 		button:   button,
 		dropdown: dropdown,
 	}

@@ -17,12 +17,11 @@ type Menu struct {
 	uiGenerator *BareBonesUiGenerator // To generate menu item images
 	background  *ebiten.Image         // Image for the menu background
 	parentUi    *Ui                   // Reference to the root UI to manage modal state
-	justOpened  bool                  // New field: true if the menu was just opened this frame
+	justOpened  bool                  // True if the menu was just opened on the *previous* frame
 }
 
 // NewMenu creates a new Menu instance.
 func NewMenu(x, y, width int, theme BareBonesTheme, uiGen *BareBonesUiGenerator, parentUi *Ui) *Menu {
-	// Initial height is 0, it will be calculated when items are added
 	m := &Menu{
 		component: component{
 			Bounds: image.Rectangle{
@@ -83,19 +82,22 @@ func (m *Menu) Update() {
 		return // Only update if visible
 	}
 
+	// Handle the grace period for a newly opened menu.
+	// This frame, we *just* made it visible. We allow items to update
+	// but prevent the menu from immediately closing due to the same click.
 	if m.justOpened {
-		log.Printf("Menu.Update: Menu just opened, skipping external click check this frame.")
-		m.justOpened = false
+		log.Printf("Menu.Update: Menu was just opened, resetting justOpened flag and skipping external click check this frame.")
+		m.justOpened = false // Reset for the next frame
 		// Still update children to allow immediate hover effects for the first item
 		for _, item := range m.items {
-			// Explicitly log before calling update on item
 			log.Printf("Menu.Update: Calling Update for MenuItem '%s'", item.Label)
 			item.Update()
 		}
-		return
+		return // Skip further input processing this frame for the menu itself
 	}
 
 	// Check for clicks outside the menu to close it
+	// Only respond to a *new* mouse press that occurs outside the menu.
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		cx, cy := ebiten.CursorPosition()
 		if !m.ContainsPoint(cx, cy) {
@@ -107,7 +109,6 @@ func (m *Menu) Update() {
 
 	log.Printf("Menu.Update: Updating %d menu items.", len(m.items))
 	for _, item := range m.items {
-		// Explicitly log before calling update on item
 		log.Printf("Menu.Update: Calling Update for MenuItem '%s'", item.Label)
 		item.Update()
 	}
@@ -136,7 +137,6 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 	log.Printf("Menu.Draw: Drawing %d menu items.", len(m.items))
 	// Draw all child menu items
 	for _, item := range m.items {
-		// Explicitly log before calling draw on item
 		log.Printf("Menu.Draw: Calling Draw for MenuItem '%s'. Item bounds: %v", item.Label, item.Bounds)
 		item.Draw(screen)
 	}
@@ -145,7 +145,7 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 // Show makes the menu visible and sets it as the modal component in the UI.
 func (m *Menu) Show() {
 	m.isVisible = true
-	m.justOpened = true // Mark that the menu was just opened
+	m.justOpened = true // Set to true when shown
 	log.Printf("Menu.Show: Menu set to visible and justOpened=true. Current Bounds: %v", m.Bounds)
 	if m.parentUi != nil {
 		m.parentUi.SetModal(m) // Set self as modal
@@ -156,6 +156,7 @@ func (m *Menu) Show() {
 // Hide makes the menu invisible and clears it as the modal component in the UI.
 func (m *Menu) Hide() {
 	m.isVisible = false
+	// m.justOpened remains false; it's only set to true in Show()
 	log.Printf("Menu.Hide: Menu set to invisible.")
 	if m.parentUi != nil {
 		m.parentUi.ClearModal() // Clear self as modal
@@ -175,7 +176,6 @@ func (m *Menu) SetPosition(x, y int) {
 	m.Bounds.Max.Y += diffY
 
 	// Regenerate background to match the new size and ensure it's correctly placed
-	// This also accounts for any size changes that might have occurred from AddItem
 	m.background = m.uiGenerator.generateMenuImage(m.Bounds.Dx(), m.Bounds.Dy(), m.theme.MenuColor)
 	log.Printf("Menu.SetPosition: Menu repositioned. New bounds: %v. Background regenerated.", m.Bounds)
 

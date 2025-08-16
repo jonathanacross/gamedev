@@ -3,7 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
-	"log" // Import for logging
+	"log"
 
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"

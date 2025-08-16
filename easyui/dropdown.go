@@ -9,15 +9,14 @@ import (
 
 // DropDown represents a clickable component that reveals a menu when clicked.
 type DropDown struct {
-	component                                    // Embeds the base component struct
-	Label                  string                // The text displayed on the drop-down button itself (e.g., "Select an animal")
-	SelectedOption         string                // The currently selected option's label
-	menu                   *Menu                 // The associated menu component
-	state                  ButtonState           // To handle hover and pressed visual states (similar to a button)
-	theme                  BareBonesTheme        // Reference to the theme for drawing
-	uiGenerator            *BareBonesUiGenerator // To generate dropdown button images
-	isPressedInside        bool                  // True if the mouse button was initially pressed while cursor was inside the button's bounds
-	toggleHandledThisFrame bool                  // New: true if the menu was just toggled (shown/hidden) this frame
+	component                             // Embeds the base component struct
+	Label           string                // The text displayed on the drop-down button itself (e.g., "Select an animal")
+	SelectedOption  string                // The currently selected option's label
+	menu            *Menu                 // The associated menu component
+	state           ButtonState           // To handle hover and pressed visual states (similar to a button)
+	theme           BareBonesTheme        // Reference to the theme for drawing
+	uiGenerator     *BareBonesUiGenerator // To generate dropdown button images
+	isPressedInside bool                  // True if the mouse button was initially pressed while cursor was inside the button's bounds
 }
 
 // NewDropDown creates a new DropDown instance, associating it with a menu.
@@ -29,25 +28,19 @@ func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, theme
 				Max: image.Point{X: x + width, Y: y + height},
 			},
 		},
-		Label:                  initialLabel,
-		SelectedOption:         initialLabel, // Initially, the label is the selected option
-		menu:                   menu,
-		state:                  ButtonIdle,
-		theme:                  theme,
-		uiGenerator:            uiGen,
-		isPressedInside:        false,
-		toggleHandledThisFrame: false, // Initialize to false
+		Label:           initialLabel,
+		SelectedOption:  initialLabel, // Initially, the label is the selected option
+		menu:            menu,
+		state:           ButtonIdle,
+		theme:           theme,
+		uiGenerator:     uiGen,
+		isPressedInside: false,
 	}
 	return dd
 }
 
 // Update handles the interaction for the drop-down button.
 func (d *DropDown) Update() {
-	// Reset the toggleHandledThisFrame flag at the start of each update cycle
-	defer func() {
-		d.toggleHandledThisFrame = false
-	}()
-
 	// Get current cursor position
 	cx, cy := ebiten.CursorPosition()
 	cursorInBounds := d.ContainsPoint(cx, cy)
@@ -59,12 +52,10 @@ func (d *DropDown) Update() {
 			d.isPressedInside = true // Mark that the press originated inside
 		} else {
 			d.isPressedInside = false // Mark that the press originated outside
-			// If click started outside, hide the menu if it's open.
-			// This provides a way to close the menu by clicking anywhere else.
-			if d.menu.isVisible {
-				d.menu.Hide()
-				d.toggleHandledThisFrame = true // Mark that a toggle happened
-			}
+			// If click started outside this dropdown, and the menu is visible,
+			// let the menu handle its own closure via the modal system.
+			// The dropdown itself doesn't need to explicitly hide the menu here
+			// if the click wasn't on it.
 		}
 	} else if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		// Step 2: Handle mouse button currently held down
@@ -77,26 +68,22 @@ func (d *DropDown) Update() {
 		}
 	} else if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		// Step 3: Handle mouse button just released
-		// Only process if a toggle hasn't already been handled this frame (e.g., from an initial outside click closing the menu)
-		if !d.toggleHandledThisFrame {
-			if d.isPressedInside && cursorInBounds {
-				// If released inside AND press originated inside, toggle menu visibility
-				if d.menu.isVisible {
-					d.menu.Hide()
-				} else {
-					// Position the menu below the dropdown
-					d.menu.SetPosition(d.Bounds.Min.X, d.Bounds.Max.Y)
-					d.menu.Show()
-				}
-				d.state = ButtonIdle            // Reset to idle after click
-				d.toggleHandledThisFrame = true // Mark that a toggle happened
+		if d.isPressedInside && cursorInBounds {
+			// If released inside AND press originated inside, toggle menu visibility
+			if d.menu.isVisible {
+				d.menu.Hide()
 			} else {
-				// If released outside, or released after an outside press, revert to idle/hover based on cursor position
-				if cursorInBounds {
-					d.state = ButtonHover
-				} else {
-					d.state = ButtonIdle
-				}
+				// Position the menu below the dropdown
+				d.menu.SetPosition(d.Bounds.Min.X, d.Bounds.Max.Y)
+				d.menu.Show()
+			}
+			d.state = ButtonIdle // Reset to idle after click
+		} else {
+			// If released outside, or released after an outside press, revert to idle/hover based on cursor position
+			if cursorInBounds {
+				d.state = ButtonHover
+			} else {
+				d.state = ButtonIdle
 			}
 		}
 		d.isPressedInside = false // Always reset this flag on release
