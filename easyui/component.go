@@ -11,8 +11,10 @@ type Component interface {
 	Draw(screen *ebiten.Image)
 	Update()
 	GetBounds() image.Rectangle
-	HandleClick()
-	GetChildren() []Component // New method to get child components
+	HandlePress()   // Called when the mouse button is pressed down on this component.
+	HandleRelease() // New: Called when the mouse button is released, if this component was pressed.
+	HandleClick()   // Called if mouse was pressed AND released on this component.
+	GetChildren() []Component
 }
 
 // component is the base struct that other UI widgets will embed.
@@ -37,11 +39,16 @@ func (c *component) GetChildren() []Component {
 }
 
 // ContainsPoint checks if a given (x, y) coordinate is within the component's bounds.
-// This is now a standalone function, not a method of a struct.
 func ContainsPoint(rect image.Rectangle, x, y int) bool {
 	return x >= rect.Min.X && x < rect.Max.X &&
 		y >= rect.Min.Y && y < rect.Max.Y
 }
 
-// This is a dummy method to satisfy the Component interface for the base struct.
+// HandlePress is a dummy method for the base struct.
+func (c *component) HandlePress() {}
+
+// HandleRelease is a dummy method for the base struct.
+func (c *component) HandleRelease() {}
+
+// HandleClick is a dummy method for the base struct.
 func (c *component) HandleClick() {}

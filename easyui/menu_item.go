@@ -41,10 +41,25 @@ func (m *MenuItem) SetClickHandler(handler func()) {
 }
 
 // Update handles the interaction logic for the menu item (hover).
+// It ensures the pressed state only persists if the mouse is over the menu item.
 func (m *MenuItem) Update() {
+	if m.state == ButtonDisabled {
+		return
+	}
+
 	cx, cy := ebiten.CursorPosition()
 	cursorInBounds := ContainsPoint(m.Bounds, cx, cy)
 
+	if m.state == ButtonPressed {
+		// If currently pressed, check if mouse moved *off* the menu item.
+		if !cursorInBounds {
+			m.state = ButtonIdle // Reset to idle if mouse moves away while pressed
+		}
+		// If it's ButtonPressed and cursor is still in bounds, keep it ButtonPressed.
+		return // Do not apply normal hover logic while actively pressed.
+	}
+
+	// Standard hover logic for Idle/Hover states
 	if cursorInBounds {
 		m.state = ButtonHover
 	} else {
@@ -78,10 +93,27 @@ func (m *MenuItem) Draw(screen *ebiten.Image) {
 	screen.DrawImage(imgToDraw, op)
 }
 
+// HandlePress is called when the mouse button is pressed down on this menu item.
+func (m *MenuItem) HandlePress() {
+	m.state = ButtonPressed
+}
+
+// HandleRelease is called when the mouse button is released, if this menu item was the pressed component.
+// It ensures the menu item state transitions out of ButtonPressed to either Hover or Idle.
+func (m *MenuItem) HandleRelease() {
+	cx, cy := ebiten.CursorPosition()
+	if ContainsPoint(m.Bounds, cx, cy) {
+		m.state = ButtonHover // Mouse released over menu item
+	} else {
+		m.state = ButtonIdle // Mouse released away from menu item
+	}
+}
+
 // HandleClick calls the menu item's onClick handler.
 func (m *MenuItem) HandleClick() {
 	if m.onClick != nil {
 		log.Printf("MenuItem '%s': Click handler triggered.", m.Label)
 		m.onClick()
 	}
+	// State transition (from ButtonPressed to Hover/Idle) is handled by HandleRelease.
 }

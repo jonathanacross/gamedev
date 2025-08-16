@@ -139,14 +139,12 @@ func (m *Menu) SetPosition(x, y int) {
 	}
 }
 
-// HandleClick hides the menu if a click event is received.
-// This is used by the centralized click handling to close the menu
-// if the click was within the menu's bounds but not on a menu item.
+// HandlePress is a dummy method for the base struct.
+func (m *Menu) HandlePress() {}
+
+// HandleClick is now primarily used by the Ui to handle clicks on the menu's background
+// when it's a modal.
 func (m *Menu) HandleClick() {
-	// m.Hide() -- This is the line that causes the bug.
-	// When a click is on the menu's background, this closes the menu.
-	// However, because we are using the Menu as a modal, any click outside
-	// the menu will close it via the Ui.Update() method.
-	// This function is no longer needed because the Ui component
-	// handles the outside click.
+	// If a click lands on the menu's background (not an item), it should close the menu.
+	m.Hide()
 }

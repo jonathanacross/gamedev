@@ -37,10 +37,26 @@ func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, theme
 }
 
 // Update handles the interaction for the drop-down button.
+// It ensures the pressed state only persists if the mouse is over the button.
 func (d *DropDown) Update() {
+	if d.state == ButtonDisabled {
+		return
+	}
+
 	cx, cy := ebiten.CursorPosition()
 	cursorInBounds := ContainsPoint(d.Bounds, cx, cy)
 
+	if d.state == ButtonPressed {
+		// If currently pressed, check if mouse moved *off* the dropdown.
+		// If so, switch to ButtonIdle (visual feedback: no longer highlighted as pressed).
+		if !cursorInBounds {
+			d.state = ButtonIdle // Reset to idle if mouse moves away while pressed
+		}
+		// If it's ButtonPressed and cursor is still in bounds, keep it ButtonPressed.
+		return // Do not apply normal hover logic while actively pressed.
+	}
+
+	// Standard hover logic for Idle/Hover states
 	if cursorInBounds {
 		d.state = ButtonHover
 	} else {
@@ -53,21 +69,49 @@ func (d *DropDown) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(d.Bounds.Min.X), float64(d.Bounds.Min.Y))
 
-	currentLabelImage := d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.theme.PrimaryColor, d.theme.OnPrimaryColor, d.SelectedOption)
-	screen.DrawImage(currentLabelImage, op)
+	// Determine image to draw based on state
+	var imgToDraw *ebiten.Image
+	switch d.state {
+	case ButtonIdle:
+		imgToDraw = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.theme.PrimaryColor, d.theme.OnPrimaryColor, d.SelectedOption)
+	case ButtonPressed:
+		imgToDraw = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.theme.AccentColor, d.theme.OnPrimaryColor, d.SelectedOption)
+	case ButtonHover:
+		imgToDraw = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.theme.AccentColor, d.theme.OnPrimaryColor, d.SelectedOption)
+	default:
+		imgToDraw = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.theme.PrimaryColor, d.theme.OnPrimaryColor, d.SelectedOption)
+	}
+
+	screen.DrawImage(imgToDraw, op)
 }
 
-// HandleClick calls the button's onClick handler.
+// HandlePress is called when the mouse button is pressed down on this dropdown.
+func (d *DropDown) HandlePress() {
+	d.state = ButtonPressed
+}
+
+// HandleRelease is called when the mouse button is released, if this dropdown was the pressed component.
+// It ensures the dropdown state transitions out of ButtonPressed to either Hover or Idle.
+func (d *DropDown) HandleRelease() {
+	cx, cy := ebiten.CursorPosition()
+	if ContainsPoint(d.Bounds, cx, cy) {
+		d.state = ButtonHover // Mouse released over dropdown
+	} else {
+		d.state = ButtonIdle // Mouse released away from dropdown
+	}
+}
+
+// HandleClick is called when the mouse button is released on this dropdown,
+// and it was also pressed on this dropdown.
 func (d *DropDown) HandleClick() {
-	// The key to the fix is here. We no longer check `d.menu.isVisible`.
-	// Instead, we check the parent UI's modal state, which is the single source of truth.
+	// Toggle menu visibility based on current modal state.
+	// We check parentUi.modalComponent to determine if *our* menu is the current modal.
 	if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == d.menu {
-		// If our menu is currently the modal, a click on the dropdown should close it.
-		d.menu.Hide()
+		d.menu.Hide() // If our menu is currently the modal, close it.
 	} else if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == nil {
-		// If no modal is currently active, we can show our menu.
+		// If no modal is currently active, show our menu.
 		d.menu.SetPosition(d.Bounds.Min.X, d.Bounds.Max.Y)
 		d.menu.Show()
 	}
-	// If a different modal is active, do nothing.
+	// State transition (from ButtonPressed to Hover/Idle) is handled by HandleRelease.
 }
