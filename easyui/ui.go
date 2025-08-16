@@ -10,8 +10,8 @@ import (
 
 // Ui represents the root UI container, managing a collection of components.
 type Ui struct {
-	component                // Embeds the base component struct
-	modalComponent Component // A component that currently has modal focus (e.g., an open menu)
+	component
+	modalComponent Component
 }
 
 // NewUi creates a new Ui instance with the specified dimensions.
@@ -30,6 +30,7 @@ func NewUi(x, y, width, height int) *Ui {
 // Update iterates through all child components and calls their Update methods.
 // It also handles centralized click detection.
 func (u *Ui) Update() {
+	// First, update the relevant components.
 	if u.modalComponent != nil {
 		u.modalComponent.Update()
 	} else {
@@ -41,35 +42,41 @@ func (u *Ui) Update() {
 	// Centralized click handling
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		cx, cy := ebiten.CursorPosition()
-		clickedHandled := false
 
-		// Check the modal component and its children first.
+		// If a modal component exists, handle clicks exclusively for it and its children.
 		if u.modalComponent != nil {
-			// Iterate through the modal component's children in reverse order.
+			var handledClick bool
+
+			// Check for clicks on the modal's children in reverse order.
 			for i := len(u.modalComponent.GetChildren()) - 1; i >= 0; i-- {
 				child := u.modalComponent.GetChildren()[i]
 				if ContainsPoint(child.GetBounds(), cx, cy) {
 					child.HandleClick()
-					clickedHandled = true
+					handledClick = true
 					break
 				}
 			}
 
-			// If the click wasn't on a child, check the modal component itself.
-			if !clickedHandled && ContainsPoint(u.modalComponent.GetBounds(), cx, cy) {
+			// If no child was clicked, check if the click was on the modal itself.
+			if !handledClick && ContainsPoint(u.modalComponent.GetBounds(), cx, cy) {
 				u.modalComponent.HandleClick()
-				clickedHandled = true
+				handledClick = true
+			}
+
+			// If the click was not on the modal or its children, clear the modal.
+			// The key here is to `return` immediately after clearing the modal.
+			if !handledClick {
+				u.ClearModal()
+				return
 			}
 		}
 
-		// If no modal component was clicked (or active), check the regular children.
-		if !clickedHandled {
-			for i := len(u.children) - 1; i >= 0; i-- {
-				child := u.children[i]
-				if ContainsPoint(child.GetBounds(), cx, cy) {
-					child.HandleClick()
-					break
-				}
+		// If no modal component is active, handle clicks on regular children.
+		for i := len(u.children) - 1; i >= 0; i-- {
+			child := u.children[i]
+			if ContainsPoint(child.GetBounds(), cx, cy) {
+				child.HandleClick()
+				return // A click was handled. Exit the update loop.
 			}
 		}
 	}

@@ -143,5 +143,10 @@ func (m *Menu) SetPosition(x, y int) {
 // This is used by the centralized click handling to close the menu
 // if the click was within the menu's bounds but not on a menu item.
 func (m *Menu) HandleClick() {
-	m.Hide()
+	// m.Hide() -- This is the line that causes the bug.
+	// When a click is on the menu's background, this closes the menu.
+	// However, because we are using the Menu as a modal, any click outside
+	// the menu will close it via the Ui.Update() method.
+	// This function is no longer needed because the Ui component
+	// handles the outside click.
 }

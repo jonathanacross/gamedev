@@ -9,12 +9,10 @@ import (
 
 // MenuItem represents a single selectable item within a menu.
 type MenuItem struct {
-	component             // Embeds the base component struct for bounds and common properties
-	Label     string      // The text displayed for this menu item
-	onClick   func()      // Function to call when this menu item is selected
-	state     ButtonState // To handle hover and pressed visual states (similar to a button)
-
-	// Images for different states of the menu item
+	component
+	Label        string
+	onClick      func()
+	state        ButtonState
 	idleImage    *ebiten.Image
 	hoverImage   *ebiten.Image
 	pressedImage *ebiten.Image

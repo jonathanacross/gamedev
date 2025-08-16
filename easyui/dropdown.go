@@ -59,10 +59,15 @@ func (d *DropDown) Draw(screen *ebiten.Image) {
 
 // HandleClick calls the button's onClick handler.
 func (d *DropDown) HandleClick() {
-	if d.menu.isVisible {
+	// The key to the fix is here. We no longer check `d.menu.isVisible`.
+	// Instead, we check the parent UI's modal state, which is the single source of truth.
+	if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == d.menu {
+		// If our menu is currently the modal, a click on the dropdown should close it.
 		d.menu.Hide()
-	} else {
+	} else if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == nil {
+		// If no modal is currently active, we can show our menu.
 		d.menu.SetPosition(d.Bounds.Min.X, d.Bounds.Max.Y)
 		d.menu.Show()
 	}
+	// If a different modal is active, do nothing.
 }
