@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // Menu represents a pop-up menu containing a list of menu items.
@@ -68,7 +67,7 @@ func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	return item
 }
 
-// Update handles updating all child menu items and detecting clicks outside to close the menu.
+// Update handles updating all child menu items.
 func (m *Menu) Update() {
 	if !m.isVisible {
 		return
@@ -80,17 +79,6 @@ func (m *Menu) Update() {
 
 	if m.justOpened {
 		m.justOpened = false
-		return
-	}
-
-	// This logic remains, as the menu still needs to close if the user clicks outside.
-	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		cx, cy := ebiten.CursorPosition()
-		if !ContainsPoint(m.Bounds, cx, cy) {
-			log.Printf("Menu.Update: Click outside menu detected. Hiding menu.")
-			m.Hide()
-			return
-		}
 	}
 }
 
@@ -151,8 +139,9 @@ func (m *Menu) SetPosition(x, y int) {
 	}
 }
 
-// HandleClick allows the menu to conform to the Component interface.
+// HandleClick hides the menu if a click event is received.
+// This is used by the centralized click handling to close the menu
+// if the click was within the menu's bounds but not on a menu item.
 func (m *Menu) HandleClick() {
-	// A menu itself doesn't have a click action, but its items do.
-	// The centralized logic in ui.go will now call the HandleClick of the specific item.
+	m.Hide()
 }

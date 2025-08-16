@@ -27,8 +27,9 @@ func NewUi(x, y, width, height int) *Ui {
 	}
 }
 
+// Update iterates through all child components and calls their Update methods.
+// It also handles centralized click detection.
 func (u *Ui) Update() {
-	// First, run the Update methods for all components.
 	if u.modalComponent != nil {
 		u.modalComponent.Update()
 	} else {
@@ -42,10 +43,9 @@ func (u *Ui) Update() {
 		cx, cy := ebiten.CursorPosition()
 		clickedHandled := false
 
-		// Check the modal component first for a click on any of its children.
+		// Check the modal component and its children first.
 		if u.modalComponent != nil {
-			// Iterate through the modal component's children to find the clicked one.
-			// This is crucial for dropdown menus and other modal components with children.
+			// Iterate through the modal component's children in reverse order.
 			for i := len(u.modalComponent.GetChildren()) - 1; i >= 0; i-- {
 				child := u.modalComponent.GetChildren()[i]
 				if ContainsPoint(child.GetBounds(), cx, cy) {

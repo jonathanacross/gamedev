@@ -3,7 +3,7 @@ package main
 import (
 	"image/color"
 	"log"
-	"os" // Import the os package for os.ReadFile
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
@@ -11,9 +11,7 @@ import (
 )
 
 type Demo struct {
-	ui       *Ui
-	button   *Button
-	dropdown *DropDown
+	ui *Ui
 }
 
 func (g *Demo) Update() error {
@@ -53,11 +51,11 @@ func NewDemo() *Demo {
 	}
 
 	theme := BareBonesTheme{
-		BackgroundColor:    color.RGBA{100, 100, 100, 255},
-		PrimaryColor:       color.RGBA{100, 150, 200, 255},
+		BackgroundColor:    color.RGBA{20, 20, 20, 255},
+		PrimaryColor:       color.RGBA{120, 120, 120, 255},
 		OnPrimaryColor:     color.RGBA{255, 255, 255, 255},
-		AccentColor:        color.RGBA{255, 255, 0, 255},
-		MenuColor:          color.RGBA{80, 80, 80, 255},
+		AccentColor:        color.RGBA{220, 120, 120, 255},
+		MenuColor:          color.RGBA{100, 100, 100, 255},
 		MenuItemHoverColor: color.RGBA{120, 120, 120, 255},
 		Face:               face,
 	}
@@ -76,20 +74,13 @@ func NewDemo() *Demo {
 	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui)
 
 	animals := []string{"Lion", "Tiger", "Bear"}
-	var dropdown *DropDown // Forward declaration for dropdown
-
-	for _, animal := range animals {
-		animalMenu.AddItem(animal, func() {
-			// This placeholder handler will be overridden below.
-		})
-	}
 
 	dropdownWidth := 200
 	dropdownHeight := 50
 	dropdownX := 350
 	dropdownY := 100
 
-	dropdown = NewDropDown(
+	dropdown := NewDropDown(
 		dropdownX,
 		dropdownY,
 		dropdownWidth,
@@ -100,21 +91,13 @@ func NewDemo() *Demo {
 		uiGenerator,
 	)
 
-	// Update the menu items' handlers AFTER 'dropdown' is initialized
-	for _, item := range animalMenu.items {
-		itemLabel := item.Label // Capture loop variable for the closure
-		item.SetClickHandler(func() {
-			log.Printf("Selected animal: %s\n", itemLabel)
-			dropdown.SelectedOption = itemLabel // Update the dropdown's displayed text
-			animalMenu.Hide()                   // Hide the menu
+	for _, animal := range animals {
+		// Pass the handler directly when adding the item.
+		animalMenu.AddItem(animal, func() {
+			log.Printf("Dropdown item '%s' clicked.", animal)
+			dropdown.SelectedOption = animal // Set the selected option
 		})
 	}
-
 	ui.AddChild(dropdown)
-
-	return &Demo{
-		ui:       ui,
-		button:   button,
-		dropdown: dropdown,
-	}
+	return &Demo{ui: ui}
 }
