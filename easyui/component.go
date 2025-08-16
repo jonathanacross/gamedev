@@ -11,6 +11,8 @@ type Component interface {
 	Draw(screen *ebiten.Image)
 	Update()
 	GetBounds() image.Rectangle
+	HandleClick()
+	GetChildren() []Component // New method to get child components
 }
 
 // component is the base struct that other UI widgets will embed.
@@ -29,8 +31,17 @@ func (c *component) AddChild(child Component) {
 	c.children = append(c.children, child)
 }
 
-// ContainsPoint checks if a given (x, y) coordinate is within the component's bounds.
-func (c *component) ContainsPoint(x, y int) bool {
-	return x >= c.Bounds.Min.X && x < c.Bounds.Max.X &&
-		y >= c.Bounds.Min.Y && y < c.Bounds.Max.Y
+// GetChildren returns the child components.
+func (c *component) GetChildren() []Component {
+	return c.children
 }
+
+// ContainsPoint checks if a given (x, y) coordinate is within the component's bounds.
+// This is now a standalone function, not a method of a struct.
+func ContainsPoint(rect image.Rectangle, x, y int) bool {
+	return x >= rect.Min.X && x < rect.Max.X &&
+		y >= rect.Min.Y && y < rect.Max.Y
+}
+
+// This is a dummy method to satisfy the Component interface for the base struct.
+func (c *component) HandleClick() {}

@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // MenuItem represents a single selectable item within a menu.
@@ -43,37 +42,15 @@ func (m *MenuItem) SetClickHandler(handler func()) {
 	m.onClick = handler
 }
 
-// Update handles the interaction logic for the menu item (hover, click).
+// Update handles the interaction logic for the menu item (hover).
 func (m *MenuItem) Update() {
 	cx, cy := ebiten.CursorPosition()
-	cursorInBounds := m.ContainsPoint(cx, cy)
+	cursorInBounds := ContainsPoint(m.Bounds, cx, cy)
 
-	oldState := m.state // For logging state changes
-
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		if cursorInBounds {
-			m.state = ButtonPressed
-		}
-	} else if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		if m.state == ButtonPressed && cursorInBounds {
-			if m.onClick != nil {
-				log.Printf("MenuItem '%s': Click handler triggered.", m.Label)
-				m.onClick()
-			}
-			m.state = ButtonHover // Go to hover if released inside
-		} else {
-			m.state = ButtonIdle // Go to idle if released outside or not pressed
-		}
+	if cursorInBounds {
+		m.state = ButtonHover
 	} else {
-		if cursorInBounds {
-			m.state = ButtonHover
-		} else {
-			m.state = ButtonIdle
-		}
-	}
-
-	if oldState != m.state {
-		// No logging here to reduce spam
+		m.state = ButtonIdle
 	}
 }
 
@@ -81,7 +58,7 @@ func (m *MenuItem) Update() {
 func (m *MenuItem) Draw(screen *ebiten.Image) {
 	if m.idleImage == nil || m.hoverImage == nil || m.pressedImage == nil {
 		log.Printf("MenuItem '%s': WARNING: One or more state images are nil! Idle: %t, Hover: %t, Pressed: %t", m.Label, m.idleImage != nil, m.hoverImage != nil, m.pressedImage != nil)
-		return // Don't attempt to draw if images are missing
+		return
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -97,8 +74,16 @@ func (m *MenuItem) Draw(screen *ebiten.Image) {
 	case ButtonPressed:
 		imgToDraw = m.pressedImage
 	default:
-		imgToDraw = m.idleImage // Fallback
+		imgToDraw = m.idleImage
 	}
 
 	screen.DrawImage(imgToDraw, op)
+}
+
+// HandleClick calls the menu item's onClick handler.
+func (m *MenuItem) HandleClick() {
+	if m.onClick != nil {
+		log.Printf("MenuItem '%s': Click handler triggered.", m.Label)
+		m.onClick()
+	}
 }

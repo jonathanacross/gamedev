@@ -2,10 +2,10 @@ package main
 
 import (
 	"image"
-	"log" // Import for logging
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil" // For checking clicks outside
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // Menu represents a pop-up menu containing a list of menu items.
@@ -41,7 +41,7 @@ func NewMenu(x, y, width int, theme BareBonesTheme, uiGen *BareBonesUiGenerator,
 
 // AddItem adds a new MenuItem to the menu.
 func (m *Menu) AddItem(label string, handler func()) *MenuItem {
-	itemHeight := 30 // Fixed height for each menu item
+	itemHeight := 30
 	itemWidth := m.Bounds.Dx()
 
 	yOffset := m.Bounds.Min.Y + len(m.items)*itemHeight
@@ -57,10 +57,10 @@ func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	item := NewMenuItem(itemBounds.Min.X, itemBounds.Min.Y, itemBounds.Dx(), itemBounds.Dy(), label, idleImg, hoverImg, pressedImg)
 	item.SetClickHandler(func() {
 		handler() // Call the user-defined handler
-		// m.Hide() // This Hide() call is now explicitly handled by the dropdown's updated item handler
+		m.Hide()  // Now, the menu item's handler should also hide the menu.
 	})
 	m.items = append(m.items, item)
-	m.AddChild(item) // Add as a child component so Update/Draw propagate
+	m.AddChild(item)
 
 	m.Bounds.Max.Y = m.Bounds.Min.Y + len(m.items)*itemHeight
 	m.background = m.uiGenerator.generateMenuImage(m.Bounds.Dx(), m.Bounds.Dy(), m.theme.MenuColor)
@@ -74,23 +74,19 @@ func (m *Menu) Update() {
 		return
 	}
 
-	// Always update all menu items first, regardless of 'justOpened' state.
-	// This ensures they receive input and update their states (hover/pressed/clicked).
 	for _, item := range m.items {
 		item.Update()
 	}
 
-	// Only check for clicks outside to close the menu AFTER the 'justOpened' grace period.
-	// This prevents the menu from closing itself on the very first frame it appears.
 	if m.justOpened {
-		m.justOpened = false // Reset for the next frame
-		return               // Skip further external click processing this frame
+		m.justOpened = false
+		return
 	}
 
-	// Now, check for clicks outside to close the menu.
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+	// This logic remains, as the menu still needs to close if the user clicks outside.
+	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		cx, cy := ebiten.CursorPosition()
-		if !m.ContainsPoint(cx, cy) {
+		if !ContainsPoint(m.Bounds, cx, cy) {
 			log.Printf("Menu.Update: Click outside menu detected. Hiding menu.")
 			m.Hide()
 			return
@@ -104,7 +100,6 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	// Draw the menu's background
 	if m.background != nil {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(m.Bounds.Min.X), float64(m.Bounds.Min.Y))
@@ -113,7 +108,6 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 		log.Printf("Menu.Draw: WARNING: Menu background is nil! Cannot draw background for menu at bounds %v", m.Bounds)
 	}
 
-	// Draw all child menu items
 	for _, item := range m.items {
 		item.Draw(screen)
 	}
@@ -122,10 +116,10 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 // Show makes the menu visible and sets it as the modal component in the UI.
 func (m *Menu) Show() {
 	m.isVisible = true
-	m.justOpened = true // Set to true when shown
+	m.justOpened = true
 	log.Printf("Menu.Show: Menu set to visible and justOpened=true. Current Bounds: %v", m.Bounds)
 	if m.parentUi != nil {
-		m.parentUi.SetModal(m) // Set self as modal
+		m.parentUi.SetModal(m)
 	}
 }
 
@@ -133,7 +127,7 @@ func (m *Menu) Show() {
 func (m *Menu) Hide() {
 	m.isVisible = false
 	if m.parentUi != nil {
-		m.parentUi.ClearModal() // Clear self as modal
+		m.parentUi.ClearModal()
 	}
 }
 
@@ -155,4 +149,10 @@ func (m *Menu) SetPosition(x, y int) {
 		item.Bounds.Max.X += diffX
 		item.Bounds.Max.Y += diffY
 	}
+}
+
+// HandleClick allows the menu to conform to the Component interface.
+func (m *Menu) HandleClick() {
+	// A menu itself doesn't have a click action, but its items do.
+	// The centralized logic in ui.go will now call the HandleClick of the specific item.
 }
