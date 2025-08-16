@@ -3,7 +3,6 @@ package main
 import (
 	"image"
 	"image/color"
-	"log"
 
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -59,10 +58,10 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 	dc.SetRGBA255(int(buttonColor.R), int(buttonColor.G), int(buttonColor.B), int(buttonColor.A))
 	cornerRadius := float64(height) / 4
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
-	dc.FillPreserve() // Fill and preserve path for stroke
+	dc.FillPreserve()
 
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(2) // Border thickness
+	dc.SetLineWidth(2)
 	dc.Stroke()
 
 	if b.theme.Face != nil {
@@ -73,7 +72,6 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 	dc.DrawStringWrapped(buttonText, float64(width)/2, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignCenter)
 
 	img := ebiten.NewImageFromImage(dc.Image())
-	log.Printf("Generated ButtonImage ('%s'): Bounds %v", buttonText, img.Bounds())
 	return img
 }
 
@@ -97,7 +95,6 @@ func (b *BareBonesUiGenerator) generateMenuItemImage(
 	dc.DrawStringWrapped(itemText, float64(width)/2, float64(height)/2, 0.5, 1.0, float64(width)-10, 1.5, gg.AlignCenter)
 
 	img := ebiten.NewImageFromImage(dc.Image())
-	log.Printf("Generated MenuItemImage ('%s'): Bounds %v", itemText, img.Bounds())
 	return img
 }
 
@@ -113,7 +110,6 @@ func (b *BareBonesUiGenerator) generateMenuImage(
 	dc.Fill()
 
 	img := ebiten.NewImageFromImage(dc.Image())
-	log.Printf("Generated MenuImage: Bounds %v (W:%d, H:%d)", img.Bounds(), width, height)
 	return img
 }
 
@@ -127,23 +123,23 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 
 	// Draw the background of the dropdown button as a rectangle
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height)) // Changed to DrawRectangle
-	dc.FillPreserve()                                       // Fill and preserve path for stroke
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.FillPreserve()
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
 	dc.SetLineWidth(2)
 	dc.Stroke()
 
 	// Draw the V arrow on the right side of the dropdown
-	arrowHeight := float64(height) / 5 // A fifth of the button height for the arrow's "tallness"
-	arrowWidth := 2 * arrowHeight      // Arrow is twice as wide as it is tall
+	arrowHeight := float64(height) / 5
+	arrowWidth := 2 * arrowHeight
 
-	padding := float64(width) * 0.05 // Small padding from the right edge
+	padding := float64(width) * 0.05
 	arrowX := float64(width) - arrowWidth - padding
 	arrowY := float64(height)/2 - arrowHeight/2
 
-	dc.MoveTo(arrowX, arrowY)                          // Top-left point of the arrow's base
-	dc.LineTo(arrowX+arrowWidth/2, arrowY+arrowHeight) // Bottom tip of the arrow (middle of base)
-	dc.LineTo(arrowX+arrowWidth, arrowY)               // Top-right point of the arrow's base
+	dc.MoveTo(arrowX, arrowY)
+	dc.LineTo(arrowX+arrowWidth/2, arrowY+arrowHeight)
+	dc.LineTo(arrowX+arrowWidth, arrowY)
 	dc.Stroke()
 
 	if b.theme.Face != nil {
@@ -152,23 +148,17 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 
 	// Set text color and draw the text
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	// Position text to the left of the arrow, with some padding
 	textWidth, _ := dc.MeasureString(text)
-	textX := padding                                          // Start text from left padding
-	maxTextWidth := float64(width) - (arrowWidth + padding*2) // Max space for text before arrow
+	textX := padding
+	maxTextWidth := float64(width) - (arrowWidth + padding*2)
 
-	// Ensure text fits and is centered within its available space
-	// If the text is too wide, DrawStringWrapped will handle it, but for single line we adjust x.
 	if textWidth > maxTextWidth {
-		// If text is too wide, just left align with padding
 		dc.DrawString(text, textX, float64(height)/2+dc.FontHeight()/3)
 	} else {
-		// Otherwise, center the text within the available space to the left of the arrow
 		centeredTextX := (maxTextWidth-textWidth)/2 + padding
 		dc.DrawString(text, centeredTextX, float64(height)/2+dc.FontHeight()/3)
 	}
 
 	img := ebiten.NewImageFromImage(dc.Image())
-	log.Printf("Generated DropdownImage ('%s'): Bounds %v", text, img.Bounds())
 	return img
 }

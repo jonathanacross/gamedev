@@ -2,7 +2,7 @@ package main
 
 import (
 	"image"
-	"log" // Import for logging
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -23,7 +23,6 @@ type MenuItem struct {
 
 // NewMenuItem creates a new MenuItem instance.
 func NewMenuItem(x, y, width, height int, label string, idle, hover, pressed *ebiten.Image) *MenuItem {
-	log.Printf("NewMenuItem: Creating item '%s' with bounds (%d,%d,%d,%d)", label, x, y, width, height)
 	return &MenuItem{
 		component: component{
 			Bounds: image.Rectangle{
@@ -74,7 +73,7 @@ func (m *MenuItem) Update() {
 	}
 
 	if oldState != m.state {
-		log.Printf("MenuItem '%s': State changed from %v to %v. Cursor in bounds: %t", m.Label, oldState, m.state, cursorInBounds)
+		// No logging here to reduce spam
 	}
 }
 
@@ -101,6 +100,5 @@ func (m *MenuItem) Draw(screen *ebiten.Image) {
 		imgToDraw = m.idleImage // Fallback
 	}
 
-	log.Printf("MenuItem '%s': Drawing in state %v. Image bounds: %v", m.Label, m.state, imgToDraw.Bounds())
 	screen.DrawImage(imgToDraw, op)
 }
