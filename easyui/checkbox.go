@@ -74,13 +74,13 @@ func NewCheckbox(x, y, width, height int, label string, initialChecked bool, ren
 	}
 
 	cb := &Checkbox{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height,
-			initialIdleImg, initialPressedImg, initialHoverImg, initialDisabledImg),
 		Label:       label,
 		Checked:     initialChecked,
 		renderer:    renderer, // Store the renderer
 		stateImages: stateImages,
 	}
+	cb.interactiveComponent = NewInteractiveComponent(x, y, width, height,
+		initialIdleImg, initialPressedImg, initialHoverImg, initialDisabledImg, cb) // Pass 'cb' as self
 	return cb
 }
 
@@ -99,27 +99,21 @@ func (c *Checkbox) SetChecked(checked bool) {
 // updateCurrentStateImages sets the correct image references in the embedded interactiveComponent
 // based on the current `Checked` state.
 func (c *Checkbox) updateCurrentStateImages() {
+	// Re-generate images based on the new checked state using the renderer
+	// The component's current interactive state (idle, hover, pressed) needs to be preserved
+	currentInteractiveState := c.state // Store current state temporarily
 	if c.Checked {
-		c.idleImg = c.stateImages.CheckedIdle
-		c.pressedImg = c.stateImages.CheckedPressed
-		c.hoverImg = c.stateImages.CheckedHover
-		c.disabledImg = c.stateImages.CheckedDisabled
+		c.idleImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonIdle, true)
+		c.pressedImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonPressed, true)
+		c.hoverImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonHover, true)
+		c.disabledImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonDisabled, true)
 	} else {
-		c.idleImg = c.stateImages.UncheckedIdle
-		c.pressedImg = c.stateImages.UncheckedPressed
-		c.hoverImg = c.stateImages.UncheckedHover
-		c.disabledImg = c.stateImages.UncheckedDisabled
+		c.idleImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonIdle, false)
+		c.pressedImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonPressed, false)
+		c.hoverImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonHover, false)
+		c.disabledImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonDisabled, false)
 	}
-	// Also ensure the interactive component's state is updated, e.g., if it was pressed.
-	// This ensures it correctly reflects the new image.
-	cx, cy := ebiten.CursorPosition()
-	if c.state == ButtonPressed && !ContainsPoint(c.Bounds, cx, cy) {
-		c.state = ButtonIdle // If it was pressed but cursor moved off, revert to idle.
-	} else if c.state != ButtonPressed && ContainsPoint(c.Bounds, cx, cy) {
-		c.state = ButtonHover // If not pressed but cursor is over, revert to hover.
-	} else {
-		c.state = ButtonIdle // Otherwise, revert to idle.
-	}
+	c.state = currentInteractiveState // Restore interactive state
 }
 
 // Update calls the embedded interactiveComponent's Update method.
@@ -128,18 +122,17 @@ func (c *Checkbox) Update() {
 }
 
 // Draw draws the checkbox component using the image for its current visual state.
+// It now calls the embedded interactiveComponent's Draw method.
 func (c *Checkbox) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(c.Bounds.Min.X), float64(c.Bounds.Min.Y))
-	screen.DrawImage(c.GetCurrentStateImage(), op)
+	c.interactiveComponent.Draw(screen)
 }
 
-// HandlePress calls the embedded interactiveComponent's HandlePress method.
+// HandlePress sets the interactive component to the pressed state.
 func (c *Checkbox) HandlePress() {
 	c.interactiveComponent.HandlePress()
 }
 
-// HandleRelease calls the embedded interactiveComponent's HandleRelease method.
+// HandleRelease resets the interactive component's state after a mouse release.
 func (c *Checkbox) HandleRelease() {
 	c.interactiveComponent.HandleRelease()
 }

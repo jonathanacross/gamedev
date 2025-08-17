@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -9,30 +8,30 @@ import (
 )
 
 // Ui represents the root UI container, managing a collection of components.
+// It now fully implements the Component interface.
 type Ui struct {
-	component
+	component                  // Embed the base component struct (its bounds are window-relative)
 	modalComponent   Component // The currently active modal component (e.g., a menu)
 	pressedComponent Component // The component that was most recently pressed down
 }
 
 // NewUi creates a new Ui instance with the specified dimensions.
 func NewUi(x, y, width, height int) *Ui {
-	return &Ui{
-		component: component{
-			Bounds: image.Rectangle{
-				Min: image.Point{X: x, Y: y},
-				Max: image.Point{X: x + width, Y: y + height},
-			},
-		},
+	// Create the Ui first, then pass its pointer as 'self'
+	u := &Ui{
 		modalComponent:   nil,
 		pressedComponent: nil,
 	}
+	u.component = NewComponent(x, y, width, height, u) // Pass 'u' as self; root UI has no parent, so it remains nil internally
+	return u
 }
 
 // Update iterates through all child components and calls their Update methods.
 // It also handles centralized mouse input detection for true click behavior and modal management.
+// This method fully implements Component.Update().
 func (u *Ui) Update() {
 	// 1. Update all currently active components (modal first, then others).
+	// This allows components to update their internal state (e.g., text field cursor blink, hover effect).
 	if u.modalComponent != nil {
 		u.modalComponent.Update()
 	} else {
@@ -41,100 +40,61 @@ func (u *Ui) Update() {
 		}
 	}
 
-	cx, cy := ebiten.CursorPosition() // Get current cursor position
+	cx, cy := ebiten.CursorPosition() // Get current absolute cursor position
 
 	// 2. Handle Mouse Button Press (ButtonDown)
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		// If a modal is active, only consider components within the modal for pressing.
+		// Prioritize modal component for presses
 		if u.modalComponent != nil {
-			// Check modal's children first (iterating in reverse for Z-order, if applicable)
-			for i := len(u.modalComponent.GetChildren()) - 1; i >= 0; i-- {
-				child := u.modalComponent.GetChildren()[i]
-				if ContainsPoint(child.GetBounds(), cx, cy) {
-					u.pressedComponent = child
-					u.pressedComponent.HandlePress()
-					return // A component was pressed, so we're done with press handling for this frame.
-				}
-			}
-			// If no child was pressed, check if the modal itself was pressed
-			if ContainsPoint(u.modalComponent.GetBounds(), cx, cy) {
+			// Check if the press occurred on the modal component or its children
+			if ContainsPoint(u.modalComponent, cx, cy) {
 				u.pressedComponent = u.modalComponent
-				u.pressedComponent.HandlePress()
-				return // Modal was pressed.
+				u.modalComponent.HandlePress() // Notify modal it was pressed
+				// Also check modal's children for internal press if modal allows it
+				for _, child := range u.modalComponent.GetChildren() {
+					if ContainsPoint(child, cx, cy) {
+						u.pressedComponent = child // Update pressedComponent to the specific child
+						child.HandlePress()
+						break // Only one child can be pressed
+					}
+				}
+			} else {
+				// Clicked outside the modal, treat as a background click for the modal
+				u.pressedComponent = nil // No specific component within the modal was pressed
 			}
 		} else {
-			// No modal active, check regular children for press (in reverse Z-order)
+			// No modal, check regular children in reverse order (top-most first)
 			for i := len(u.children) - 1; i >= 0; i-- {
 				child := u.children[i]
-				if ContainsPoint(child.GetBounds(), cx, cy) {
+				if ContainsPoint(child, cx, cy) {
 					u.pressedComponent = child
-					u.pressedComponent.HandlePress()
-					return // A component was pressed.
+					u.pressedComponent.HandlePress() // Notify child it was pressed
+					break                            // Only one component can be pressed
 				}
 			}
 		}
-		// If no component was pressed, u.pressedComponent remains nil.
 	}
 
 	// 3. Handle Mouse Button Release (ButtonUp)
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		// Capture modal state *before* any component's HandleClick might change it.
-		modalBeforeClickProcessing := u.modalComponent
-
-		// Phase 3.1: Always process the release for the component that was initially pressed.
+		// If a component was pressed down this sequence, check if it was released over it
 		if u.pressedComponent != nil {
-			u.pressedComponent.HandleRelease() // Allow the component to reset its visual state
-
-			// If the release occurred over the same component, it's a "true click".
-			if ContainsPoint(u.pressedComponent.GetBounds(), cx, cy) {
-				u.pressedComponent.HandleClick() // This might call u.SetModal()
+			if ContainsPoint(u.pressedComponent, cx, cy) {
+				// This is a "click" - released over the same component that was pressed
+				u.pressedComponent.HandleClick() // Trigger the click action
 			}
-			// Clear pressedComponent after its release/click has been processed.
-			u.pressedComponent = nil
-		}
-
-		// Phase 3.2: Handle modal state changes and outside clicks.
-		// This logic runs *after* any potential component click handler has executed.
-
-		// If a modal was opened by the click event in THIS frame
-		// (i.e., there was NO modal before processing, but there IS a modal now).
-		if modalBeforeClickProcessing == nil && u.modalComponent != nil {
-			// A modal was just opened by a component's HandleClick.
-			// Crucially, we MUST return immediately to prevent it from being dismissed
-			// by the "outside click" logic in this *same* frame.
-			return
-		}
-
-		// If a modal is currently active (and it wasn't just opened by this click event),
-		// check if the click occurred outside it to dismiss it.
-		if u.modalComponent != nil {
-			clickWasInsideModalContent := false
-			// Check if click was within the modal's primary bounds
-			if ContainsPoint(u.modalComponent.GetBounds(), cx, cy) {
-				clickWasInsideModalContent = true // Assume inside initially
-
-				// Now, check if it was on any of the modal's children
-				clickedOnChild := false
-				for _, child := range u.modalComponent.GetChildren() {
-					if ContainsPoint(child.GetBounds(), cx, cy) {
-						clickedOnChild = true
-						break
-					}
-				}
-
-				// If it was inside the modal's bounds but NOT on a child, it's on the modal's background.
-				if !clickedOnChild {
+			u.pressedComponent.HandleRelease() // Always call release to reset its visual state
+			u.pressedComponent = nil           // Clear pressed component after handling release
+		} else {
+			// No component was pressed (e.g., clicked on background), but released.
+			// This specifically handles closing a modal when clicking outside its bounds.
+			if u.modalComponent != nil {
+				// If a modal exists and no specific component was pressed initially, and the release
+				// occurred outside the modal's bounds, then close the modal.
+				if !ContainsPoint(u.modalComponent, cx, cy) {
 					log.Println("Ui.Update: Mouse released on modal background, calling modal's HandleClick (to close).")
 					u.modalComponent.HandleClick() // This will typically hide the menu
-					return                         // Modal background click handled, done for this frame.
 				}
-			}
-
-			// If the click was entirely outside the modal's bounds (not even on its background), clear the modal.
-			if !clickWasInsideModalContent {
-				log.Println("Ui.Update: Mouse released entirely outside modal's bounds, clearing modal.")
-				u.ClearModal()
-				return // Modal cleared by outside click, done for this frame.
 			}
 		}
 	}
@@ -142,6 +102,7 @@ func (u *Ui) Update() {
 
 // Draw iterates through all child components and calls their Draw methods,
 // passing the screen to draw on. It draws the modal component last to ensure it's on top.
+// This method fully implements Component.Draw().
 func (u *Ui) Draw(screen *ebiten.Image) {
 	// Draw all regular child components first.
 	for _, child := range u.children {
@@ -161,6 +122,16 @@ func (u *Ui) SetModal(c Component) {
 
 // ClearModal removes the current modal component, returning input focus to the regular UI.
 func (u *Ui) ClearModal() {
-	log.Printf("Ui.ClearModal: Modal component cleared.")
+	log.Printf("Ui.ClearModal: Modal component cleared (was type %T).", u.modalComponent)
 	u.modalComponent = nil
+	u.pressedComponent = nil // Also clear any lingering pressed state related to the modal
 }
+
+// HandlePress is a no-op for the root UI.
+func (u *Ui) HandlePress() {}
+
+// HandleRelease is a no-op for the root UI.
+func (u *Ui) HandleRelease() {}
+
+// HandleClick is a no-op for the root UI.
+func (u *Ui) HandleClick() {}

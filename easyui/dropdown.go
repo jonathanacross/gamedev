@@ -22,23 +22,32 @@ func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, rende
 	pressedImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonPressed)
 	disabledImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonDisabled)
 
-	return &DropDown{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
-		Label:                initialLabel,
-		SelectedOption:       initialLabel,
-		menu:                 menu,
-		renderer:             renderer, // Store the renderer
+	// Create the DropDown first, then pass its pointer as 'self'
+	d := &DropDown{
+		Label:          initialLabel,
+		SelectedOption: initialLabel,
+		menu:           menu,
+		renderer:       renderer, // Store the renderer
 	}
+	d.interactiveComponent = NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg, d) // Pass 'd' as self
+
+	return d
 }
 
 // SetSelectedOption updates the displayed option and regenerates the dropdown button's images.
 func (d *DropDown) SetSelectedOption(newOption string) {
 	d.SelectedOption = newOption
 	// Regenerate all state images with the new text using the renderer
-	d.idleImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonIdle)
-	d.hoverImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonHover)
-	d.pressedImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonPressed)
-	d.disabledImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonDisabled)
+	newIdleImg := d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonIdle)
+	newHoverImg := d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonHover)
+	newPressedImg := d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonPressed)
+	newDisabledImg := d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonDisabled)
+
+	// Explicitly update the images held by the embedded interactiveComponent
+	d.interactiveComponent.idleImg = newIdleImg
+	d.interactiveComponent.hoverImg = newHoverImg
+	d.interactiveComponent.pressedImg = newPressedImg
+	d.interactiveComponent.disabledImg = newDisabledImg
 }
 
 // Update calls the embedded interactiveComponent's Update method.
@@ -47,18 +56,17 @@ func (d *DropDown) Update() {
 }
 
 // Draw draws the dropdown button using the image from its current state.
+// It now calls the embedded interactiveComponent's Draw method.
 func (d *DropDown) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(d.Bounds.Min.X), float64(d.Bounds.Min.Y))
-	screen.DrawImage(d.GetCurrentStateImage(), op)
+	d.interactiveComponent.Draw(screen)
 }
 
-// HandlePress calls the embedded interactiveComponent's HandlePress method.
+// HandlePress sets the interactive component to the pressed state.
 func (d *DropDown) HandlePress() {
 	d.interactiveComponent.HandlePress()
 }
 
-// HandleRelease calls the embedded interactiveComponent's HandleRelease method.
+// HandleRelease resets the interactive component's state after a mouse release.
 func (d *DropDown) HandleRelease() {
 	d.interactiveComponent.HandleRelease()
 }
@@ -69,10 +77,14 @@ func (d *DropDown) HandleClick() {
 		return
 	}
 
-	if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == d.menu {
+	// Fix: Compare the interface value to the concrete pointer. This relies on *Menu correctly
+	// implementing the Component interface (which it will after fixes to menu.go).
+	if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == Component(d.menu) {
 		d.menu.Hide() // If our menu is currently the modal, close it.
 	} else if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == nil {
-		d.menu.SetPosition(d.Bounds.Min.X, d.Bounds.Max.Y)
-		d.menu.Show() // Show the menu if no other modal is active.
+		// Calculate the absolute position for the menu based on the dropdown's absolute position
+		absX, absY := d.GetAbsolutePosition()
+		d.menu.SetPosition(absX, absY+d.Bounds.Dy()) // Menu appears directly below the dropdown
+		d.menu.Show()                                // Show the menu if no other modal is active.
 	}
 }

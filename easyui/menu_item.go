@@ -23,12 +23,15 @@ func NewMenuItem(x, y, width, height int, label string, renderer UiRenderer) *Me
 	pressedImg := renderer.GenerateMenuItemImage(width, height, label, ButtonPressed)
 	disabledImg := idleImg // Default disabled to idle, can be customized
 
-	return &MenuItem{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
-		Label:                label,
-		onClick:              nil,      // Click handler set separately
-		renderer:             renderer, // Store the renderer
+	// Create the MenuItem first, then pass its pointer as 'self'
+	m := &MenuItem{
+		Label:    label,
+		onClick:  nil,      // Click handler set separately
+		renderer: renderer, // Store the renderer
 	}
+	m.interactiveComponent = NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg, m) // Pass 'm' as self
+
+	return m
 }
 
 // SetClickHandler sets the function to be executed when this menu item is clicked.
@@ -52,22 +55,20 @@ func (m *MenuItem) Update() {
 }
 
 // Draw draws the menu item using the image from its current state.
+// It now calls the embedded interactiveComponent's Draw method.
 func (m *MenuItem) Draw(screen *ebiten.Image) {
 	if m.idleImg == nil || m.hoverImg == nil || m.pressedImg == nil {
 		log.Printf("MenuItem '%s': WARNING: One or more state images are nil! Idle: %t, Hover: %t, Pressed: %t", m.Label, m.idleImg != nil, m.hoverImg != nil, m.pressedImg != nil)
 	}
-
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(m.Bounds.Min.X), float64(m.Bounds.Min.Y))
-	screen.DrawImage(m.GetCurrentStateImage(), op)
+	m.interactiveComponent.Draw(screen)
 }
 
-// HandlePress calls the embedded interactiveComponent's HandlePress method.
+// HandlePress sets the interactive component to the pressed state.
 func (m *MenuItem) HandlePress() {
 	m.interactiveComponent.HandlePress()
 }
 
-// HandleRelease calls the embedded interactiveComponent's HandleRelease method.
+// HandleRelease resets the interactive component's state after a mouse release.
 func (m *MenuItem) HandleRelease() {
 	m.interactiveComponent.HandleRelease()
 }

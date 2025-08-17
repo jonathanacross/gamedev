@@ -19,12 +19,15 @@ func NewButton(x, y, width, height int, label string, renderer UiRenderer) *Butt
 	hover := renderer.GenerateButtonImage(width, height, label, ButtonHover)
 	disabled := renderer.GenerateButtonImage(width, height, label, ButtonDisabled)
 
-	return &Button{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled),
-		Label:                label,
-		onClick:              nil,      // Click handler set separately
-		renderer:             renderer, // Store the renderer
+	// Create the Button first, then pass its pointer as 'self'
+	b := &Button{
+		Label:    label,
+		onClick:  nil,      // Click handler set separately
+		renderer: renderer, // Store the renderer
 	}
+	b.interactiveComponent = NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled, b) // Pass 'b' as self
+
+	return b
 }
 
 // SetClickHandler sets the function to be executed when the button is clicked.
@@ -47,19 +50,18 @@ func (b *Button) Update() {
 	b.interactiveComponent.Update()
 }
 
-// Draw draws the button's current state image to the screen.
+// Draw draws the button's current state image to the screen using its absolute position.
+// It now calls the embedded interactiveComponent's Draw method.
 func (b *Button) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(b.Bounds.Min.X), float64(b.Bounds.Min.Y))
-	screen.DrawImage(b.GetCurrentStateImage(), op)
+	b.interactiveComponent.Draw(screen)
 }
 
-// HandlePress calls the embedded interactiveComponent's HandlePress method.
+// HandlePress sets the interactive component to the pressed state.
 func (b *Button) HandlePress() {
 	b.interactiveComponent.HandlePress()
 }
 
-// HandleRelease calls the embedded interactiveComponent's HandleRelease method.
+// HandleRelease resets the interactive component's state after a mouse release.
 func (b *Button) HandleRelease() {
 	b.interactiveComponent.HandleRelease()
 }

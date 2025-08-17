@@ -24,16 +24,19 @@ func NewTextField(x, y, width, height int, initialText string, renderer UiRender
 	// Initial image generation, assuming not focused and no cursor initially
 	idle := renderer.GenerateTextFieldImage(width, height, initialText, ButtonIdle, false, 0, false)
 	hover := renderer.GenerateTextFieldImage(width, height, initialText, ButtonHover, false, 0, false)
-	pressed := renderer.GenerateTextFieldImage(width, height, initialText, ButtonPressed, true, len(initialText), true) // Focused state on press, cursor visible
+	// For initial focused/pressed image, assume cursor is visible if focused
+	pressed := renderer.GenerateTextFieldImage(width, height, initialText, ButtonPressed, true, len(initialText), true)
 	disabled := renderer.GenerateTextFieldImage(width, height, initialText, ButtonDisabled, false, 0, false)
 
+	// Create the TextField first, then pass its pointer as 'self'
 	tf := &TextField{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height,
-			idle, pressed, hover, disabled),
 		Text:      initialText,
 		cursorPos: len(initialText), // Cursor at end initially
 		renderer:  renderer,         // Store the renderer
 	}
+	tf.interactiveComponent = NewInteractiveComponent(x, y, width, height,
+		idle, pressed, hover, disabled, tf) // Pass 'tf' as self
+
 	return tf
 }
 
@@ -103,18 +106,17 @@ func (tf *TextField) Update() {
 }
 
 // Draw draws the text field's current state image to the screen.
+// It now calls the embedded interactiveComponent's Draw method.
 func (tf *TextField) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(tf.Bounds.Min.X), float64(tf.Bounds.Min.Y))
-	screen.DrawImage(tf.GetCurrentStateImage(), op)
+	tf.interactiveComponent.Draw(screen)
 }
 
-// HandlePress calls the embedded interactiveComponent's HandlePress method.
+// HandlePress sets the interactive component to the pressed state.
 func (tf *TextField) HandlePress() {
 	tf.interactiveComponent.HandlePress()
 }
 
-// HandleRelease calls the embedded interactiveComponent's HandleRelease method.
+// HandleRelease resets the interactive component's state after a mouse release.
 func (tf *TextField) HandleRelease() {
 	tf.interactiveComponent.HandleRelease()
 }
@@ -123,7 +125,7 @@ func (tf *TextField) HandleRelease() {
 func (tf *TextField) HandleClick() {
 	// If the click happened on THIS text field, focus it.
 	cx, cy := ebiten.CursorPosition()
-	clickedInside := ContainsPoint(tf.Bounds, cx, cy)
+	clickedInside := ContainsPoint(tf, cx, cy) // Use ContainsPoint with absolute coordinates
 
 	if clickedInside {
 		if !tf.isFocused {

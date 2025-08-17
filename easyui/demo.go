@@ -63,6 +63,7 @@ func NewDemo() *Demo {
 	// Initialize BareBonesUiGenerator, which now implements UiRenderer
 	uiGenerator := &BareBonesUiGenerator{theme}
 
+	// The root UI has absolute coordinates (0,0)
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
 	// Example: A regular button
@@ -78,7 +79,8 @@ func NewDemo() *Demo {
 	// --- Dropdown Menu Implementation ---
 	menuWidth := 200
 	// Pass the uiGenerator (as UiRenderer) to NewMenu
-	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui)
+	// The menu's initial position will be set absolutely by the dropdown, and then it knows its parent (the UI)
+	animalMenu := NewMenu(0, 0, menuWidth, theme, uiGenerator, ui) // Initial pos (0,0) will be overridden by dropdown
 
 	// Pass the uiGenerator (as UiRenderer) to NewDropDown
 	dropdown := NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu, uiGenerator)
@@ -114,13 +116,18 @@ func NewDemo() *Demo {
 	ui.AddChild(nameField)
 
 	// --- Container Implementation ---
-	// Create a container and add the infoLabel inside it
+	// Create a container (position is relative to 'ui' which is 0,0)
 	container := NewContainer(50, 350, 700, 100, uiGenerator) // x, y, width, height, renderer
 	ui.AddChild(container)                                    // Add the container to the root UI
 
 	// Create a label and add it to the container
-	infoLabel := NewLabel(10, 10, 380, 20, "This label is inside a container!", uiGenerator) // x, y relative to container
-	container.AddChild(infoLabel)
+	// Label's x,y (10,10) are now RELATIVE to the container's top-left corner
+	infoLabel := NewLabel(10, 10, 380, 20, "This label is inside a container!", uiGenerator)
+	container.AddChild(infoLabel) // Add the label as a child of the container
+
+	// Add another label to the main UI to show it's separate
+	globalLabel := NewLabel(50, 470, 400, 20, "This label is directly on the UI.", uiGenerator)
+	ui.AddChild(globalLabel)
 
 	return &Demo{ui: ui}
 }

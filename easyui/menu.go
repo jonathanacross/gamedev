@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 
-	"image" // Required for image.Rectangle, image.Point
-
 	"github.com/hajimehoshi/ebiten/v2"
+	// Required for image.Rectangle, image.Point
 )
 
 // Menu represents a pop-up menu containing a list of menu items.
+// It now fully implements the Component interface.
 type Menu struct {
 	component                 // Embeds the base component struct
 	items      []*MenuItem    // The list of items in the menu
@@ -25,21 +25,20 @@ func NewMenu(x, y, width int, theme BareBonesTheme, renderer UiRenderer, parentU
 	// Set an initial default height to prevent panic when generating initial background image.
 	// This can be a small value, as it will be expanded by AddItem.
 	const defaultInitialMenuHeight = 30 // A reasonable default height for an empty menu
+
+	// Create the Menu first, then pass its pointer as 'self'
 	m := &Menu{
-		component: component{
-			Bounds: image.Rectangle{
-				Min: image.Point{X: x, Y: y},
-				Max: image.Point{X: x + width, Y: y + defaultInitialMenuHeight}, // Set initial height here
-			},
-		},
-		items:      []*MenuItem{},
-		isVisible:  false,
-		theme:      theme,
-		renderer:   renderer, // Store the renderer
-		parentUi:   parentUi,
-		justOpened: false,
+		theme:    theme,
+		renderer: renderer, // Store the renderer
+		parentUi: parentUi,
+		items:    []*MenuItem{}, // Initialize slice
 	}
-	// Initial background image generation with a non-zero height
+	m.component = NewComponent(x, y, width, defaultInitialMenuHeight, m) // Pass 'm' as self
+
+	m.isVisible = false
+	m.justOpened = false
+
+	// Initial background image generation
 	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
 	return m
 }
@@ -50,16 +49,18 @@ func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	itemHeight := 30 // Still hardcoded here, but can be pulled from theme later.
 	itemWidth := m.Bounds.Dx()
 
-	yOffset := m.Bounds.Min.Y + len(m.items)*itemHeight
+	// Menu items' positions are relative to the menu itself.
+	// Calculate relative Y offset for the new item.
+	relativeYOffset := len(m.items) * itemHeight
 
 	// Use the standalone NewMenuItem function and pass the stored renderer
-	item := NewMenuItem(m.Bounds.Min.X, yOffset, itemWidth, itemHeight, label, m.renderer)
+	item := NewMenuItem(0, relativeYOffset, itemWidth, itemHeight, label, m.renderer) // x,y are 0, relativeYOffset
 	item.SetClickHandler(func() {
 		handler() // Call the user-defined handler
 		m.Hide()  // Now, the menu item's handler should also hide the menu.
 	})
 	m.items = append(m.items, item)
-	m.AddChild(item)
+	m.AddChild(item) // Add child to the menu, setting menu as parent
 
 	// Update the menu's overall height based on added items
 	m.Bounds.Max.Y = m.Bounds.Min.Y + len(m.items)*itemHeight
@@ -69,6 +70,7 @@ func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 }
 
 // Update handles updating all child menu items.
+// This method fully implements Component.Update().
 func (m *Menu) Update() {
 	if !m.isVisible {
 		return
@@ -84,21 +86,23 @@ func (m *Menu) Update() {
 }
 
 // Draw draws the menu background and all its items.
+// This method fully implements Component.Draw().
 func (m *Menu) Draw(screen *ebiten.Image) {
 	if !m.isVisible {
 		return
 	}
 
+	absX, absY := m.GetAbsolutePosition() // Get absolute position of the menu itself
 	if m.background != nil {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(m.Bounds.Min.X), float64(m.Bounds.Min.Y))
+		op.GeoM.Translate(float64(absX), float64(absY)) // Draw menu background at its absolute position
 		screen.DrawImage(m.background, op)
 	} else {
 		log.Printf("Menu.Draw: WARNING: Menu background is nil! Cannot draw background for menu at bounds %v", m.Bounds)
 	}
 
 	for _, item := range m.items {
-		item.Draw(screen)
+		item.Draw(screen) // Child items will draw themselves using their own absolute positions
 	}
 }
 
@@ -108,7 +112,7 @@ func (m *Menu) Show() {
 	m.justOpened = true
 	log.Printf("Menu.Show: Menu set to visible and justOpened=true. Current Bounds: %v", m.Bounds)
 	if m.parentUi != nil {
-		m.parentUi.SetModal(m)
+		m.parentUi.SetModal(m) // This now correctly passes a Component
 	}
 }
 
@@ -121,30 +125,33 @@ func (m *Menu) Hide() {
 }
 
 // SetPosition allows dynamic repositioning of the menu and its items.
+// This function sets the menu's own relative position, and the children's positions
+// will automatically follow due to the GetAbsolutePosition logic.
 func (m *Menu) SetPosition(x, y int) {
-	diffX := x - m.Bounds.Min.X
-	diffY := y - m.Bounds.Min.Y
-
+	// Only update the menu's own relative bounds
 	m.Bounds.Min.X = x
 	m.Bounds.Min.Y = y
-	m.Bounds.Max.X += diffX
-	m.Bounds.Max.Y += diffY
+	m.Bounds.Max.X = x + m.Bounds.Dx()
+	m.Bounds.Max.Y = y + m.Bounds.Dy()
 
-	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy()) // Regenerate background on reposition
+	// Regenerate background image if size changed (though not typical with SetPosition)
+	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
 
-	for _, item := range m.items {
-		item.Bounds.Min.X += diffX
-		item.Bounds.Min.Y += diffY
-		item.Bounds.Max.X += diffX
-		item.Bounds.Max.Y += diffY
-	}
+	// Child positions will be automatically handled by GetAbsolutePosition() when drawn.
+	// No need to iterate and update child bounds here.
 }
 
-// HandlePress is a dummy method for the base struct.
+// HandlePress is a no-op for the menu background.
+// This method fully implements Component.HandlePress().
 func (m *Menu) HandlePress() {}
 
+// HandleRelease is a no-op for the menu background.
+// This method fully implements Component.HandleRelease().
+func (m *Menu) HandleRelease() {}
+
 // HandleClick is now primarily used by the Ui to handle clicks on the menu's background
-// when it's a modal.
+// when it's a modal, closing the menu.
+// This method fully implements Component.HandleClick().
 func (m *Menu) HandleClick() {
 	// If a click lands on the menu's background (not an item), it should close the menu.
 	m.Hide()
