@@ -10,17 +10,17 @@ import (
 
 // Label represents a static text display component.
 type Label struct {
-	component                         // Embed the base component for position and children
-	Text        string                // The text to display
-	uiGenerator *BareBonesUiGenerator // Reference to the generator for image regeneration
-	idleImg     *ebiten.Image         // The pre-rendered image of the label text
+	component               // Embed the base component for position and children
+	Text      string        // The text to display
+	renderer  UiRenderer    // Changed to UiRenderer interface
+	idleImg   *ebiten.Image // The pre-rendered image of the label text
 }
 
 // NewLabel creates a new Label instance.
 // It is now a standalone function.
-func NewLabel(x, y, width, height int, text string, uiGen *BareBonesUiGenerator) *Label {
+func NewLabel(x, y, width, height int, text string, renderer UiRenderer) *Label {
 	// Labels are static, so only an idle image is needed.
-	labelImage := uiGen.generateLabelImage(width, height, uiGen.theme.OnPrimaryColor, text) // Text color from theme
+	labelImage := renderer.GenerateLabelImage(width, height, text) // Text color from theme
 	l := &Label{
 		component: component{
 			Bounds: image.Rectangle{
@@ -28,9 +28,9 @@ func NewLabel(x, y, width, height int, text string, uiGen *BareBonesUiGenerator)
 				Max: image.Point{X: x + width, Y: y + height},
 			},
 		},
-		Text:        text,
-		uiGenerator: uiGen,
-		idleImg:     labelImage,
+		Text:     text,
+		renderer: renderer, // Store the renderer
+		idleImg:  labelImage,
 	}
 	return l
 }
@@ -38,10 +38,9 @@ func NewLabel(x, y, width, height int, text string, uiGen *BareBonesUiGenerator)
 // SetText updates the label's text and regenerates its image.
 func (l *Label) SetText(newText string) {
 	l.Text = newText
-	// Regenerate the label's image with the new text
-	l.idleImg = l.uiGenerator.generateLabelImage(
+	// Regenerate the label's image with the new text using the renderer
+	l.idleImg = l.renderer.GenerateLabelImage(
 		l.Bounds.Dx(), l.Bounds.Dy(),
-		l.uiGenerator.theme.OnPrimaryColor, // Use OnPrimaryColor for label text
 		l.Text,
 	)
 }

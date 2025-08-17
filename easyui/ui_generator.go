@@ -26,12 +26,24 @@ type BareBonesUiGenerator struct {
 	theme BareBonesTheme
 }
 
-// generateButtonImage creates an Ebiten image for a button's specific state.
-func (b *BareBonesUiGenerator) generateButtonImage(
-	width, height int,
-	bgColor, textColor color.RGBA,
-	text string,
-) *ebiten.Image {
+// Ensure BareBonesUiGenerator implements the UiRenderer interface
+var _ UiRenderer = (*BareBonesUiGenerator)(nil)
+
+// GenerateButtonImage implements UiRenderer.GenerateButtonImage
+func (b *BareBonesUiGenerator) GenerateButtonImage(width, height int, text string, state ButtonState) *ebiten.Image {
+	var bgColor, textColor color.RGBA
+	switch state {
+	case ButtonIdle:
+		bgColor = b.theme.PrimaryColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonPressed, ButtonHover:
+		bgColor = b.theme.AccentColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonDisabled:
+		bgColor = b.theme.PrimaryColor     // Disabled button same as idle visually for background
+		textColor = b.theme.OnPrimaryColor // Maybe a darker text color for disabled
+	}
+
 	dc := gg.NewContext(width, height)
 
 	// Draw button background with rounded corners
@@ -55,13 +67,21 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateDropdownImage creates an Ebiten image for a dropdown's specific state.
-// No rounded corners as requested.
-func (b *BareBonesUiGenerator) generateDropdownImage(
-	width, height int,
-	bgColor, textColor color.RGBA,
-	text string,
-) *ebiten.Image {
+// GenerateDropdownImage implements UiRenderer.GenerateDropdownImage
+func (b *BareBonesUiGenerator) GenerateDropdownImage(width, height int, text string, state ButtonState) *ebiten.Image {
+	var bgColor, textColor color.RGBA
+	switch state {
+	case ButtonIdle:
+		bgColor = b.theme.PrimaryColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonPressed, ButtonHover:
+		bgColor = b.theme.AccentColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonDisabled:
+		bgColor = b.theme.PrimaryColor
+		textColor = b.theme.OnPrimaryColor
+	}
+
 	dc := gg.NewContext(width, height)
 
 	// Draw the background of the dropdown button as a simple rectangle
@@ -96,13 +116,24 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateMenuItemImage creates an Ebiten image for a menu item.
-// Rounded corners for menu items.
-func (b *BareBonesUiGenerator) generateMenuItemImage(
-	width, height int,
-	bgColor, textColor color.RGBA,
-	text string,
-) *ebiten.Image {
+// GenerateMenuItemImage implements UiRenderer.GenerateMenuItemImage
+func (b *BareBonesUiGenerator) GenerateMenuItemImage(width, height int, text string, state ButtonState) *ebiten.Image {
+	var bgColor, textColor color.RGBA
+	switch state {
+	case ButtonIdle:
+		bgColor = b.theme.MenuColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonHover:
+		bgColor = b.theme.MenuItemHoverColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonPressed:
+		bgColor = b.theme.AccentColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonDisabled:
+		bgColor = b.theme.MenuColor // Disabled menu item same as idle
+		textColor = b.theme.OnPrimaryColor
+	}
+
 	dc := gg.NewContext(width, height)
 
 	// Draw menu item background with rounded corners for consistency
@@ -123,12 +154,11 @@ func (b *BareBonesUiGenerator) generateMenuItemImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateMenuImage creates an Ebiten image for the menu background.
-// Rounded corners for the overall menu background.
-func (b *BareBonesUiGenerator) generateMenuImage(
-	width, height int,
-	bgColor color.RGBA,
-) *ebiten.Image {
+// GenerateMenuImage implements UiRenderer.GenerateMenuImage
+func (b *BareBonesUiGenerator) GenerateMenuImage(width, height int) *ebiten.Image {
+	// Menu background doesn't change color based on hover/press, just theme color
+	bgColor := b.theme.MenuColor
+
 	dc := gg.NewContext(width, height)
 
 	// Draw menu background (e.g., a simple rectangle) with rounded corners
@@ -140,17 +170,26 @@ func (b *BareBonesUiGenerator) generateMenuImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateCheckboxImage creates an Ebiten image for a checkbox, including the box, checkmark, and label.
-// It now takes specific colors for the component background, box outline, checkmark, and label text.
-func (b *BareBonesUiGenerator) generateCheckboxImage(
+// GenerateCheckboxImage implements UiRenderer.GenerateCheckboxImage
+func (b *BareBonesUiGenerator) GenerateCheckboxImage(
 	width, height int,
-	componentBgColor color.RGBA, // The color of the component's full background
-	boxOutlineColor color.RGBA, // Color for the square outline
-	checkmarkColor color.RGBA, // Color for the checkmark
-	labelColor color.RGBA, // Color for the text label
-	isChecked bool,
 	label string,
+	componentState ButtonState, // The state of the interactive component
+	isChecked bool,
 ) *ebiten.Image {
+	// Colors that stay constant for the overall component background and label text
+	componentBgColor := b.theme.BackgroundColor
+	labelColor := b.theme.OnPrimaryColor
+	checkmarkColor := b.theme.OnPrimaryColor // Checkmark color remains constant
+
+	var boxOutlineColor color.RGBA
+	switch componentState {
+	case ButtonIdle, ButtonDisabled:
+		boxOutlineColor = b.theme.PrimaryColor
+	case ButtonPressed, ButtonHover:
+		boxOutlineColor = b.theme.AccentColor
+	}
+
 	dc := gg.NewContext(width, height)
 
 	// Define fixed left padding for the checkbox square
@@ -201,15 +240,25 @@ func (b *BareBonesUiGenerator) generateCheckboxImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateTextFieldImage creates an Ebiten image for a text field, including its background, text, and optional cursor.
-func (b *BareBonesUiGenerator) generateTextFieldImage(
+// GenerateTextFieldImage implements UiRenderer.GenerateTextFieldImage
+func (b *BareBonesUiGenerator) GenerateTextFieldImage(
 	width, height int,
-	bgColor, textColor color.RGBA,
 	text string,
+	componentState ButtonState, // The state of the interactive component
 	isFocused bool,
 	cursorPos int,
-	blinkTimer int, // Used for cursor blinking logic
+	showCursor bool, // Changed from blinkTimer to showCursor
 ) *ebiten.Image {
+	var bgColor, textColor color.RGBA
+	switch componentState {
+	case ButtonIdle, ButtonDisabled:
+		bgColor = b.theme.PrimaryColor
+		textColor = b.theme.OnPrimaryColor
+	case ButtonPressed, ButtonHover:
+		bgColor = b.theme.AccentColor
+		textColor = b.theme.OnPrimaryColor
+	}
+
 	dc := gg.NewContext(width, height)
 
 	// Draw text field background
@@ -233,13 +282,12 @@ func (b *BareBonesUiGenerator) generateTextFieldImage(
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
 	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
 
-	// Draw blinking cursor if focused and visible (blinkTimer determines visibility)
-	if isFocused && (blinkTimer < 60) { // Cursor visible for first half of the blink cycle
+	// Draw cursor if focused and showCursor is true
+	if isFocused && showCursor {
 		// Calculate cursor X position based on text width up to cursorPos
 		textRunes := []rune(text)
-		textBeforeCursor := string(textRunes[:min(cursorPos, len(textRunes))]) // Handle cursor at end or beyond
+		textBeforeCursor := string(textRunes[:min(cursorPos, len(textRunes))])
 
-		// Corrected: Capture both return values of MeasureString, use only width
 		cursorXOffset, _ := dc.MeasureString(textBeforeCursor)
 		cursorX := textX + cursorXOffset
 
@@ -252,10 +300,9 @@ func (b *BareBonesUiGenerator) generateTextFieldImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// generateLabelImage creates an Ebiten image for a static text label.
-func (b *BareBonesUiGenerator) generateLabelImage(
+// GenerateLabelImage implements UiRenderer.GenerateLabelImage
+func (b *BareBonesUiGenerator) GenerateLabelImage(
 	width, height int,
-	textColor color.RGBA,
 	text string,
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
@@ -269,8 +316,8 @@ func (b *BareBonesUiGenerator) generateLabelImage(
 	}
 
 	// Draw the label text
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	textX := 5.0 // Small padding from left edge
+	dc.SetRGBA255(int(b.theme.OnPrimaryColor.R), int(b.theme.OnPrimaryColor.G), int(b.theme.OnPrimaryColor.B), int(b.theme.OnPrimaryColor.A)) // Use OnPrimaryColor for label text
+	textX := 5.0                                                                                                                              // Small padding from left edge
 	textY := float64(height) / 2
 	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
 

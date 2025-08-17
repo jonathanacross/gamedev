@@ -10,45 +10,50 @@ import (
 
 // Menu represents a pop-up menu containing a list of menu items.
 type Menu struct {
-	component                         // Embeds the base component struct
-	items       []*MenuItem           // The list of items in the menu
-	isVisible   bool                  // Whether the menu is currently visible/open
-	theme       BareBonesTheme        // Reference to the theme for drawing
-	uiGenerator *BareBonesUiGenerator // To generate menu item images
-	background  *ebiten.Image         // Image for the menu background
-	parentUi    *Ui                   // Reference to the root UI to manage modal state
-	justOpened  bool                  // True if the menu was just opened this frame. Prevents immediate self-close.
+	component                 // Embeds the base component struct
+	items      []*MenuItem    // The list of items in the menu
+	isVisible  bool           // Whether the menu is currently visible/open
+	theme      BareBonesTheme // Reference to the theme for drawing (still needed for menu-specific items not covered by renderer states)
+	renderer   UiRenderer     // Changed to UiRenderer interface
+	background *ebiten.Image  // Image for the menu background
+	parentUi   *Ui            // Reference to the root UI to manage modal state
+	justOpened bool           // True if the menu was just opened this frame. Prevents immediate self-close.
 }
 
 // NewMenu creates a new Menu instance. It is now a standalone function.
-func NewMenu(x, y, width int, theme BareBonesTheme, uiGen *BareBonesUiGenerator, parentUi *Ui) *Menu {
+func NewMenu(x, y, width int, theme BareBonesTheme, renderer UiRenderer, parentUi *Ui) *Menu {
+	// Set an initial default height to prevent panic when generating initial background image.
+	// This can be a small value, as it will be expanded by AddItem.
+	const defaultInitialMenuHeight = 30 // A reasonable default height for an empty menu
 	m := &Menu{
 		component: component{
 			Bounds: image.Rectangle{
 				Min: image.Point{X: x, Y: y},
-				Max: image.Point{X: x + width, Y: y}, // Max Y will be adjusted later
+				Max: image.Point{X: x + width, Y: y + defaultInitialMenuHeight}, // Set initial height here
 			},
 		},
-		items:       []*MenuItem{},
-		isVisible:   false,
-		theme:       theme,
-		uiGenerator: uiGen,
-		parentUi:    parentUi,
-		justOpened:  false,
+		items:      []*MenuItem{},
+		isVisible:  false,
+		theme:      theme,
+		renderer:   renderer, // Store the renderer
+		parentUi:   parentUi,
+		justOpened: false,
 	}
+	// Initial background image generation with a non-zero height
+	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
 	return m
 }
 
 // AddItem adds a new MenuItem to the menu.
-// It now uses the standalone NewMenuItem function.
+// It now uses the standalone NewMenuItem function and the stored renderer.
 func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	itemHeight := 30 // Still hardcoded here, but can be pulled from theme later.
 	itemWidth := m.Bounds.Dx()
 
 	yOffset := m.Bounds.Min.Y + len(m.items)*itemHeight
 
-	// Use the standalone NewMenuItem function
-	item := NewMenuItem(m.Bounds.Min.X, yOffset, itemWidth, itemHeight, label, m.uiGenerator)
+	// Use the standalone NewMenuItem function and pass the stored renderer
+	item := NewMenuItem(m.Bounds.Min.X, yOffset, itemWidth, itemHeight, label, m.renderer)
 	item.SetClickHandler(func() {
 		handler() // Call the user-defined handler
 		m.Hide()  // Now, the menu item's handler should also hide the menu.
@@ -56,8 +61,9 @@ func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	m.items = append(m.items, item)
 	m.AddChild(item)
 
+	// Update the menu's overall height based on added items
 	m.Bounds.Max.Y = m.Bounds.Min.Y + len(m.items)*itemHeight
-	m.background = m.uiGenerator.generateMenuImage(m.Bounds.Dx(), m.Bounds.Dy(), m.theme.MenuColor)
+	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy()) // Regenerate background on size change
 
 	return item
 }
@@ -124,7 +130,7 @@ func (m *Menu) SetPosition(x, y int) {
 	m.Bounds.Max.X += diffX
 	m.Bounds.Max.Y += diffY
 
-	m.background = m.uiGenerator.generateMenuImage(m.Bounds.Dx(), m.Bounds.Dy(), m.theme.MenuColor)
+	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy()) // Regenerate background on reposition
 
 	for _, item := range m.items {
 		item.Bounds.Min.X += diffX

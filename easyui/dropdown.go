@@ -10,35 +10,35 @@ type DropDown struct {
 	Label                string
 	SelectedOption       string
 	menu                 *Menu
-	uiGenerator          *BareBonesUiGenerator // To generate dropdown button images (still needed for image generation)
+	renderer             UiRenderer // Changed to UiRenderer interface
 }
 
 // NewDropDown creates a new DropDown instance, generating its state-specific images.
 // It is now a standalone function.
-func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, uiGen *BareBonesUiGenerator) *DropDown {
-	// Generate specific dropdown images using this generator's methods
-	idleImg := uiGen.generateDropdownImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialLabel)
-	hoverImg := uiGen.generateDropdownImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialLabel)
-	pressedImg := uiGen.generateDropdownImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialLabel)   // Often same as hover for dropdown pressed
-	disabledImg := uiGen.generateDropdownImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialLabel) // Example: darker version
+func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, renderer UiRenderer) *DropDown {
+	// Generate specific dropdown images using the renderer's methods
+	idleImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonIdle)
+	hoverImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonHover)
+	pressedImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonPressed)
+	disabledImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonDisabled)
 
 	return &DropDown{
 		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
 		Label:                initialLabel,
 		SelectedOption:       initialLabel,
 		menu:                 menu,
-		uiGenerator:          uiGen, // Pass generator reference
+		renderer:             renderer, // Store the renderer
 	}
 }
 
 // SetSelectedOption updates the displayed option and regenerates the dropdown button's images.
 func (d *DropDown) SetSelectedOption(newOption string) {
 	d.SelectedOption = newOption
-	// Regenerate all state images with the new text, accessing theme via uiGenerator
-	d.idleImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.PrimaryColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
-	d.hoverImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.AccentColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
-	d.pressedImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.AccentColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
-	d.disabledImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.PrimaryColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
+	// Regenerate all state images with the new text using the renderer
+	d.idleImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonIdle)
+	d.hoverImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonHover)
+	d.pressedImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonPressed)
+	d.disabledImg = d.renderer.GenerateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.SelectedOption, ButtonDisabled)
 }
 
 // Update calls the embedded interactiveComponent's Update method.

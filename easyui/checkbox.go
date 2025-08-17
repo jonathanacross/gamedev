@@ -26,33 +26,28 @@ type CheckboxStateImages struct {
 
 // Checkbox represents a clickable UI component with a boolean (checked/unchecked) state.
 type Checkbox struct {
-	interactiveComponent                       // Embed the reusable interactive component logic
-	Label                string                // Text label next to the checkbox
-	Checked              bool                  // Current checked state
-	OnCheckChanged       func(bool)            // Handler for when the checked state changes
-	uiGenerator          *BareBonesUiGenerator // Reference to the generator for image regeneration
-	stateImages          CheckboxStateImages   // All state-specific images for checked/unchecked
+	interactiveComponent                     // Embed the reusable interactive component logic
+	Label                string              // Text label next to the checkbox
+	Checked              bool                // Current checked state
+	OnCheckChanged       func(bool)          // Handler for when the checked state changes
+	renderer             UiRenderer          // Changed to UiRenderer interface
+	stateImages          CheckboxStateImages // All state-specific images for checked/unchecked
 }
 
 // NewCheckbox creates a new Checkbox instance.
 // It is now a standalone function.
-func NewCheckbox(x, y, width, height int, label string, initialChecked bool, uiGen *BareBonesUiGenerator) *Checkbox {
-	// Colors that stay constant for the overall component background and label text
-	componentBgColor := uiGen.theme.BackgroundColor
-	labelColor := uiGen.theme.OnPrimaryColor
-	checkmarkColor := uiGen.theme.OnPrimaryColor // Checkmark color remains constant
+func NewCheckbox(x, y, width, height int, label string, initialChecked bool, renderer UiRenderer) *Checkbox {
+	// Generate images for unchecked states using the renderer
+	uncheckedIdle := renderer.GenerateCheckboxImage(width, height, label, ButtonIdle, false)
+	uncheckedPressed := renderer.GenerateCheckboxImage(width, height, label, ButtonPressed, false)
+	uncheckedHover := renderer.GenerateCheckboxImage(width, height, label, ButtonHover, false)
+	uncheckedDisabled := renderer.GenerateCheckboxImage(width, height, label, ButtonDisabled, false)
 
-	// Generate images for unchecked states
-	uncheckedIdle := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
-	uncheckedPressed := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, false, label) // Box outline changes to AccentColor
-	uncheckedHover := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, false, label)   // Box outline changes to AccentColor
-	uncheckedDisabled := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
-
-	// Generate images for checked states
-	checkedIdle := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
-	checkedPressed := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, true, label) // Box outline changes to AccentColor
-	checkedHover := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, true, label)   // Box outline changes to AccentColor
-	checkedDisabled := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
+	// Generate images for checked states using the renderer
+	checkedIdle := renderer.GenerateCheckboxImage(width, height, label, ButtonIdle, true)
+	checkedPressed := renderer.GenerateCheckboxImage(width, height, label, ButtonPressed, true)
+	checkedHover := renderer.GenerateCheckboxImage(width, height, label, ButtonHover, true)
+	checkedDisabled := renderer.GenerateCheckboxImage(width, height, label, ButtonDisabled, true)
 
 	stateImages := CheckboxStateImages{
 		UncheckedIdle:     uncheckedIdle,
@@ -83,7 +78,7 @@ func NewCheckbox(x, y, width, height int, label string, initialChecked bool, uiG
 			initialIdleImg, initialPressedImg, initialHoverImg, initialDisabledImg),
 		Label:       label,
 		Checked:     initialChecked,
-		uiGenerator: uiGen,
+		renderer:    renderer, // Store the renderer
 		stateImages: stateImages,
 	}
 	return cb

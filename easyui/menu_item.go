@@ -12,22 +12,22 @@ type MenuItem struct {
 	interactiveComponent // Embed the new interactive component
 	Label                string
 	onClick              func()
-	uiGenerator          *BareBonesUiGenerator // Reference to the generator
+	renderer             UiRenderer // Changed to UiRenderer interface
 }
 
 // NewMenuItem creates a new MenuItem instance.
 // It is now a standalone function.
-func NewMenuItem(x, y, width, height int, label string, uiGen *BareBonesUiGenerator) *MenuItem {
-	idleImg := uiGen.generateMenuItemImage(width, height, uiGen.theme.MenuColor, uiGen.theme.OnPrimaryColor, label)
-	hoverImg := uiGen.generateMenuItemImage(width, height, uiGen.theme.MenuItemHoverColor, uiGen.theme.OnPrimaryColor, label)
-	pressedImg := uiGen.generateMenuItemImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, label)
+func NewMenuItem(x, y, width, height int, label string, renderer UiRenderer) *MenuItem {
+	idleImg := renderer.GenerateMenuItemImage(width, height, label, ButtonIdle)
+	hoverImg := renderer.GenerateMenuItemImage(width, height, label, ButtonHover)
+	pressedImg := renderer.GenerateMenuItemImage(width, height, label, ButtonPressed)
 	disabledImg := idleImg // Default disabled to idle, can be customized
 
 	return &MenuItem{
 		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
 		Label:                label,
-		onClick:              nil,   // Click handler set separately
-		uiGenerator:          uiGen, // Pass reference to this generator
+		onClick:              nil,      // Click handler set separately
+		renderer:             renderer, // Store the renderer
 	}
 }
 
@@ -39,10 +39,10 @@ func (m *MenuItem) SetClickHandler(handler func()) {
 // SetLabel updates the menu item's text and regenerates its state images.
 func (m *MenuItem) SetLabel(newLabel string) {
 	m.Label = newLabel
-	// Regenerate all state images with the new text, accessing theme via uiGenerator
-	m.idleImg = m.uiGenerator.generateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.uiGenerator.theme.MenuColor, m.uiGenerator.theme.OnPrimaryColor, m.Label)
-	m.hoverImg = m.uiGenerator.generateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.uiGenerator.theme.MenuItemHoverColor, m.uiGenerator.theme.OnPrimaryColor, m.Label)
-	m.pressedImg = m.uiGenerator.generateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.uiGenerator.theme.AccentColor, m.uiGenerator.theme.OnPrimaryColor, m.Label)
+	// Regenerate all state images with the new text using the renderer
+	m.idleImg = m.renderer.GenerateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.Label, ButtonIdle)
+	m.hoverImg = m.renderer.GenerateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.Label, ButtonHover)
+	m.pressedImg = m.renderer.GenerateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.Label, ButtonPressed)
 	m.disabledImg = m.idleImg // Assuming disabled is same as idle for now.
 }
 

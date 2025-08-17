@@ -10,29 +10,29 @@ import (
 
 // TextField represents a single-line text input field.
 type TextField struct {
-	interactiveComponent                       // Embed for common state handling (hover, press)
-	Text                 string                // Current text content
-	isFocused            bool                  // True if this text field is currently focused and receiving input
-	cursorPos            int                   // Current cursor position within the text
-	blinkTimer           float64               // Timer for cursor blinking
-	uiGenerator          *BareBonesUiGenerator // Reference to generator for image regeneration
+	interactiveComponent            // Embed for common state handling (hover, press)
+	Text                 string     // Current text content
+	isFocused            bool       // True if this text field is currently focused and receiving input
+	cursorPos            int        // Current cursor position within the text
+	blinkTimer           float64    // Timer for cursor blinking
+	renderer             UiRenderer // Changed to UiRenderer interface
 }
 
 // NewTextField creates a new TextField instance.
 // It is now a standalone function.
-func NewTextField(x, y, width, height int, initialText string, uiGen *BareBonesUiGenerator) *TextField {
-	// Generate images for different states of the text field
-	idle := uiGen.generateTextFieldImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialText, false, 0, 0)
-	hover := uiGen.generateTextFieldImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialText, false, 0, 0)
-	pressed := uiGen.generateTextFieldImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialText, true, len(initialText), 0) // Focused state on press
-	disabled := uiGen.generateTextFieldImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialText, false, 0, 0)
+func NewTextField(x, y, width, height int, initialText string, renderer UiRenderer) *TextField {
+	// Initial image generation, assuming not focused and no cursor initially
+	idle := renderer.GenerateTextFieldImage(width, height, initialText, ButtonIdle, false, 0, false)
+	hover := renderer.GenerateTextFieldImage(width, height, initialText, ButtonHover, false, 0, false)
+	pressed := renderer.GenerateTextFieldImage(width, height, initialText, ButtonPressed, true, len(initialText), true) // Focused state on press, cursor visible
+	disabled := renderer.GenerateTextFieldImage(width, height, initialText, ButtonDisabled, false, 0, false)
 
 	tf := &TextField{
 		interactiveComponent: NewInteractiveComponent(x, y, width, height,
 			idle, pressed, hover, disabled),
-		Text:        initialText,
-		cursorPos:   len(initialText), // Cursor at end initially
-		uiGenerator: uiGen,
+		Text:      initialText,
+		cursorPos: len(initialText), // Cursor at end initially
+		renderer:  renderer,         // Store the renderer
 	}
 	return tf
 }
@@ -46,6 +46,9 @@ func (tf *TextField) Update() {
 	if tf.blinkTimer >= 120 {                  // Roughly blink every 2 seconds (120 frames at 60 TPS)
 		tf.blinkTimer = 0
 	}
+
+	// Determine if cursor should be shown based on blinkTimer
+	showCursor := tf.isFocused && (tf.blinkTimer < 60)
 
 	if tf.isFocused {
 		// Handle character input
@@ -80,31 +83,22 @@ func (tf *TextField) Update() {
 			}
 		}
 
-		// Regenerate the image to reflect new text/cursor (always use idle color for base text field)
-		tf.idleImg = tf.uiGenerator.generateTextFieldImage(
+		// Regenerate the image to reflect new text/cursor
+		tf.idleImg = tf.renderer.GenerateTextFieldImage(
 			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.uiGenerator.theme.PrimaryColor,   // Background color of the field
-			tf.uiGenerator.theme.OnPrimaryColor, // Text color
-			tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
+			tf.Text, ButtonIdle, tf.isFocused, tf.cursorPos, showCursor)
 
-		// Update other states too, so hover/pressed effects apply correctly even with new text
-		tf.hoverImg = tf.uiGenerator.generateTextFieldImage(
+		tf.hoverImg = tf.renderer.GenerateTextFieldImage(
 			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.uiGenerator.theme.AccentColor, // Background color changes on hover
-			tf.uiGenerator.theme.OnPrimaryColor,
-			tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
+			tf.Text, ButtonHover, tf.isFocused, tf.cursorPos, showCursor)
 
-		tf.pressedImg = tf.uiGenerator.generateTextFieldImage(
+		tf.pressedImg = tf.renderer.GenerateTextFieldImage(
 			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.uiGenerator.theme.AccentColor, // Background color changes on pressed
-			tf.uiGenerator.theme.OnPrimaryColor,
-			tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
+			tf.Text, ButtonPressed, tf.isFocused, tf.cursorPos, showCursor)
 
-		tf.disabledImg = tf.uiGenerator.generateTextFieldImage(
+		tf.disabledImg = tf.renderer.GenerateTextFieldImage(
 			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.uiGenerator.theme.PrimaryColor, // Stays primary for disabled
-			tf.uiGenerator.theme.OnPrimaryColor,
-			tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
+			tf.Text, ButtonDisabled, tf.isFocused, tf.cursorPos, showCursor)
 	}
 }
 
@@ -129,11 +123,14 @@ func (tf *TextField) HandleRelease() {
 func (tf *TextField) HandleClick() {
 	// If the click happened on THIS text field, focus it.
 	cx, cy := ebiten.CursorPosition()
-	if ContainsPoint(tf.Bounds, cx, cy) {
+	clickedInside := ContainsPoint(tf.Bounds, cx, cy)
+
+	if clickedInside {
 		if !tf.isFocused {
 			log.Println("TextField focused!")
 			tf.isFocused = true
 			tf.cursorPos = len(tf.Text) // Move cursor to end on initial click
+			tf.blinkTimer = 0           // Reset blink timer on focus
 		}
 	} else {
 		// If click was outside, lose focus
@@ -143,25 +140,20 @@ func (tf *TextField) HandleClick() {
 		}
 	}
 
-	// Re-render image to reflect focus change
-	tf.idleImg = tf.uiGenerator.generateTextFieldImage(
+	// Re-render image to reflect focus change and current cursor state
+	// Determine showCursor based on new focus state (and potentially reset blink timer if focused)
+	showCursor := tf.isFocused // Initially assume true if focused, will be handled by update loop's blink logic
+
+	tf.idleImg = tf.renderer.GenerateTextFieldImage(
 		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.uiGenerator.theme.PrimaryColor,
-		tf.uiGenerator.theme.OnPrimaryColor,
-		tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
-	tf.hoverImg = tf.uiGenerator.generateTextFieldImage(
+		tf.Text, ButtonIdle, tf.isFocused, tf.cursorPos, showCursor)
+	tf.hoverImg = tf.renderer.GenerateTextFieldImage(
 		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.uiGenerator.theme.AccentColor, // Use accent for hover
-		tf.uiGenerator.theme.OnPrimaryColor,
-		tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
-	tf.pressedImg = tf.uiGenerator.generateTextFieldImage(
+		tf.Text, ButtonHover, tf.isFocused, tf.cursorPos, showCursor)
+	tf.pressedImg = tf.renderer.GenerateTextFieldImage(
 		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.uiGenerator.theme.AccentColor, // Use accent for pressed
-		tf.uiGenerator.theme.OnPrimaryColor,
-		tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
-	tf.disabledImg = tf.uiGenerator.generateTextFieldImage(
+		tf.Text, ButtonPressed, tf.isFocused, tf.cursorPos, showCursor)
+	tf.disabledImg = tf.renderer.GenerateTextFieldImage(
 		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.uiGenerator.theme.PrimaryColor, // Stays primary for disabled
-		tf.uiGenerator.theme.OnPrimaryColor,
-		tf.Text, tf.isFocused, tf.cursorPos, int(tf.blinkTimer))
+		tf.Text, ButtonDisabled, tf.isFocused, tf.cursorPos, showCursor)
 }
