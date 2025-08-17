@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 
 	"github.com/fogleman/gg"
@@ -23,6 +24,25 @@ type BareBonesTheme struct {
 // It acts as a factory for creating all themed UI elements.
 type BareBonesUiGenerator struct {
 	theme BareBonesTheme
+}
+
+// NewMenu creates a new Menu instance. Moved here for consistency.
+func (b *BareBonesUiGenerator) NewMenu(x, y, width int, parentUi *Ui) *Menu {
+	m := &Menu{
+		component: component{
+			Bounds: image.Rectangle{
+				Min: image.Point{X: x, Y: y},
+				Max: image.Point{X: x + width, Y: y}, // Max Y will be adjusted later
+			},
+		},
+		items:       []*MenuItem{},
+		isVisible:   false,
+		theme:       b.theme, // Use the generator's theme
+		uiGenerator: b,       // Pass reference to this generator
+		parentUi:    parentUi,
+		justOpened:  false,
+	}
+	return m
 }
 
 // NewButton creates a new Button instance with the specified dimensions, label, and theme.

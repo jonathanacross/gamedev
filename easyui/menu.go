@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -19,24 +18,7 @@ type Menu struct {
 	justOpened  bool                  // True if the menu was just opened this frame. Prevents immediate self-close.
 }
 
-// NewMenu creates a new Menu instance.
-func NewMenu(x, y, width int, theme BareBonesTheme, uiGen *BareBonesUiGenerator, parentUi *Ui) *Menu {
-	m := &Menu{
-		component: component{
-			Bounds: image.Rectangle{
-				Min: image.Point{X: x, Y: y},
-				Max: image.Point{X: x + width, Y: y}, // Max Y will be adjusted later
-			},
-		},
-		items:       []*MenuItem{},
-		isVisible:   false,
-		theme:       theme,
-		uiGenerator: uiGen,
-		parentUi:    parentUi,
-		justOpened:  false,
-	}
-	return m
-}
+// NewMenu function definition is now in ui_generator.go
 
 // AddItem adds a new MenuItem to the menu.
 // It now uses uiGenerator.NewMenuItem to create the item.

@@ -74,7 +74,7 @@ func NewDemo() *Demo {
 
 	// --- Dropdown Menu Implementation ---
 	menuWidth := 200
-	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui) // Pass uiGenerator here
+	animalMenu := uiGenerator.NewMenu(350, 200, menuWidth, ui)
 
 	// Update this line: remove 'ui' from the NewDropDown call
 	dropdown := uiGenerator.NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu)
