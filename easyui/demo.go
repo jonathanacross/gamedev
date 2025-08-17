@@ -63,41 +63,33 @@ func NewDemo() *Demo {
 
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
+	// Example: A regular button
 	button := uiGenerator.NewButton(100, 100, 200, 50, "Click me!")
 	button.SetClickHandler(func() {
 		log.Println("Regular button clicked!")
+		// Example of changing button text dynamically:
+		button.SetText("Clicked!")
 	})
 	ui.AddChild(button)
 
 	// --- Dropdown Menu Implementation ---
 	menuWidth := 200
-	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui)
+	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui) // Pass uiGenerator here
 
-	animals := []string{"Lion", "Tiger", "Bear"}
+	// Update this line: remove 'ui' from the NewDropDown call
+	dropdown := uiGenerator.NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu)
+	ui.AddChild(dropdown)
 
-	dropdownWidth := 200
-	dropdownHeight := 50
-	dropdownX := 350
-	dropdownY := 100
-
-	dropdown := NewDropDown(
-		dropdownX,
-		dropdownY,
-		dropdownWidth,
-		dropdownHeight,
-		"Select an Animal", // Initial label for the dropdown button
-		animalMenu,         // Pass the menu to the dropdown
-		theme,
-		uiGenerator,
-	)
+	animals := []string{"Lion", "Tiger", "Bear", "Elephant"}
 
 	for _, animal := range animals {
-		// Pass the handler directly when adding the item.
-		animalMenu.AddItem(animal, func() {
-			log.Printf("Dropdown item '%s' clicked.", animal)
-			dropdown.SelectedOption = animal // Set the selected option
+		currentAnimal := animal // Capture loop variable
+		animalMenu.AddItem(currentAnimal, func() {
+			log.Printf("Dropdown: %s selected!", currentAnimal)
+			// Update the dropdown's displayed text
+			dropdown.SetSelectedOption(currentAnimal)
 		})
 	}
-	ui.AddChild(dropdown)
+
 	return &Demo{ui: ui}
 }

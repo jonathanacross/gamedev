@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log" // Keep log for potential warnings, but it might be less needed now
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -11,22 +11,25 @@ type MenuItem struct {
 	interactiveComponent // Embed the new interactive component
 	Label                string
 	onClick              func()
+	uiGenerator          *BareBonesUiGenerator // Reference to the generator
+	// Removed: theme        BareBonesTheme        // No longer needed, access via uiGenerator.theme
 }
 
-// NewMenuItem creates a new MenuItem instance.
-func NewMenuItem(x, y, width, height int, label string, idle, hover, pressed *ebiten.Image) *MenuItem {
-	// Assuming `disabled` image for menu item is the same as idle for now, adjust as needed.
-	disabled := idle
-	return &MenuItem{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled),
-		Label:                label,
-		onClick:              nil, // Set via SetClickHandler
-	}
-}
+// NewMenuItem function definition is now in ui_generator.go
 
 // SetClickHandler sets the function to be executed when this menu item is clicked.
 func (m *MenuItem) SetClickHandler(handler func()) {
 	m.onClick = handler
+}
+
+// SetLabel updates the menu item's text and regenerates its state images.
+func (m *MenuItem) SetLabel(newLabel string) {
+	m.Label = newLabel
+	// Regenerate all state images with the new text, accessing theme via uiGenerator
+	m.idleImg = m.uiGenerator.generateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.uiGenerator.theme.MenuColor, m.uiGenerator.theme.OnPrimaryColor, m.Label)
+	m.hoverImg = m.uiGenerator.generateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.uiGenerator.theme.MenuItemHoverColor, m.uiGenerator.theme.OnPrimaryColor, m.Label)
+	m.pressedImg = m.uiGenerator.generateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.uiGenerator.theme.AccentColor, m.uiGenerator.theme.OnPrimaryColor, m.Label)
+	m.disabledImg = m.idleImg // Assuming disabled is same as idle for now.
 }
 
 // Update calls the embedded interactiveComponent's Update method.
@@ -38,7 +41,6 @@ func (m *MenuItem) Update() {
 func (m *MenuItem) Draw(screen *ebiten.Image) {
 	if m.idleImg == nil || m.hoverImg == nil || m.pressedImg == nil {
 		log.Printf("MenuItem '%s': WARNING: One or more state images are nil! Idle: %t, Hover: %t, Pressed: %t", m.Label, m.idleImg != nil, m.hoverImg != nil, m.pressedImg != nil)
-		// Consider drawing a placeholder or just returning if images are critical.
 	}
 
 	op := &ebiten.DrawImageOptions{}

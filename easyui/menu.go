@@ -39,21 +39,15 @@ func NewMenu(x, y, width int, theme BareBonesTheme, uiGen *BareBonesUiGenerator,
 }
 
 // AddItem adds a new MenuItem to the menu.
+// It now uses uiGenerator.NewMenuItem to create the item.
 func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	itemHeight := 30
 	itemWidth := m.Bounds.Dx()
 
 	yOffset := m.Bounds.Min.Y + len(m.items)*itemHeight
-	itemBounds := image.Rectangle{
-		Min: image.Point{X: m.Bounds.Min.X, Y: yOffset},
-		Max: image.Point{X: m.Bounds.Min.X + itemWidth, Y: yOffset + itemHeight},
-	}
 
-	idleImg := m.uiGenerator.generateMenuItemImage(itemWidth, itemHeight, m.theme.MenuColor, m.theme.OnPrimaryColor, label)
-	hoverImg := m.uiGenerator.generateMenuItemImage(itemWidth, itemHeight, m.theme.MenuItemHoverColor, m.theme.OnPrimaryColor, label)
-	pressedImg := m.uiGenerator.generateMenuItemImage(itemWidth, itemHeight, m.theme.AccentColor, m.theme.OnPrimaryColor, label)
-
-	item := NewMenuItem(itemBounds.Min.X, itemBounds.Min.Y, itemBounds.Dx(), itemBounds.Dy(), label, idleImg, hoverImg, pressedImg)
+	// Use the uiGenerator to create the MenuItem
+	item := m.uiGenerator.NewMenuItem(m.Bounds.Min.X, yOffset, itemWidth, itemHeight, label)
 	item.SetClickHandler(func() {
 		handler() // Call the user-defined handler
 		m.Hide()  // Now, the menu item's handler should also hide the menu.

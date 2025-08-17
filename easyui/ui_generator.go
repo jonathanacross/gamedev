@@ -20,11 +20,13 @@ type BareBonesTheme struct {
 }
 
 // BareBonesUiGenerator helps instantiate UI components with the defined theme.
+// It acts as a factory for creating all themed UI elements.
 type BareBonesUiGenerator struct {
 	theme BareBonesTheme
 }
 
 // NewButton creates a new Button instance with the specified dimensions, label, and theme.
+// It also passes a reference to itself for dynamic updates.
 func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) *Button {
 	idle := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label)
 	pressed := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
@@ -33,7 +35,43 @@ func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) 
 
 	return &Button{
 		interactiveComponent: NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled),
-		onClick:              nil, // Will be set by SetClickHandler
+		Label:                label,
+		onClick:              nil, // Click handler set separately
+		uiGenerator:          b,   // Pass reference to this generator
+	}
+}
+
+// NewDropDown creates a new DropDown instance, generating its state-specific images.
+// The `parentUi` parameter is removed as it's not directly used by DropDown.
+func (b *BareBonesUiGenerator) NewDropDown(x, y, width, height int, initialLabel string, menu *Menu) *DropDown {
+	// Generate specific dropdown images using this generator's methods
+	idleImg := b.generateDropdownImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialLabel)
+	hoverImg := b.generateDropdownImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialLabel)
+	pressedImg := b.generateDropdownImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialLabel)   // Often same as hover for dropdown pressed
+	disabledImg := b.generateDropdownImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialLabel) // Example: darker version
+
+	return &DropDown{
+		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
+		Label:                initialLabel,
+		SelectedOption:       initialLabel,
+		menu:                 menu,
+		uiGenerator:          b, // Pass generator reference
+	}
+}
+
+// NewMenuItem creates a new MenuItem instance, generating its state-specific images.
+// It also passes a reference to itself for dynamic updates.
+func (b *BareBonesUiGenerator) NewMenuItem(x, y, width, height int, label string) *MenuItem {
+	idleImg := b.generateMenuItemImage(width, height, b.theme.MenuColor, b.theme.OnPrimaryColor, label)
+	hoverImg := b.generateMenuItemImage(width, height, b.theme.MenuItemHoverColor, b.theme.OnPrimaryColor, label)
+	pressedImg := b.generateMenuItemImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
+	disabledImg := idleImg // Default disabled to idle, can be customized
+
+	return &MenuItem{
+		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
+		Label:                label,
+		onClick:              nil, // Click handler set separately
+		uiGenerator:          b,   // Pass reference to this generator
 	}
 }
 
@@ -50,6 +88,7 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.FillPreserve()
+	// Apply a stroke/border around the rounded rectangle
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
 	dc.SetLineWidth(2)
 	dc.Stroke()
@@ -66,6 +105,7 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 }
 
 // generateDropdownImage creates an Ebiten image for a dropdown's specific state.
+// No rounded corners as requested.
 func (b *BareBonesUiGenerator) generateDropdownImage(
 	width, height int,
 	bgColor, textColor color.RGBA,
@@ -73,9 +113,9 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Draw the background of the dropdown button as a rectangle
+	// Draw the background of the dropdown button as a simple rectangle
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.DrawRectangle(0, 0, float64(width), float64(height)) // No rounded corners here
 	dc.FillPreserve()
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
 	dc.SetLineWidth(2)
@@ -106,6 +146,7 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 }
 
 // generateMenuItemImage creates an Ebiten image for a menu item.
+// Rounded corners for menu items.
 func (b *BareBonesUiGenerator) generateMenuItemImage(
 	width, height int,
 	bgColor, textColor color.RGBA,
@@ -113,9 +154,10 @@ func (b *BareBonesUiGenerator) generateMenuItemImage(
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Draw menu item background
+	// Draw menu item background with rounded corners for consistency
+	cornerRadius := float64(height) * 0.1 // Slightly smaller radius for menu items
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.Fill()
 
 	if b.theme.Face != nil {
@@ -130,16 +172,18 @@ func (b *BareBonesUiGenerator) generateMenuItemImage(
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// New: generateMenuImage creates an Ebiten image for the menu background.
+// generateMenuImage creates an Ebiten image for the menu background.
+// Rounded corners for the overall menu background.
 func (b *BareBonesUiGenerator) generateMenuImage(
 	width, height int,
 	bgColor color.RGBA,
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Draw menu background (e.g., a simple rectangle)
+	// Draw menu background (e.g., a simple rectangle) with rounded corners
+	cornerRadius := float64(10) // Small fixed radius for the overall menu background
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.Fill()
 
 	return ebiten.NewImageFromImage(dc.Image())

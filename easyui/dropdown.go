@@ -10,26 +10,20 @@ type DropDown struct {
 	Label                string
 	SelectedOption       string
 	menu                 *Menu
-	theme                BareBonesTheme        // Reference to the theme for drawing (still needed for image generation)
-	uiGenerator          *BareBonesUiGenerator // To generate dropdown button images (still needed for image generation)
+	// Removed: theme          BareBonesTheme        // No longer needed, access via uiGenerator.theme
+	uiGenerator *BareBonesUiGenerator // To generate dropdown button images (still needed for image generation)
 }
 
-// NewDropDown creates a new DropDown instance, associating it with a menu.
-func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, theme BareBonesTheme, uiGen *BareBonesUiGenerator) *DropDown {
-	// Generate specific dropdown images using the uiGenerator
-	idleImg := uiGen.generateDropdownImage(width, height, theme.PrimaryColor, theme.OnPrimaryColor, initialLabel)
-	hoverImg := uiGen.generateDropdownImage(width, height, theme.AccentColor, theme.OnPrimaryColor, initialLabel)
-	pressedImg := uiGen.generateDropdownImage(width, height, theme.AccentColor, theme.OnPrimaryColor, initialLabel)   // Often same as hover for dropdown pressed
-	disabledImg := uiGen.generateDropdownImage(width, height, theme.PrimaryColor, theme.OnPrimaryColor, initialLabel) // Example: darker version
+// NewDropDown function definition is now in ui_generator.go
 
-	return &DropDown{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
-		Label:                initialLabel,
-		SelectedOption:       initialLabel,
-		menu:                 menu,
-		theme:                theme,
-		uiGenerator:          uiGen,
-	}
+// SetSelectedOption updates the displayed option and regenerates the dropdown button's images.
+func (d *DropDown) SetSelectedOption(newOption string) {
+	d.SelectedOption = newOption
+	// Regenerate all state images with the new text, accessing theme via uiGenerator
+	d.idleImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.PrimaryColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
+	d.hoverImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.AccentColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
+	d.pressedImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.AccentColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
+	d.disabledImg = d.uiGenerator.generateDropdownImage(d.Bounds.Dx(), d.Bounds.Dy(), d.uiGenerator.theme.PrimaryColor, d.uiGenerator.theme.OnPrimaryColor, d.SelectedOption)
 }
 
 // Update calls the embedded interactiveComponent's Update method.
