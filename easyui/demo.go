@@ -60,12 +60,14 @@ func NewDemo() *Demo {
 		Face:               face,
 		// MenuItemHeight:     30, // Removed for this specific step to resolve a potential conflict
 	}
+	// Initialize BareBonesUiGenerator, which now implements UiRenderer
 	uiGenerator := &BareBonesUiGenerator{theme}
 
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
 	// Example: A regular button
-	button := NewButton(100, 100, 200, 50, "Click me!", uiGenerator) // Updated call
+	// Pass the uiGenerator (as UiRenderer) to the component constructor
+	button := NewButton(100, 100, 200, 50, "Click me!", uiGenerator)
 	button.SetClickHandler(func() {
 		log.Println("Regular button clicked!")
 		// Example of changing button text dynamically:
@@ -75,9 +77,11 @@ func NewDemo() *Demo {
 
 	// --- Dropdown Menu Implementation ---
 	menuWidth := 200
-	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui) // Still uses theme and uiGenerator directly for now
+	// Pass the uiGenerator (as UiRenderer) to NewMenu
+	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui)
 
-	dropdown := NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu, uiGenerator) // Updated call
+	// Pass the uiGenerator (as UiRenderer) to NewDropDown
+	dropdown := NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu, uiGenerator)
 	ui.AddChild(dropdown)
 
 	animals := []string{"Lion", "Tiger", "Bear", "Elephant"}
@@ -92,7 +96,8 @@ func NewDemo() *Demo {
 	}
 
 	// --- Checkbox Implementation ---
-	checkbox := NewCheckbox(100, 200, 150, 30, "Enable Feature", false, uiGenerator) // Updated call
+	// Pass the uiGenerator (as UiRenderer) to NewCheckbox
+	checkbox := NewCheckbox(100, 200, 150, 30, "Enable Feature", false, uiGenerator)
 	checkbox.OnCheckChanged = func(checked bool) {
 		log.Printf("Checkbox 'Enable Feature' state changed to: %t", checked)
 		if checked {
@@ -104,23 +109,18 @@ func NewDemo() *Demo {
 	ui.AddChild(checkbox)
 
 	// --- TextField Implementation ---
-	nameField := NewTextField(100, 250, 300, 30, "Enter your name", uiGenerator) // Updated call
+	// Pass the uiGenerator (as UiRenderer) to NewTextField
+	nameField := NewTextField(100, 250, 300, 30, "Enter your name", uiGenerator)
 	ui.AddChild(nameField)
 
-	// --- Label Implementation ---
-	infoLabel := NewLabel(100, 300, 400, 20, "Welcome to the UI Demo!", uiGenerator) // Updated call
-	ui.AddChild(infoLabel)
+	// --- Container Implementation ---
+	// Create a container and add the infoLabel inside it
+	container := NewContainer(50, 350, 700, 100, uiGenerator) // x, y, width, height, renderer
+	ui.AddChild(container)                                    // Add the container to the root UI
 
-	// Example of changing label text dynamically (e.g., after 5 seconds)
-	// For a real application, you'd trigger this based on game state or user action.
-	// This simple example runs once at startup.
-	go func() {
-		// time.Sleep(5 * time.Second) // In a real Ebiten game, don't use time.Sleep in main goroutine.
-		// Instead, use an internal timer in the Demo's Update loop.
-		// For this simple demo, we'll just log it.
-		// log.Println("Changing label text...")
-		// infoLabel.SetText("Demo Ready! Interact above.")
-	}()
+	// Create a label and add it to the container
+	infoLabel := NewLabel(10, 10, 380, 20, "This label is inside a container!", uiGenerator) // x, y relative to container
+	container.AddChild(infoLabel)
 
 	return &Demo{ui: ui}
 }

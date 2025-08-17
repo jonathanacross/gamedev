@@ -282,7 +282,7 @@ func (b *BareBonesUiGenerator) GenerateTextFieldImage(
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
 	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
 
-	// Draw cursor if focused and showCursor is true
+	// Draw blinking cursor if focused and showCursor is true
 	if isFocused && showCursor {
 		// Calculate cursor X position based on text width up to cursorPos
 		textRunes := []rune(text)
@@ -320,6 +320,19 @@ func (b *BareBonesUiGenerator) GenerateLabelImage(
 	textX := 5.0                                                                                                                              // Small padding from left edge
 	textY := float64(height) / 2
 	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// GenerateContainerImage implements UiRenderer.GenerateContainerImage.
+// It simply fills the given dimensions with the theme's background color.
+func (b *BareBonesUiGenerator) GenerateContainerImage(width, height int) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Fill the container's background with the theme's background color
+	dc.SetRGBA255(int(b.theme.BackgroundColor.R), int(b.theme.BackgroundColor.G), int(b.theme.BackgroundColor.B), int(b.theme.BackgroundColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Fill()
 
 	return ebiten.NewImageFromImage(dc.Image())
 }

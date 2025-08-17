@@ -30,4 +30,7 @@ type UiRenderer interface {
 
 	// GenerateLabelImage creates an image for a static text label.
 	GenerateLabelImage(width, height int, text string) *ebiten.Image
+
+	// GenerateContainerImage creates an image for a container's background.
+	GenerateContainerImage(width, height int) *ebiten.Image
 }
