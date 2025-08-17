@@ -142,6 +142,13 @@ func (b *BareBonesUiGenerator) NewTextField(x, y, width, height int, initialText
 	return NewTextField(x, y, width, height, initialText, b, idle, pressed, hover, disabled)
 }
 
+// NewLabel creates a new Label instance.
+func (b *BareBonesUiGenerator) NewLabel(x, y, width, height int, text string) *Label {
+	// Labels are static, so only an idle image is needed.
+	labelImage := b.generateLabelImage(width, height, b.theme.OnPrimaryColor, text) // Text color from theme
+	return NewLabel(x, y, width, height, text, b, labelImage)
+}
+
 // generateButtonImage creates an Ebiten image for a button's specific state.
 func (b *BareBonesUiGenerator) generateButtonImage(
 	width, height int,
@@ -157,7 +164,7 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 	dc.FillPreserve()
 	// Apply a stroke/border around the rounded rectangle
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(2)
+	dc.SetLineWidth(1)
 	dc.Stroke()
 
 	if b.theme.Face != nil {
@@ -185,7 +192,7 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 	dc.DrawRectangle(0, 0, float64(width), float64(height)) // No rounded corners here
 	dc.FillPreserve()
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(2)
+	dc.SetLineWidth(1)
 	dc.Stroke()
 
 	// Draw the V arrow on the right side of the dropdown
@@ -364,6 +371,31 @@ func (b *BareBonesUiGenerator) generateTextFieldImage(
 		dc.DrawLine(cursorX, textY-float64(b.theme.Face.Metrics().Height)/2, cursorX, textY+float64(b.theme.Face.Metrics().Height)/2)
 		dc.Stroke()
 	}
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateLabelImage creates an Ebiten image for a static text label.
+func (b *BareBonesUiGenerator) generateLabelImage(
+	width, height int,
+	textColor color.RGBA,
+	text string,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Labels typically have a transparent background, or the background of their parent.
+	// We just need to draw the text.
+	// You could fill with b.theme.BackgroundColor here if you want a solid background for labels.
+
+	if b.theme.Face != nil {
+		dc.SetFontFace(b.theme.Face)
+	}
+
+	// Draw the label text
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	textX := 5.0 // Small padding from left edge
+	textY := float64(height) / 2
+	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
 
 	return ebiten.NewImageFromImage(dc.Image())
 }

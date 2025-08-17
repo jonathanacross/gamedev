@@ -107,5 +107,20 @@ func NewDemo() *Demo {
 	nameField := uiGenerator.NewTextField(100, 250, 300, 30, "Enter your name") // x, y, width, height, initialText
 	ui.AddChild(nameField)
 
+	// --- Label Implementation ---
+	infoLabel := uiGenerator.NewLabel(100, 300, 400, 20, "Welcome to the UI Demo!") // x, y, width, height, text
+	ui.AddChild(infoLabel)
+
+	// Example of changing label text dynamically (e.g., after 5 seconds)
+	// For a real application, you'd trigger this based on game state or user action.
+	// This simple example runs once at startup.
+	go func() {
+		// time.Sleep(5 * time.Second) // In a real Ebiten game, don't use time.Sleep in main goroutine.
+		// Instead, use an internal timer in the Demo's Update loop.
+		// For this simple demo, we'll just log it.
+		// log.Println("Changing label text...")
+		// infoLabel.SetText("Demo Ready! Interact above.")
+	}()
+
 	return &Demo{ui: ui}
 }
