@@ -10,11 +10,26 @@ type DropDown struct {
 	Label                string
 	SelectedOption       string
 	menu                 *Menu
-	// Removed: theme          BareBonesTheme        // No longer needed, access via uiGenerator.theme
-	uiGenerator *BareBonesUiGenerator // To generate dropdown button images (still needed for image generation)
+	uiGenerator          *BareBonesUiGenerator // To generate dropdown button images (still needed for image generation)
 }
 
-// NewDropDown function definition is now in ui_generator.go
+// NewDropDown creates a new DropDown instance, generating its state-specific images.
+// It is now a standalone function.
+func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, uiGen *BareBonesUiGenerator) *DropDown {
+	// Generate specific dropdown images using this generator's methods
+	idleImg := uiGen.generateDropdownImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialLabel)
+	hoverImg := uiGen.generateDropdownImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialLabel)
+	pressedImg := uiGen.generateDropdownImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialLabel)   // Often same as hover for dropdown pressed
+	disabledImg := uiGen.generateDropdownImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialLabel) // Example: darker version
+
+	return &DropDown{
+		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
+		Label:                initialLabel,
+		SelectedOption:       initialLabel,
+		menu:                 menu,
+		uiGenerator:          uiGen, // Pass generator reference
+	}
+}
 
 // SetSelectedOption updates the displayed option and regenerates the dropdown button's images.
 func (d *DropDown) SetSelectedOption(newOption string) {

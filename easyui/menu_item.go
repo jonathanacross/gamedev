@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	// Required for image.Rectangle, image.Point
 )
 
 // MenuItem represents a single selectable item within a menu.
@@ -12,10 +13,23 @@ type MenuItem struct {
 	Label                string
 	onClick              func()
 	uiGenerator          *BareBonesUiGenerator // Reference to the generator
-	// Removed: theme        BareBonesTheme        // No longer needed, access via uiGenerator.theme
 }
 
-// NewMenuItem function definition is now in ui_generator.go
+// NewMenuItem creates a new MenuItem instance.
+// It is now a standalone function.
+func NewMenuItem(x, y, width, height int, label string, uiGen *BareBonesUiGenerator) *MenuItem {
+	idleImg := uiGen.generateMenuItemImage(width, height, uiGen.theme.MenuColor, uiGen.theme.OnPrimaryColor, label)
+	hoverImg := uiGen.generateMenuItemImage(width, height, uiGen.theme.MenuItemHoverColor, uiGen.theme.OnPrimaryColor, label)
+	pressedImg := uiGen.generateMenuItemImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, label)
+	disabledImg := idleImg // Default disabled to idle, can be customized
+
+	return &MenuItem{
+		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
+		Label:                label,
+		onClick:              nil,   // Click handler set separately
+		uiGenerator:          uiGen, // Pass reference to this generator
+	}
+}
 
 // SetClickHandler sets the function to be executed when this menu item is clicked.
 func (m *MenuItem) SetClickHandler(handler func()) {

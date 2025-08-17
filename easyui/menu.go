@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"image" // Required for image.Rectangle, image.Point
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -18,18 +20,35 @@ type Menu struct {
 	justOpened  bool                  // True if the menu was just opened this frame. Prevents immediate self-close.
 }
 
-// NewMenu function definition is now in ui_generator.go
+// NewMenu creates a new Menu instance. It is now a standalone function.
+func NewMenu(x, y, width int, theme BareBonesTheme, uiGen *BareBonesUiGenerator, parentUi *Ui) *Menu {
+	m := &Menu{
+		component: component{
+			Bounds: image.Rectangle{
+				Min: image.Point{X: x, Y: y},
+				Max: image.Point{X: x + width, Y: y}, // Max Y will be adjusted later
+			},
+		},
+		items:       []*MenuItem{},
+		isVisible:   false,
+		theme:       theme,
+		uiGenerator: uiGen,
+		parentUi:    parentUi,
+		justOpened:  false,
+	}
+	return m
+}
 
 // AddItem adds a new MenuItem to the menu.
-// It now uses uiGenerator.NewMenuItem to create the item.
+// It now uses the standalone NewMenuItem function.
 func (m *Menu) AddItem(label string, handler func()) *MenuItem {
-	itemHeight := 30
+	itemHeight := 30 // Still hardcoded here, but can be pulled from theme later.
 	itemWidth := m.Bounds.Dx()
 
 	yOffset := m.Bounds.Min.Y + len(m.items)*itemHeight
 
-	// Use the uiGenerator to create the MenuItem
-	item := m.uiGenerator.NewMenuItem(m.Bounds.Min.X, yOffset, itemWidth, itemHeight, label)
+	// Use the standalone NewMenuItem function
+	item := NewMenuItem(m.Bounds.Min.X, yOffset, itemWidth, itemHeight, label, m.uiGenerator)
 	item.SetClickHandler(func() {
 		handler() // Call the user-defined handler
 		m.Hide()  // Now, the menu item's handler should also hide the menu.

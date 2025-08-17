@@ -65,7 +65,7 @@ func NewDemo() *Demo {
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
 	// Example: A regular button
-	button := uiGenerator.NewButton(100, 100, 200, 50, "Click me!")
+	button := NewButton(100, 100, 200, 50, "Click me!", uiGenerator) // Updated call
 	button.SetClickHandler(func() {
 		log.Println("Regular button clicked!")
 		// Example of changing button text dynamically:
@@ -75,9 +75,9 @@ func NewDemo() *Demo {
 
 	// --- Dropdown Menu Implementation ---
 	menuWidth := 200
-	animalMenu := uiGenerator.NewMenu(350, 200, menuWidth, ui)
+	animalMenu := NewMenu(350, 200, menuWidth, theme, uiGenerator, ui) // Still uses theme and uiGenerator directly for now
 
-	dropdown := uiGenerator.NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu)
+	dropdown := NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu, uiGenerator) // Updated call
 	ui.AddChild(dropdown)
 
 	animals := []string{"Lion", "Tiger", "Bear", "Elephant"}
@@ -92,7 +92,7 @@ func NewDemo() *Demo {
 	}
 
 	// --- Checkbox Implementation ---
-	checkbox := uiGenerator.NewCheckbox(100, 200, 150, 30, "Enable Feature", false) // x, y, width, height, label, initialChecked
+	checkbox := NewCheckbox(100, 200, 150, 30, "Enable Feature", false, uiGenerator) // Updated call
 	checkbox.OnCheckChanged = func(checked bool) {
 		log.Printf("Checkbox 'Enable Feature' state changed to: %t", checked)
 		if checked {
@@ -104,11 +104,11 @@ func NewDemo() *Demo {
 	ui.AddChild(checkbox)
 
 	// --- TextField Implementation ---
-	nameField := uiGenerator.NewTextField(100, 250, 300, 30, "Enter your name") // x, y, width, height, initialText
+	nameField := NewTextField(100, 250, 300, 30, "Enter your name", uiGenerator) // Updated call
 	ui.AddChild(nameField)
 
 	// --- Label Implementation ---
-	infoLabel := uiGenerator.NewLabel(100, 300, 400, 20, "Welcome to the UI Demo!") // x, y, width, height, text
+	infoLabel := NewLabel(100, 300, 400, 20, "Welcome to the UI Demo!", uiGenerator) // Updated call
 	ui.AddChild(infoLabel)
 
 	// Example of changing label text dynamically (e.g., after 5 seconds)

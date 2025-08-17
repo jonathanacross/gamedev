@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"image/color"
 
 	"github.com/fogleman/gg"
@@ -27,128 +26,6 @@ type BareBonesUiGenerator struct {
 	theme BareBonesTheme
 }
 
-// NewMenu creates a new Menu instance. Moved here for consistency.
-func (b *BareBonesUiGenerator) NewMenu(x, y, width int, parentUi *Ui) *Menu {
-	m := &Menu{
-		component: component{
-			Bounds: image.Rectangle{
-				Min: image.Point{X: x, Y: y},
-				Max: image.Point{X: x + width, Y: y}, // Max Y will be adjusted later
-			},
-		},
-		items:       []*MenuItem{},
-		isVisible:   false,
-		theme:       b.theme, // Use the generator's theme
-		uiGenerator: b,       // Pass reference to this generator
-		parentUi:    parentUi,
-		justOpened:  false,
-	}
-	return m
-}
-
-// NewButton creates a new Button instance with the specified dimensions, label, and theme.
-// It also passes a reference to itself for dynamic updates.
-func (b *BareBonesUiGenerator) NewButton(x, y, width, height int, label string) *Button {
-	idle := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label)
-	pressed := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
-	hover := b.generateButtonImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
-	disabled := b.generateButtonImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, label) // Example: disabled state image
-
-	return &Button{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled),
-		Label:                label,
-		onClick:              nil, // Click handler set separately
-		uiGenerator:          b,   // Pass reference to this generator
-	}
-}
-
-// NewDropDown creates a new DropDown instance, generating its state-specific images.
-// The `parentUi` parameter is removed as it's not directly used by DropDown.
-func (b *BareBonesUiGenerator) NewDropDown(x, y, width, height int, initialLabel string, menu *Menu) *DropDown {
-	// Generate specific dropdown images using this generator's methods
-	idleImg := b.generateDropdownImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialLabel)
-	hoverImg := b.generateDropdownImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialLabel)
-	pressedImg := b.generateDropdownImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialLabel)   // Often same as hover for dropdown pressed
-	disabledImg := b.generateDropdownImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialLabel) // Example: darker version
-
-	return &DropDown{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
-		Label:                initialLabel,
-		SelectedOption:       initialLabel,
-		menu:                 menu,
-		uiGenerator:          b, // Pass generator reference
-	}
-}
-
-// NewMenuItem creates a new MenuItem instance, generating its state-specific images.
-// It also passes a reference to itself for dynamic updates.
-func (b *BareBonesUiGenerator) NewMenuItem(x, y, width, height int, label string) *MenuItem {
-	idleImg := b.generateMenuItemImage(width, height, b.theme.MenuColor, b.theme.OnPrimaryColor, label)
-	hoverImg := b.generateMenuItemImage(width, height, b.theme.MenuItemHoverColor, b.theme.OnPrimaryColor, label)
-	pressedImg := b.generateMenuItemImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, label)
-	disabledImg := idleImg // Default disabled to idle, can be customized
-
-	return &MenuItem{
-		interactiveComponent: NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg),
-		Label:                label,
-		onClick:              nil, // Click handler set separately
-		uiGenerator:          b,   // Pass reference to this generator
-	}
-}
-
-// NewCheckbox creates a new Checkbox instance, generating all its state-specific images.
-// Updated signature to take width and height explicitly.
-func (b *BareBonesUiGenerator) NewCheckbox(x, y, width, height int, label string, initialChecked bool) *Checkbox {
-	// Colors that stay constant for the overall component background and label text
-	componentBgColor := b.theme.BackgroundColor
-	labelColor := b.theme.OnPrimaryColor
-	checkmarkColor := b.theme.OnPrimaryColor // Checkmark color remains constant
-
-	// Generate images for unchecked states
-	uncheckedIdle := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
-	uncheckedPressed := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, false, label) // Box outline changes to AccentColor
-	uncheckedHover := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, false, label)   // Box outline changes to AccentColor
-	uncheckedDisabled := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
-
-	// Generate images for checked states
-	checkedIdle := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
-	checkedPressed := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, true, label) // Box outline changes to AccentColor
-	checkedHover := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, true, label)   // Box outline changes to AccentColor
-	checkedDisabled := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
-
-	stateImages := CheckboxStateImages{
-		UncheckedIdle:     uncheckedIdle,
-		UncheckedPressed:  uncheckedPressed,
-		UncheckedHover:    uncheckedHover,
-		UncheckedDisabled: uncheckedDisabled,
-		CheckedIdle:       checkedIdle,
-		CheckedPressed:    checkedPressed,
-		CheckedHover:      checkedHover,
-		CheckedDisabled:   checkedDisabled,
-	}
-
-	// Use the NewCheckbox constructor
-	return NewCheckbox(x, y, width, height, label, initialChecked, b, stateImages)
-}
-
-// NewTextField creates a new TextField instance.
-func (b *BareBonesUiGenerator) NewTextField(x, y, width, height int, initialText string) *TextField {
-	// Generate images for different states of the text field
-	idle := b.generateTextFieldImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialText, false, 0, 0)
-	hover := b.generateTextFieldImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialText, false, 0, 0)
-	pressed := b.generateTextFieldImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialText, true, len(initialText), 0) // Focused state on press
-	disabled := b.generateTextFieldImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialText, false, 0, 0)
-
-	return NewTextField(x, y, width, height, initialText, b, idle, pressed, hover, disabled)
-}
-
-// NewLabel creates a new Label instance.
-func (b *BareBonesUiGenerator) NewLabel(x, y, width, height int, text string) *Label {
-	// Labels are static, so only an idle image is needed.
-	labelImage := b.generateLabelImage(width, height, b.theme.OnPrimaryColor, text) // Text color from theme
-	return NewLabel(x, y, width, height, text, b, labelImage)
-}
-
 // generateButtonImage creates an Ebiten image for a button's specific state.
 func (b *BareBonesUiGenerator) generateButtonImage(
 	width, height int,
@@ -164,7 +41,7 @@ func (b *BareBonesUiGenerator) generateButtonImage(
 	dc.FillPreserve()
 	// Apply a stroke/border around the rounded rectangle
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(1)
+	dc.SetLineWidth(2)
 	dc.Stroke()
 
 	if b.theme.Face != nil {
@@ -192,7 +69,7 @@ func (b *BareBonesUiGenerator) generateDropdownImage(
 	dc.DrawRectangle(0, 0, float64(width), float64(height)) // No rounded corners here
 	dc.FillPreserve()
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(1)
+	dc.SetLineWidth(2)
 	dc.Stroke()
 
 	// Draw the V arrow on the right side of the dropdown

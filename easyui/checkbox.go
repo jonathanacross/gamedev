@@ -2,8 +2,10 @@ package main
 
 import (
 	"log"
-
+	// For cursor blinking
 	"github.com/hajimehoshi/ebiten/v2"
+	// Required for color.RGBA
+	// Required for image.Rectangle, image.Point
 )
 
 // CheckboxState holds the different image sets for a checkbox's visual states.
@@ -33,21 +35,47 @@ type Checkbox struct {
 }
 
 // NewCheckbox creates a new Checkbox instance.
-// This is called by ui_generator.go.
-func NewCheckbox(x, y, width, height int, label string, initialChecked bool,
-	uiGen *BareBonesUiGenerator, images CheckboxStateImages) *Checkbox {
+// It is now a standalone function.
+func NewCheckbox(x, y, width, height int, label string, initialChecked bool, uiGen *BareBonesUiGenerator) *Checkbox {
+	// Colors that stay constant for the overall component background and label text
+	componentBgColor := uiGen.theme.BackgroundColor
+	labelColor := uiGen.theme.OnPrimaryColor
+	checkmarkColor := uiGen.theme.OnPrimaryColor // Checkmark color remains constant
+
+	// Generate images for unchecked states
+	uncheckedIdle := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
+	uncheckedPressed := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, false, label) // Box outline changes to AccentColor
+	uncheckedHover := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, false, label)   // Box outline changes to AccentColor
+	uncheckedDisabled := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
+
+	// Generate images for checked states
+	checkedIdle := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
+	checkedPressed := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, true, label) // Box outline changes to AccentColor
+	checkedHover := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.AccentColor, checkmarkColor, labelColor, true, label)   // Box outline changes to AccentColor
+	checkedDisabled := uiGen.generateCheckboxImage(width, height, componentBgColor, uiGen.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
+
+	stateImages := CheckboxStateImages{
+		UncheckedIdle:     uncheckedIdle,
+		UncheckedPressed:  uncheckedPressed,
+		UncheckedHover:    uncheckedHover,
+		UncheckedDisabled: uncheckedDisabled,
+		CheckedIdle:       checkedIdle,
+		CheckedPressed:    checkedPressed,
+		CheckedHover:      checkedHover,
+		CheckedDisabled:   checkedDisabled,
+	}
 
 	// Initialize with the correct initial image based on `initialChecked`
-	initialIdleImg := images.UncheckedIdle
-	initialPressedImg := images.UncheckedPressed
-	initialHoverImg := images.UncheckedHover
-	initialDisabledImg := images.UncheckedDisabled
+	initialIdleImg := stateImages.UncheckedIdle
+	initialPressedImg := stateImages.UncheckedPressed
+	initialHoverImg := stateImages.UncheckedHover
+	initialDisabledImg := stateImages.UncheckedDisabled
 
 	if initialChecked {
-		initialIdleImg = images.CheckedIdle
-		initialPressedImg = images.CheckedPressed
-		initialHoverImg = images.CheckedHover
-		initialDisabledImg = images.CheckedDisabled
+		initialIdleImg = stateImages.CheckedIdle
+		initialPressedImg = stateImages.CheckedPressed
+		initialHoverImg = stateImages.CheckedHover
+		initialDisabledImg = stateImages.CheckedDisabled
 	}
 
 	cb := &Checkbox{
@@ -56,7 +84,7 @@ func NewCheckbox(x, y, width, height int, label string, initialChecked bool,
 		Label:       label,
 		Checked:     initialChecked,
 		uiGenerator: uiGen,
-		stateImages: images,
+		stateImages: stateImages,
 	}
 	return cb
 }

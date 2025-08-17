@@ -5,6 +5,7 @@ import (
 	// For cursor blinking
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	// Required for image.Rectangle, image.Point
 )
 
 // TextField represents a single-line text input field.
@@ -18,9 +19,13 @@ type TextField struct {
 }
 
 // NewTextField creates a new TextField instance.
-// This is called by ui_generator.go.
-func NewTextField(x, y, width, height int, initialText string, uiGen *BareBonesUiGenerator,
-	idle, pressed, hover, disabled *ebiten.Image) *TextField {
+// It is now a standalone function.
+func NewTextField(x, y, width, height int, initialText string, uiGen *BareBonesUiGenerator) *TextField {
+	// Generate images for different states of the text field
+	idle := uiGen.generateTextFieldImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialText, false, 0, 0)
+	hover := uiGen.generateTextFieldImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialText, false, 0, 0)
+	pressed := uiGen.generateTextFieldImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, initialText, true, len(initialText), 0) // Focused state on press
+	disabled := uiGen.generateTextFieldImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, initialText, false, 0, 0)
 
 	tf := &TextField{
 		interactiveComponent: NewInteractiveComponent(x, y, width, height,

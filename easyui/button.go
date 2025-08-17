@@ -10,7 +10,22 @@ type Button struct {
 	Label                string // Store the button's text
 	onClick              func()
 	uiGenerator          *BareBonesUiGenerator // Reference to the generator
-	// Removed: theme                BareBonesTheme        // No longer needed, access via uiGenerator.theme
+}
+
+// NewButton creates a new Button instance with the specified dimensions, label, and theme.
+// It is now a standalone function.
+func NewButton(x, y, width, height int, label string, uiGen *BareBonesUiGenerator) *Button {
+	idle := uiGen.generateButtonImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, label)
+	pressed := uiGen.generateButtonImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, label)
+	hover := uiGen.generateButtonImage(width, height, uiGen.theme.AccentColor, uiGen.theme.OnPrimaryColor, label)
+	disabled := uiGen.generateButtonImage(width, height, uiGen.theme.PrimaryColor, uiGen.theme.OnPrimaryColor, label) // Example: disabled state image
+
+	return &Button{
+		interactiveComponent: NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled),
+		Label:                label,
+		onClick:              nil,   // Click handler set separately
+		uiGenerator:          uiGen, // Pass reference to this generator
+	}
 }
 
 // SetClickHandler sets the function to be executed when the button is clicked.

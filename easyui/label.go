@@ -1,8 +1,9 @@
 package main
 
 import (
-	"image"
 	"log"
+
+	"image" // Required for image.Rectangle, image.Point
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -16,8 +17,10 @@ type Label struct {
 }
 
 // NewLabel creates a new Label instance.
-// This constructor is typically called by the BareBonesUiGenerator.
-func NewLabel(x, y, width, height int, text string, uiGen *BareBonesUiGenerator, idleImage *ebiten.Image) *Label {
+// It is now a standalone function.
+func NewLabel(x, y, width, height int, text string, uiGen *BareBonesUiGenerator) *Label {
+	// Labels are static, so only an idle image is needed.
+	labelImage := uiGen.generateLabelImage(width, height, uiGen.theme.OnPrimaryColor, text) // Text color from theme
 	l := &Label{
 		component: component{
 			Bounds: image.Rectangle{
@@ -27,7 +30,7 @@ func NewLabel(x, y, width, height int, text string, uiGen *BareBonesUiGenerator,
 		},
 		Text:        text,
 		uiGenerator: uiGen,
-		idleImg:     idleImage,
+		idleImg:     labelImage,
 	}
 	return l
 }
