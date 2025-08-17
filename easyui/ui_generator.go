@@ -95,6 +95,41 @@ func (b *BareBonesUiGenerator) NewMenuItem(x, y, width, height int, label string
 	}
 }
 
+// NewCheckbox creates a new Checkbox instance, generating all its state-specific images.
+// Updated signature to take width and height explicitly.
+func (b *BareBonesUiGenerator) NewCheckbox(x, y, width, height int, label string, initialChecked bool) *Checkbox {
+	// Colors that stay constant for the overall component background and label text
+	componentBgColor := b.theme.BackgroundColor
+	labelColor := b.theme.OnPrimaryColor
+	checkmarkColor := b.theme.OnPrimaryColor // Checkmark color remains constant
+
+	// Generate images for unchecked states
+	uncheckedIdle := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
+	uncheckedPressed := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, false, label) // Box outline changes to AccentColor
+	uncheckedHover := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, false, label)   // Box outline changes to AccentColor
+	uncheckedDisabled := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, false, label)
+
+	// Generate images for checked states
+	checkedIdle := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
+	checkedPressed := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, true, label) // Box outline changes to AccentColor
+	checkedHover := b.generateCheckboxImage(width, height, componentBgColor, b.theme.AccentColor, checkmarkColor, labelColor, true, label)   // Box outline changes to AccentColor
+	checkedDisabled := b.generateCheckboxImage(width, height, componentBgColor, b.theme.PrimaryColor, checkmarkColor, labelColor, true, label)
+
+	stateImages := CheckboxStateImages{
+		UncheckedIdle:     uncheckedIdle,
+		UncheckedPressed:  uncheckedPressed,
+		UncheckedHover:    uncheckedHover,
+		UncheckedDisabled: uncheckedDisabled,
+		CheckedIdle:       checkedIdle,
+		CheckedPressed:    checkedPressed,
+		CheckedHover:      checkedHover,
+		CheckedDisabled:   checkedDisabled,
+	}
+
+	// Use the NewCheckbox constructor
+	return NewCheckbox(x, y, width, height, label, initialChecked, b, stateImages)
+}
+
 // generateButtonImage creates an Ebiten image for a button's specific state.
 func (b *BareBonesUiGenerator) generateButtonImage(
 	width, height int,
@@ -207,4 +242,73 @@ func (b *BareBonesUiGenerator) generateMenuImage(
 	dc.Fill()
 
 	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateCheckboxImage creates an Ebiten image for a checkbox, including the box, checkmark, and label.
+// It now takes specific colors for the component background, box outline, checkmark, and label text.
+func (b *BareBonesUiGenerator) generateCheckboxImage(
+	width, height int,
+	componentBgColor color.RGBA, // The color of the component's full background
+	boxOutlineColor color.RGBA, // Color for the square outline
+	checkmarkColor color.RGBA, // Color for the checkmark
+	labelColor color.RGBA, // Color for the text label
+	isChecked bool,
+	label string,
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Define fixed left padding for the checkbox square
+	const checkboxLeftPadding = 5.0 // Adjust as needed
+	checkboxSize := float64(min(width, height)) * 0.8
+	checkboxPaddingY := (float64(height) - checkboxSize) / 2
+
+	// Text offset starts after the checkbox square and its right padding
+	textOffset := checkboxLeftPadding + checkboxSize + 5.0 // Small gap between box and text
+
+	// Draw the checkbox component's overall background
+	dc.SetRGBA255(int(componentBgColor.R), int(componentBgColor.G), int(componentBgColor.B), int(componentBgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Fill()
+
+	// Draw the checkbox square outline
+	dc.SetRGBA255(int(boxOutlineColor.R), int(boxOutlineColor.G), int(boxOutlineColor.B), int(boxOutlineColor.A))
+	dc.SetLineWidth(2)
+	dc.DrawRoundedRectangle(checkboxLeftPadding, checkboxPaddingY, checkboxSize, checkboxSize, 3) // Small rounded corners for the box
+	dc.Stroke()
+
+	// Draw the checkmark if checked
+	if isChecked {
+		dc.SetRGBA255(int(checkmarkColor.R), int(checkmarkColor.G), int(checkmarkColor.B), int(checkmarkColor.A))
+		// Points are relative to the checkbox square's top-left (checkboxLeftPadding, checkboxPaddingY)
+		p1x := checkboxLeftPadding + checkboxSize*0.15
+		p1y := checkboxPaddingY + checkboxSize*0.5
+		p2x := checkboxLeftPadding + checkboxSize*0.5
+		p2y := checkboxPaddingY + checkboxSize*0.85
+		p3x := checkboxLeftPadding + checkboxSize*0.85
+		p3y := checkboxPaddingY + checkboxSize*0.15
+
+		dc.MoveTo(p1x, p1y)
+		dc.LineTo(p2x, p2y)
+		dc.LineTo(p3x, p3y)
+		dc.SetLineWidth(3)
+		dc.Stroke()
+	}
+
+	if b.theme.Face != nil {
+		dc.SetFontFace(b.theme.Face)
+	}
+
+	// Draw the label text, positioned after the checkbox
+	dc.SetRGBA255(int(labelColor.R), int(labelColor.G), int(labelColor.B), int(labelColor.A)) // Use labelColor for text color
+	dc.DrawStringAnchored(label, textOffset, float64(height)/2, 0.0, 0.5)                     // Anchor left-center after checkbox
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// Helper function to find the minimum of two integers.
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

@@ -58,6 +58,7 @@ func NewDemo() *Demo {
 		MenuColor:          color.RGBA{100, 100, 100, 255},
 		MenuItemHoverColor: color.RGBA{120, 120, 120, 255},
 		Face:               face,
+		// MenuItemHeight:     30, // Removed for this specific step to resolve a potential conflict
 	}
 	uiGenerator := &BareBonesUiGenerator{theme}
 
@@ -76,7 +77,6 @@ func NewDemo() *Demo {
 	menuWidth := 200
 	animalMenu := uiGenerator.NewMenu(350, 200, menuWidth, ui)
 
-	// Update this line: remove 'ui' from the NewDropDown call
 	dropdown := uiGenerator.NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu)
 	ui.AddChild(dropdown)
 
@@ -90,6 +90,19 @@ func NewDemo() *Demo {
 			dropdown.SetSelectedOption(currentAnimal)
 		})
 	}
+
+	// --- Checkbox Implementation ---
+	// Updated: Pass width and height explicitly
+	checkbox := uiGenerator.NewCheckbox(100, 200, 150, 30, "Enable Feature", false) // x, y, width, height, label, initialChecked
+	checkbox.OnCheckChanged = func(checked bool) {
+		log.Printf("Checkbox 'Enable Feature' state changed to: %t", checked)
+		if checked {
+			button.SetText("Feature Enabled!")
+		} else {
+			button.SetText("Feature Disabled.")
+		}
+	}
+	ui.AddChild(checkbox)
 
 	return &Demo{ui: ui}
 }
