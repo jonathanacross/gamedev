@@ -7,6 +7,7 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
+	// For font metrics
 )
 
 // BareBonesTheme defines the color and font theme for UI elements.
@@ -128,6 +129,17 @@ func (b *BareBonesUiGenerator) NewCheckbox(x, y, width, height int, label string
 
 	// Use the NewCheckbox constructor
 	return NewCheckbox(x, y, width, height, label, initialChecked, b, stateImages)
+}
+
+// NewTextField creates a new TextField instance.
+func (b *BareBonesUiGenerator) NewTextField(x, y, width, height int, initialText string) *TextField {
+	// Generate images for different states of the text field
+	idle := b.generateTextFieldImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialText, false, 0, 0)
+	hover := b.generateTextFieldImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialText, false, 0, 0)
+	pressed := b.generateTextFieldImage(width, height, b.theme.AccentColor, b.theme.OnPrimaryColor, initialText, true, len(initialText), 0) // Focused state on press
+	disabled := b.generateTextFieldImage(width, height, b.theme.PrimaryColor, b.theme.OnPrimaryColor, initialText, false, 0, 0)
+
+	return NewTextField(x, y, width, height, initialText, b, idle, pressed, hover, disabled)
 }
 
 // generateButtonImage creates an Ebiten image for a button's specific state.
@@ -301,6 +313,57 @@ func (b *BareBonesUiGenerator) generateCheckboxImage(
 	// Draw the label text, positioned after the checkbox
 	dc.SetRGBA255(int(labelColor.R), int(labelColor.G), int(labelColor.B), int(labelColor.A)) // Use labelColor for text color
 	dc.DrawStringAnchored(label, textOffset, float64(height)/2, 0.0, 0.5)                     // Anchor left-center after checkbox
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// generateTextFieldImage creates an Ebiten image for a text field, including its background, text, and optional cursor.
+func (b *BareBonesUiGenerator) generateTextFieldImage(
+	width, height int,
+	bgColor, textColor color.RGBA,
+	text string,
+	isFocused bool,
+	cursorPos int,
+	blinkTimer int, // Used for cursor blinking logic
+) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Draw text field background
+	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Fill()
+
+	// Draw a thin border
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	dc.SetLineWidth(1)
+	dc.Stroke()
+
+	if b.theme.Face != nil {
+		dc.SetFontFace(b.theme.Face)
+	}
+
+	textX := 5.0 // Padding from left edge
+	textY := float64(height) / 2
+
+	// Draw the text
+	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
+
+	// Draw blinking cursor if focused and visible (blinkTimer determines visibility)
+	if isFocused && (blinkTimer < 60) { // Cursor visible for first half of the blink cycle
+		// Calculate cursor X position based on text width up to cursorPos
+		textRunes := []rune(text)
+		textBeforeCursor := string(textRunes[:min(cursorPos, len(textRunes))]) // Handle cursor at end or beyond
+
+		// Corrected: Capture both return values of MeasureString, use only width
+		cursorXOffset, _ := dc.MeasureString(textBeforeCursor)
+		cursorX := textX + cursorXOffset
+
+		dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+		dc.SetLineWidth(1)
+		dc.DrawLine(cursorX, textY-float64(b.theme.Face.Metrics().Height)/2, cursorX, textY+float64(b.theme.Face.Metrics().Height)/2)
+		dc.Stroke()
+	}
 
 	return ebiten.NewImageFromImage(dc.Image())
 }

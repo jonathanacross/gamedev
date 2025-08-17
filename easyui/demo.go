@@ -92,7 +92,6 @@ func NewDemo() *Demo {
 	}
 
 	// --- Checkbox Implementation ---
-	// Updated: Pass width and height explicitly
 	checkbox := uiGenerator.NewCheckbox(100, 200, 150, 30, "Enable Feature", false) // x, y, width, height, label, initialChecked
 	checkbox.OnCheckChanged = func(checked bool) {
 		log.Printf("Checkbox 'Enable Feature' state changed to: %t", checked)
@@ -103,6 +102,10 @@ func NewDemo() *Demo {
 		}
 	}
 	ui.AddChild(checkbox)
+
+	// --- TextField Implementation ---
+	nameField := uiGenerator.NewTextField(100, 250, 300, 30, "Enter your name") // x, y, width, height, initialText
+	ui.AddChild(nameField)
 
 	return &Demo{ui: ui}
 }
