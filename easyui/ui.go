@@ -46,7 +46,7 @@ func (u *Ui) Update() {
 		var targetComponent Component
 
 		if u.modalComponent != nil {
-			targetComponent = findDeepestComponent(u.modalComponent, cx, cy)
+			targetComponent = FindDeepestComponent(u.modalComponent, cx, cy)
 		} else {
 			targetComponent = u.findDeepestChildAt(cx, cy)
 		}
@@ -129,7 +129,7 @@ func (u *Ui) findDeepestChildAt(x, y int) Component {
 	// Search through top-level children in reverse order (top-most first)
 	for i := len(u.children) - 1; i >= 0; i-- {
 		child := u.children[i]
-		found := findDeepestComponent(child, x, y)
+		found := FindDeepestComponent(child, x, y)
 		if found != nil {
 			return found
 		}
@@ -138,7 +138,7 @@ func (u *Ui) findDeepestChildAt(x, y int) Component {
 }
 
 // findDeepestComponent is a recursive helper to find the most specific component at a given position.
-func findDeepestComponent(c Component, x, y int) Component {
+func FindDeepestComponent(c Component, x, y int) Component {
 	if !ContainsPoint(c, x, y) {
 		return nil
 	}
@@ -146,7 +146,7 @@ func findDeepestComponent(c Component, x, y int) Component {
 	children := c.GetChildren()
 	for i := len(children) - 1; i >= 0; i-- {
 		child := children[i]
-		found := findDeepestComponent(child, x, y)
+		found := FindDeepestComponent(child, x, y)
 		if found != nil {
 			return found
 		}

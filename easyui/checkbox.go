@@ -93,6 +93,10 @@ func (c *Checkbox) SetChecked(checked bool) {
 	}
 }
 
+func (c *Checkbox) IsChecked() bool {
+	return c.Checked
+}
+
 // updateCurrentStateImages sets the correct image references in the embedded interactiveComponent
 // based on the current `Checked` state.
 func (c *Checkbox) updateCurrentStateImages() {

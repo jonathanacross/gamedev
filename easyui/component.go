@@ -22,6 +22,7 @@ type Component interface {
 	Draw(screen *ebiten.Image)
 	Update()
 	GetBounds() image.Rectangle
+	SetPosition(x, y int)
 	HandlePress()
 	HandleRelease()
 	HandleClick()
@@ -58,6 +59,14 @@ func NewComponent(x, y, width, height int, self Component) component {
 // GetBounds returns the rectangular bounds of the component (relative to its parent).
 func (c component) GetBounds() image.Rectangle {
 	return c.Bounds
+}
+
+// SetPosition sets the component's position relative to its parent.
+func (c *component) SetPosition(x, y int) {
+	c.Bounds.Max.X = x + c.Bounds.Dx()
+	c.Bounds.Max.Y = y + c.Bounds.Dy()
+	c.Bounds.Min.X = x
+	c.Bounds.Min.Y = y
 }
 
 // AddChild adds a child component to this component's list of children

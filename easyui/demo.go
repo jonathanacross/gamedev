@@ -94,30 +94,27 @@ func NewDemo() *Demo {
 	}
 	container.AddChild(checkbox)
 
-	// --- Radio buttons ---
-	radioLabels := []string{"Peanuts", "Crackers", "Cookies"}
-	radioButtons := make([]*RadioButton, len(radioLabels))
-	initialY := 150
+	// --- Radio Buttons managed by a ButtonGroup ---
+	radioGroup := NewButtonGroup(400, 150, 200, 120, LayoutVertical, SingleSelection, 5)
+	container.AddChild(radioGroup)
 
-	for i, label := range radioLabels {
-		rb := NewRadioButton(400, initialY+(i*30), 150, 30, label, i == 0, uiGenerator) // i==0 sets the first button as checked
-		radioButtons[i] = rb
-		container.AddChild(rb)
+	// Now, add the radio buttons directly to the group. The group handles their positioning and exclusivity.
+	rb1 := NewRadioButton(0, 0, 150, 20, "Peanuts", true, uiGenerator)
+	rb2 := NewRadioButton(0, 0, 150, 20, "Cracker", false, uiGenerator)
+	rb3 := NewRadioButton(0, 0, 150, 20, "Cookies", false, uiGenerator)
+	radioGroup.AddChild(rb1)
+	radioGroup.AddChild(rb2)
+	radioGroup.AddChild(rb3)
 
-		// Create a closure to capture the correct button for the handler
-		currentButton := rb
-		currentButton.OnCheckChanged = func(checked bool) {
-			if checked {
-				log.Printf("Radio button '%s' checked.", currentButton.Label)
-				// Uncheck all other radio buttons
-				for _, otherRb := range radioButtons {
-					if otherRb != currentButton {
-						otherRb.SetChecked(false)
-					}
-				}
-			}
-		}
-	}
+	// -- Toggle button bar --
+	b1 := NewButton(450, 50, 30, 30, "A", uiGenerator)
+	b2 := NewButton(480, 50, 30, 30, "B", uiGenerator)
+	b3 := NewButton(510, 50, 30, 30, "C", uiGenerator)
+	b4 := NewButton(540, 50, 30, 30, "D", uiGenerator)
+	container.AddChild(b1)
+	container.AddChild(b2)
+	container.AddChild(b3)
+	container.AddChild(b4)
 
 	// --- TextField ---
 	nameField := NewTextField(50, 200, 300, 30, "Enter your name", uiGenerator)

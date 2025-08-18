@@ -48,6 +48,10 @@ func (rb *RadioButton) SetChecked(checked bool) {
 	}
 }
 
+func (rb *RadioButton) IsChecked() bool {
+	return rb.Checked
+}
+
 // updateCurrentStateImages sets the correct image references in the embedded interactiveComponent
 // based on the current `Checked` state.
 func (rb *RadioButton) updateCurrentStateImages() {
