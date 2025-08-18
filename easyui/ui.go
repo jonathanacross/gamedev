@@ -43,39 +43,24 @@ func (u *Ui) Update() {
 
 	// Handle Mouse Button Press (ButtonDown)
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		currentModal := u.modalComponent
-		if currentModal != nil {
-			// Check if the press occurred on the modal component or its children
-			if ContainsPoint(currentModal, cx, cy) {
-				u.pressedComponent = currentModal
-				currentModal.HandlePress()
+		var targetComponent Component
 
-				// Check modal's children to find the most specific pressed component
-				// Iterate in reverse to prioritize children drawn on top
-				modalChildren := currentModal.GetChildren()
-				for i := len(modalChildren) - 1; i >= 0; i-- {
-					child := modalChildren[i]
-
-					if ContainsPoint(child, cx, cy) {
-						u.pressedComponent = child
-						child.HandlePress()
-						break // Only one child can be pressed
-					}
-				}
-			} else {
-				// Clicked outside the modal, treat as a background click for the modal
-				u.pressedComponent = nil
-			}
+		if u.modalComponent != nil {
+			targetComponent = findDeepestComponentAt(u.modalComponent, cx, cy)
 		} else {
-			// No modal, check regular children in reverse order (top-most first)
+			// Search through top-level children in reverse order (top-most first)
 			for i := len(u.children) - 1; i >= 0; i-- {
 				child := u.children[i]
-				if ContainsPoint(child, cx, cy) {
-					u.pressedComponent = child
-					u.pressedComponent.HandlePress()
+				targetComponent = findDeepestComponentAt(child, cx, cy)
+				if targetComponent != nil {
 					break
 				}
 			}
+		}
+
+		if targetComponent != nil {
+			u.pressedComponent = targetComponent
+			targetComponent.HandlePress()
 		}
 	}
 
@@ -160,3 +145,21 @@ func (u *Ui) HandleRelease() {}
 
 // HandleClick is a no-op for the root UI.
 func (u *Ui) HandleClick() {}
+
+// findDeepestComponentAt is a recursive helper to find the most specific component at a given position.
+func findDeepestComponentAt(c Component, x, y int) Component {
+	if !ContainsPoint(c, x, y) {
+		return nil
+	}
+	// Iterate over children in reverse to find the top-most one
+	children := c.GetChildren()
+	for i := len(children) - 1; i >= 0; i-- {
+		child := children[i]
+		found := findDeepestComponentAt(child, x, y)
+		if found != nil {
+			return found
+		}
+	}
+	// If no children were found, this component is the deepest.
+	return c
+}

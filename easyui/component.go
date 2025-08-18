@@ -152,17 +152,25 @@ func NewInteractiveComponent(x, y, width, height int, idle, pressed, hover, disa
 	}
 }
 
-// Update handles the interaction logic for the component (primarily hover state).
+// Update handles the interaction logic for the component (primarily hover and pressed states).
 func (ic *interactiveComponent) Update() {
 	if ic.state == ButtonDisabled {
 		return
 	}
 
-	cx, cy := ebiten.CursorPosition() // in absolute coordinates
+	cx, cy := ebiten.CursorPosition()
 	cursorInBounds := ContainsPoint(ic.self, cx, cy)
 
-	// Only manage hover state here. Do not change state if currently pressed down.
-	if ic.state != ButtonPressed {
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		// If the mouse is pressed AND the cursor is over the component, it's in the pressed state.
+		if cursorInBounds {
+			ic.state = ButtonPressed
+		} else {
+			// If the mouse is pressed but the cursor is not on the component, it's idle.
+			ic.state = ButtonIdle
+		}
+	} else {
+		// Mouse is not pressed.
 		if cursorInBounds {
 			ic.state = ButtonHover
 		} else {
@@ -180,26 +188,11 @@ func (ic *interactiveComponent) Draw(screen *ebiten.Image) {
 	screen.DrawImage(ic.GetCurrentStateImage(), op)
 }
 
-// HandlePress sets the component to the pressed state.
-func (ic *interactiveComponent) HandlePress() {
-	if ic.state != ButtonDisabled {
-		ic.state = ButtonPressed
-	}
-}
+// HandlePress is a no-op since state is now managed by Update.
+func (ic *interactiveComponent) HandlePress() {}
 
-// HandleRelease resets the component's state after a mouse release.
-func (ic *interactiveComponent) HandleRelease() {
-	if ic.state == ButtonDisabled {
-		return
-	}
-	cx, cy := ebiten.CursorPosition()
-	// If the mouse is released over the component, set to Hover, otherwise Idle.
-	if ContainsPoint(ic.self, cx, cy) {
-		ic.state = ButtonHover
-	} else {
-		ic.state = ButtonIdle
-	}
-}
+// HandleRelease is a no-op since state is now managed by Update.
+func (ic *interactiveComponent) HandleRelease() {}
 
 // GetCurrentStateImage returns the correct image for the component's current state.
 func (ic *interactiveComponent) GetCurrentStateImage() *ebiten.Image {
