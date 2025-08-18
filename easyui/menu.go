@@ -40,6 +40,7 @@ func NewMenu(x, y, width int, theme BareBonesTheme, renderer UiRenderer, parentU
 
 	// Initial background image generation
 	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
+	log.Printf("Menu.NewMenu: Initial Bounds: %v (Dx: %d, Dy: %d)", m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
 	return m
 }
 
@@ -56,15 +57,18 @@ func (m *Menu) AddItem(label string, handler func()) *MenuItem {
 	// Use the standalone NewMenuItem function and pass the stored renderer
 	item := NewMenuItem(0, relativeYOffset, itemWidth, itemHeight, label, m.renderer) // x,y are 0, relativeYOffset
 	item.SetClickHandler(func() {
-		handler() // Call the user-defined handler
-		m.Hide()  // Now, the menu item's handler should also hide the menu.
+		log.Printf("Menu: Anonymous handler for item '%s' called (from AddItem).", label) // Diagnostic log
+		handler()                                                                         // Call the user-defined handler (from demo.go)
+		m.Hide()                                                                          // Hide the menu
 	})
 	m.items = append(m.items, item)
 	m.AddChild(item) // Add child to the menu, setting menu as parent
 
 	// Update the menu's overall height based on added items
+	// IMPORTANT: Preserve the current X dimensions, only update Y based on added items
 	m.Bounds.Max.Y = m.Bounds.Min.Y + len(m.items)*itemHeight
-	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy()) // Regenerate background on size change
+	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())                                                      // Regenerate background on size change
+	log.Printf("Menu.AddItem: After adding '%s', Menu Bounds: %v (Dx: %d, Dy: %d)", label, m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
 
 	return item
 }
@@ -110,7 +114,7 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 func (m *Menu) Show() {
 	m.isVisible = true
 	m.justOpened = true
-	log.Printf("Menu.Show: Menu set to visible and justOpened=true. Current Bounds: %v", m.Bounds)
+	log.Printf("Menu.Show: Menu set to visible and justOpened=true. Current Bounds: %v (Dx: %d, Dy: %d)", m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
 	if m.parentUi != nil {
 		m.parentUi.SetModal(m) // This now correctly passes a Component
 	}
@@ -128,17 +132,18 @@ func (m *Menu) Hide() {
 // This function sets the menu's own relative position, and the children's positions
 // will automatically follow due to the GetAbsolutePosition logic.
 func (m *Menu) SetPosition(x, y int) {
-	// Only update the menu's own relative bounds
+	// Capture current dimensions before modifying Min.X/Y
+	currentWidth := m.Bounds.Dx()
+	currentHeight := m.Bounds.Dy()
+
 	m.Bounds.Min.X = x
 	m.Bounds.Min.Y = y
-	m.Bounds.Max.X = x + m.Bounds.Dx()
-	m.Bounds.Max.Y = y + m.Bounds.Dy()
+	m.Bounds.Max.X = x + currentWidth
+	m.Bounds.Max.Y = y + currentHeight
 
 	// Regenerate background image if size changed (though not typical with SetPosition)
 	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
-
-	// Child positions will be automatically handled by GetAbsolutePosition() when drawn.
-	// No need to iterate and update child bounds here.
+	log.Printf("Menu.SetPosition: Menu position set to (%d, %d). New Bounds: %v (Dx: %d, Dy: %d)", x, y, m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
 }
 
 // HandlePress is a no-op for the menu background.
@@ -153,6 +158,7 @@ func (m *Menu) HandleRelease() {}
 // when it's a modal, closing the menu.
 // This method fully implements Component.HandleClick().
 func (m *Menu) HandleClick() {
+	log.Printf("Menu: HandleClick called for menu (modal background). isVisible: %t", m.isVisible) // Diagnostic log
 	// If a click lands on the menu's background (not an item), it should close the menu.
 	m.Hide()
 }

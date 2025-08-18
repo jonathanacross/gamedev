@@ -37,6 +37,7 @@ func NewMenuItem(x, y, width, height int, label string, renderer UiRenderer) *Me
 // SetClickHandler sets the function to be executed when this menu item is clicked.
 func (m *MenuItem) SetClickHandler(handler func()) {
 	m.onClick = handler
+	log.Printf("MenuItem '%s': SetClickHandler called. onClick is now set: %t", m.Label, m.onClick != nil) // Diagnostic log
 }
 
 // SetLabel updates the menu item's text and regenerates its state images.
@@ -75,8 +76,16 @@ func (m *MenuItem) HandleRelease() {
 
 // HandleClick calls the menu item's onClick handler.
 func (m *MenuItem) HandleClick() {
+	log.Printf("MenuItem '%s': HandleClick called. State: %v, onClick set: %t", m.Label, m.state, m.onClick != nil) // Diagnostic log
 	if m.state != ButtonDisabled && m.onClick != nil {
-		log.Printf("MenuItem '%s': Click handler triggered.", m.Label)
+		log.Printf("MenuItem '%s': Click handler triggered (calling onClick!).", m.Label) // THIS IS THE ONE WE WANT TO SEE
 		m.onClick()
+	} else {
+		if m.state == ButtonDisabled {
+			log.Printf("MenuItem '%s': Click not triggered because disabled.", m.Label)
+		}
+		if m.onClick == nil {
+			log.Printf("MenuItem '%s': Click not triggered because onClick is nil (after SetClickHandler!).", m.Label)
+		}
 	}
 }

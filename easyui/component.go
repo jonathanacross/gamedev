@@ -79,6 +79,7 @@ func (c *component) SetParent(parent Component) {
 // This method is now on the base `component` struct to be inherited.
 func (c *component) GetAbsolutePosition() (int, int) {
 	absX, absY := c.Bounds.Min.X, c.Bounds.Min.Y
+
 	if c.parent != nil {
 		parentAbsX, parentAbsY := c.parent.GetAbsolutePosition()
 		absX += parentAbsX
@@ -92,9 +93,11 @@ func (c *component) GetAbsolutePosition() (int, int) {
 // This function expects a Component interface to correctly call GetAbsolutePosition and GetBounds.
 func ContainsPoint(comp Component, absX, absY int) bool {
 	compAbsX, compAbsY := comp.GetAbsolutePosition()
+
+	bounds := comp.GetBounds()
 	compAbsBounds := image.Rectangle{
 		Min: image.Point{X: compAbsX, Y: compAbsY},
-		Max: image.Point{X: compAbsX + comp.GetBounds().Dx(), Y: compAbsY + comp.GetBounds().Dy()},
+		Max: image.Point{X: compAbsX + bounds.Dx(), Y: compAbsY + bounds.Dy()},
 	}
 	return absX >= compAbsBounds.Min.X && absX < compAbsBounds.Max.X &&
 		absY >= compAbsBounds.Min.Y && absY < compAbsBounds.Max.Y
@@ -135,8 +138,8 @@ func (ic *interactiveComponent) Update() {
 	cx, cy := ebiten.CursorPosition()                // Absolute cursor position
 	cursorInBounds := ContainsPoint(ic.self, cx, cy) // Use ic.self to get the actual component's bounds
 
-	// Only manage hover state here. Do not check for button presses/releases directly.
-	if ic.state != ButtonPressed { // Don't change hover state if currently pressed down
+	// Only manage hover state here. Do not change state if currently pressed down.
+	if ic.state != ButtonPressed {
 		if cursorInBounds {
 			ic.state = ButtonHover
 		} else {
@@ -197,5 +200,7 @@ func (ic *interactiveComponent) GetCurrentStateImage() *ebiten.Image {
 // Concrete interactive components (Button, TextField, Checkbox, Dropdown) will override this
 // to perform their specific action.
 func (ic *interactiveComponent) HandleClick() {
-	log.Printf("interactiveComponent: HandleClick called for generic interactive component (type %T). No specific action defined.", ic.self)
+	// Added diagnostic log: This should NOT be printed if the embedding component
+	// (like MenuItem) properly overrides this method.
+	log.Printf("DIAGNOSTIC: interactiveComponent's (generic) HandleClick called for type %T! This should be overridden by a concrete component.", ic.self)
 }

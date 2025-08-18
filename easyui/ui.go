@@ -44,32 +44,50 @@ func (u *Ui) Update() {
 
 	// 2. Handle Mouse Button Press (ButtonDown)
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		// Prioritize modal component for presses
-		if u.modalComponent != nil {
+		// log.Printf("Ui.Update: Mouse button JUST PRESSED at (%d, %d)", cx, cy) // Diagnostic
+
+		currentModal := u.modalComponent // Store modal component locally for consistency
+		if currentModal != nil {
+			// log.Printf("Ui.Update: Modal component active: %T (Label: %s)", currentModal, getLabel(currentModal)) // Diagnostic
 			// Check if the press occurred on the modal component or its children
-			if ContainsPoint(u.modalComponent, cx, cy) {
-				u.pressedComponent = u.modalComponent
-				u.modalComponent.HandlePress() // Notify modal it was pressed
-				// Also check modal's children for internal press if modal allows it
-				for _, child := range u.modalComponent.GetChildren() {
-					if ContainsPoint(child, cx, cy) {
-						u.pressedComponent = child // Update pressedComponent to the specific child
-						child.HandlePress()
-						break // Only one child can be pressed
+			if ContainsPoint(currentModal, cx, cy) {
+				u.pressedComponent = currentModal // Initially, assume modal background was pressed
+				// log.Printf("Ui.Update: Press on modal background (%T, Label: %s)", currentModal, getLabel(currentModal)) // Diagnostic
+				currentModal.HandlePress() // Notify modal it was pressed
+
+				// Check modal's children to find the most specific pressed component
+				// Iterate in reverse to prioritize children drawn on top
+				modalChildren := currentModal.GetChildren()
+				if modalChildren == nil { // Should not happen with current init, but for safety
+					log.Printf("ERROR: Modal (%T) GetChildren() returned nil! Skipping child checks.", currentModal)
+				} else {
+					// log.Printf("DIAGNOSTIC: Modal (%T, Label: %s) has %d children. Iterating...", currentModal, getLabel(currentModal), len(modalChildren))
+					for i := len(modalChildren) - 1; i >= 0; i-- {
+						child := modalChildren[i]
+
+						if ContainsPoint(child, cx, cy) {
+							u.pressedComponent = child
+							// log.Printf("Ui.Update: Press detected on modal child (%T, Label: %s)", child, getLabel(child)) // Diagnostic
+							child.HandlePress()
+							break // Only one child can be pressed
+						}
 					}
 				}
 			} else {
 				// Clicked outside the modal, treat as a background click for the modal
 				u.pressedComponent = nil // No specific component within the modal was pressed
+				// log.Println("Ui.Update: Mouse pressed outside modal (no specific component).") // Diagnostic
 			}
 		} else {
 			// No modal, check regular children in reverse order (top-most first)
+			// log.Println("Ui.Update: No modal active. Checking regular children.") // Diagnostic
 			for i := len(u.children) - 1; i >= 0; i-- {
 				child := u.children[i]
 				if ContainsPoint(child, cx, cy) {
 					u.pressedComponent = child
-					u.pressedComponent.HandlePress() // Notify child it was pressed
-					break                            // Only one component can be pressed
+					// log.Printf("Ui.Update: Press detected on regular child (%T, Label: %s)", child, getLabel(child)) // Diagnostic
+					u.pressedComponent.HandlePress()
+					break
 				}
 			}
 		}
@@ -77,24 +95,40 @@ func (u *Ui) Update() {
 
 	// 3. Handle Mouse Button Release (ButtonUp)
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		// If a component was pressed down this sequence, check if it was released over it
+		// log.Printf("Ui.Update: Mouse button JUST RELEASED at (%d, %d)", cx, cy) // Diagnostic
 		if u.pressedComponent != nil {
-			if ContainsPoint(u.pressedComponent, cx, cy) {
+			// Store pressedComponent in a local variable BEFORE calling HandleClick
+			// because HandleClick might clear u.pressedComponent (e.g., via ClearModal).
+			originalPressedComponent := u.pressedComponent
+
+			// log.Printf("Ui.Update: pressedComponent was set to %T (Label: %s). Checking if released over it.", originalPressedComponent, getLabel(originalPressedComponent)) // Diagnostic
+
+			if ContainsPoint(originalPressedComponent, cx, cy) {
 				// This is a "click" - released over the same component that was pressed
-				u.pressedComponent.HandleClick() // Trigger the click action
+				// log.Printf("Ui.Update: Click detected for %T (Label: %s). Triggering HandleClick.", originalPressedComponent, getLabel(originalPressedComponent)) // Diagnostic
+				originalPressedComponent.HandleClick() // Trigger the click action
+			} else {
+				// log.Printf("Ui.Update: Mouse released AWAY from pressedComponent %T (Label: %s).", originalPressedComponent, getLabel(originalPressedComponent)) // Diagnostic
 			}
-			u.pressedComponent.HandleRelease() // Always call release to reset its visual state
-			u.pressedComponent = nil           // Clear pressed component after handling release
+
+			// Always call release on the original component, regardless if HandleClick cleared u.pressedComponent.
+			// The original component should still be valid.
+			originalPressedComponent.HandleRelease()
+			u.pressedComponent = nil // Clear pressed component after handling release
 		} else {
 			// No component was pressed (e.g., clicked on background), but released.
 			// This specifically handles closing a modal when clicking outside its bounds.
-			if u.modalComponent != nil {
-				// If a modal exists and no specific component was pressed initially, and the release
-				// occurred outside the modal's bounds, then close the modal.
-				if !ContainsPoint(u.modalComponent, cx, cy) {
-					log.Println("Ui.Update: Mouse released on modal background, calling modal's HandleClick (to close).")
-					u.modalComponent.HandleClick() // This will typically hide the menu
+			currentModal := u.modalComponent // Use local variable for consistency
+			if currentModal != nil {
+				// log.Printf("Ui.Update: No pressedComponent, but modal (%T, Label: %s) is active.", currentModal, getLabel(currentModal)) // Diagnostic
+				if !ContainsPoint(currentModal, cx, cy) {
+					log.Println("Ui.Update: Mouse released on modal background (outside modal's bounds), calling modal's HandleClick (to close).") // Diagnostic
+					currentModal.HandleClick()                                                                                                     // This will typically hide the menu
+				} else {
+					// log.Println("Ui.Update: Mouse released within modal's bounds, but no specific component was pressed.") // Diagnostic
 				}
+			} else {
+				// log.Println("Ui.Update: Mouse released, no pressedComponent, no modal.") // Diagnostic
 			}
 		}
 	}
