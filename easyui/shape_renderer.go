@@ -198,14 +198,38 @@ func (r *ShapeRenderer) GenerateCheckboxImage(width, height int, label string, c
 	checkboxSize := 15
 	checkboxX, checkboxY := 5.0, (float64(height)-float64(checkboxSize))/2
 
-	boxColor := r.theme.SurfaceColor
-	borderColor := r.theme.BorderColor
-	if componentState == ButtonDisabled {
-		boxColor = desaturateColor(boxColor)
-		borderColor = desaturateColor(borderColor)
-	} else if isChecked {
-		boxColor = r.theme.PrimaryAccentColor
-		borderColor = r.theme.PrimaryAccentColor
+	var boxColor, borderColor color.Color
+
+	if isChecked {
+		switch componentState {
+		case ButtonIdle:
+			boxColor = r.theme.PrimaryAccentColor
+			borderColor = r.theme.PrimaryAccentColor
+		case ButtonHover:
+			boxColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
+			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
+		case ButtonPressed:
+			boxColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
+			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
+		case ButtonDisabled:
+			boxColor = desaturateColor(r.theme.PrimaryAccentColor)
+			borderColor = desaturateColor(r.theme.PrimaryAccentColor)
+		}
+	} else { // unchecked
+		switch componentState {
+		case ButtonIdle:
+			boxColor = r.theme.SurfaceColor
+			borderColor = r.theme.BorderColor
+		case ButtonHover:
+			boxColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
+			borderColor = adjustBrightness(r.theme.BorderColor, 1.2)
+		case ButtonPressed:
+			boxColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
+			borderColor = adjustBrightness(r.theme.BorderColor, 0.8)
+		case ButtonDisabled:
+			boxColor = desaturateColor(r.theme.SurfaceColor)
+			borderColor = desaturateColor(r.theme.TextColor)
+		}
 	}
 
 	dc.DrawRectangle(checkboxX, checkboxY, float64(checkboxSize), float64(checkboxSize))
