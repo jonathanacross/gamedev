@@ -10,6 +10,11 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
+const (
+	ScreenWidth  = 800
+	ScreenHeight = 600
+)
+
 type Demo struct {
 	ui *Ui
 }
@@ -27,7 +32,7 @@ func (g *Demo) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ScreenWidth, ScreenHeight
 }
 
-func NewDemo() *Demo {
+func loadFontFace() font.Face {
 	fontPath := "Go-Mono.ttf"
 	fontSize := 14.0
 
@@ -50,7 +55,13 @@ func NewDemo() *Demo {
 		log.Fatalf("Error creating font face: %v", err)
 	}
 
-	theme := BareBonesTheme{
+	return face
+}
+
+func NewDemo() *Demo {
+	face := loadFontFace()
+
+	theme := ShapeTheme{
 		BackgroundColor:    color.RGBA{20, 20, 20, 255},
 		PrimaryColor:       color.RGBA{120, 120, 120, 255},
 		OnPrimaryColor:     color.RGBA{255, 255, 255, 255},
@@ -59,7 +70,7 @@ func NewDemo() *Demo {
 		MenuItemHoverColor: color.RGBA{120, 120, 120, 255},
 		Face:               face,
 	}
-	uiGenerator := &BareBonesUiGenerator{theme}
+	uiGenerator := &ShapeRenderer{theme}
 
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
@@ -71,7 +82,7 @@ func NewDemo() *Demo {
 	})
 	ui.AddChild(button)
 
-	// --- Dropdown Menu Implementation ---
+	// --- Dropdown Menu ---
 	menuWidth := 200
 	// The menu's initial position will be set absolutely by the dropdown.
 	animalMenu := NewMenu(0, 0, menuWidth, theme, uiGenerator, ui)
@@ -89,7 +100,7 @@ func NewDemo() *Demo {
 		})
 	}
 
-	// --- Checkbox Implementation ---
+	// --- Checkbox ---
 	checkbox := NewCheckbox(100, 200, 150, 30, "Enable Feature", false, uiGenerator)
 	checkbox.OnCheckChanged = func(checked bool) {
 		log.Printf("Checkbox 'Enable Feature' state changed to: %t", checked)
@@ -101,13 +112,13 @@ func NewDemo() *Demo {
 	}
 	ui.AddChild(checkbox)
 
-	// --- TextField Implementation ---
+	// --- TextField ---
 	nameField := NewTextField(100, 250, 300, 30, "Enter your name", uiGenerator)
 	ui.AddChild(nameField)
 
-	// --- Container Implementation ---
+	// --- Container ---
 	container := NewContainer(50, 350, 700, 100, uiGenerator)
-	ui.AddChild(container) // Add the container to the root UI
+	ui.AddChild(container)
 
 	// Create a label and add it to the container
 	// Label's x,y are relative to the container's top-left corner
@@ -119,4 +130,13 @@ func NewDemo() *Demo {
 	ui.AddChild(globalLabel)
 
 	return &Demo{ui: ui}
+}
+
+func main() {
+	demo := NewDemo()
+	ebiten.SetWindowSize(ScreenWidth, ScreenHeight)
+	ebiten.SetWindowTitle("EasyUi Demo")
+	if err := ebiten.RunGame(demo); err != nil {
+		log.Fatal(err)
+	}
 }

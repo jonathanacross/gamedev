@@ -8,8 +8,8 @@ import (
 	"golang.org/x/image/font"
 )
 
-// BareBonesTheme defines the color and font theme for UI elements.
-type BareBonesTheme struct {
+// ShapeTheme defines the color and font theme for UI elements.
+type ShapeTheme struct {
 	BackgroundColor    color.RGBA // e.g. dark gray
 	PrimaryColor       color.RGBA // your color theme (for buttons, dropdowns)
 	OnPrimaryColor     color.RGBA // probably white/near white. color of text/border on primary elements
@@ -19,16 +19,17 @@ type BareBonesTheme struct {
 	Face               font.Face  // The loaded font face
 }
 
-// BareBonesUiGenerator helps draw UI components with the defined theme.
-type BareBonesUiGenerator struct {
-	theme BareBonesTheme
+// ShapeRenderer renders UI elements using graphic primitives without
+// relying on any external image data.
+type ShapeRenderer struct {
+	theme ShapeTheme
 }
 
-// Ensure BareBonesUiGenerator implements the UiRenderer interface
-var _ UiRenderer = (*BareBonesUiGenerator)(nil)
+// Ensure ShapeRnderer implements the UiRenderer interface
+var _ UiRenderer = (*ShapeRenderer)(nil)
 
 // GenerateButtonImage draws a button
-func (b *BareBonesUiGenerator) GenerateButtonImage(width, height int, text string, state ButtonState) *ebiten.Image {
+func (b *ShapeRenderer) GenerateButtonImage(width, height int, text string, state ButtonState) *ebiten.Image {
 	var bgColor, textColor color.RGBA
 	switch state {
 	case ButtonIdle:
@@ -66,7 +67,7 @@ func (b *BareBonesUiGenerator) GenerateButtonImage(width, height int, text strin
 }
 
 // GenerateDropdownImage implements UiRenderer.GenerateDropdownImage
-func (b *BareBonesUiGenerator) GenerateDropdownImage(width, height int, text string, state ButtonState) *ebiten.Image {
+func (b *ShapeRenderer) GenerateDropdownImage(width, height int, text string, state ButtonState) *ebiten.Image {
 	var bgColor, textColor color.RGBA
 	switch state {
 	case ButtonIdle:
@@ -115,7 +116,7 @@ func (b *BareBonesUiGenerator) GenerateDropdownImage(width, height int, text str
 }
 
 // GenerateMenuItemImage implements UiRenderer.GenerateMenuItemImage
-func (b *BareBonesUiGenerator) GenerateMenuItemImage(width, height int, text string, state ButtonState) *ebiten.Image {
+func (b *ShapeRenderer) GenerateMenuItemImage(width, height int, text string, state ButtonState) *ebiten.Image {
 	var bgColor, textColor color.RGBA
 	switch state {
 	case ButtonIdle:
@@ -152,7 +153,7 @@ func (b *BareBonesUiGenerator) GenerateMenuItemImage(width, height int, text str
 }
 
 // GenerateMenuImage implements UiRenderer.GenerateMenuImage
-func (b *BareBonesUiGenerator) GenerateMenuImage(width, height int) *ebiten.Image {
+func (b *ShapeRenderer) GenerateMenuImage(width, height int) *ebiten.Image {
 	// Menu background doesn't change color based on hover/press, just theme color
 	bgColor := b.theme.MenuColor
 
@@ -168,7 +169,7 @@ func (b *BareBonesUiGenerator) GenerateMenuImage(width, height int) *ebiten.Imag
 }
 
 // GenerateCheckboxImage implements UiRenderer.GenerateCheckboxImage
-func (b *BareBonesUiGenerator) GenerateCheckboxImage(
+func (b *ShapeRenderer) GenerateCheckboxImage(
 	width, height int,
 	label string,
 	componentState ButtonState,
@@ -236,7 +237,7 @@ func (b *BareBonesUiGenerator) GenerateCheckboxImage(
 }
 
 // GenerateTextFieldImage renders a text field.
-func (b *BareBonesUiGenerator) GenerateTextFieldImage(
+func (b *ShapeRenderer) GenerateTextFieldImage(
 	width, height int,
 	text string,
 	componentState ButtonState,
@@ -296,7 +297,7 @@ func (b *BareBonesUiGenerator) GenerateTextFieldImage(
 }
 
 // GenerateLabelImage implements UiRenderer.GenerateLabelImage
-func (b *BareBonesUiGenerator) GenerateLabelImage(
+func (b *ShapeRenderer) GenerateLabelImage(
 	width, height int,
 	text string,
 ) *ebiten.Image {
@@ -316,7 +317,7 @@ func (b *BareBonesUiGenerator) GenerateLabelImage(
 }
 
 // GenerateContainerImage fills a flat background color for the container.
-func (b *BareBonesUiGenerator) GenerateContainerImage(width, height int) *ebiten.Image {
+func (b *ShapeRenderer) GenerateContainerImage(width, height int) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
 	dc.SetRGBA255(int(b.theme.BackgroundColor.R), int(b.theme.BackgroundColor.G), int(b.theme.BackgroundColor.B), int(b.theme.BackgroundColor.A))

@@ -11,7 +11,7 @@ type Menu struct {
 	component
 	items      []*MenuItem
 	isVisible  bool
-	theme      BareBonesTheme // TODO: is this needed?
+	theme      ShapeTheme // TODO: is this needed?
 	renderer   UiRenderer
 	background *ebiten.Image
 	parentUi   *Ui
@@ -19,7 +19,7 @@ type Menu struct {
 }
 
 // NewMenu creates a new Menu instance.
-func NewMenu(x, y, width int, theme BareBonesTheme, renderer UiRenderer, parentUi *Ui) *Menu {
+func NewMenu(x, y, width int, theme ShapeTheme, renderer UiRenderer, parentUi *Ui) *Menu {
 	// Set an initial default height to prevent panic when generating initial background image.
 	// This can be a small value, as it will be expanded by AddItem.
 	const defaultInitialMenuHeight = 30
