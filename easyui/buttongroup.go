@@ -67,74 +67,41 @@ func (bg *ButtonGroup) AddChild(c Component) {
 			c.SetPosition(newX, childBounds.Min.Y)
 		}
 	} else {
-		// For the first child, its position is relative to the group's bounds.
 		c.SetPosition(0, 0)
 	}
 
 	bg.children = append(bg.children, c)
 }
 
-// Update iterates through the children and calls their Update methods.
+// Update calls Update on all child components.
 func (bg *ButtonGroup) Update() {
 	for _, child := range bg.children {
 		child.Update()
 	}
 }
 
-// Draw iterates through the children and calls their Draw methods.
+// Draw draws the button group and its children.
 func (bg *ButtonGroup) Draw(screen *ebiten.Image) {
 	for _, child := range bg.children {
 		child.Draw(screen)
 	}
 }
 
-func (bg *ButtonGroup) FindChildAt(x, y int) Component {
-	for _, child := range bg.children {
-		if ContainsPoint(child, x, y) {
-			return child
-		}
-	}
+// HandleChildClick is called by a child component to delegate the click logic up to the group.
+func (bg *ButtonGroup) HandleChildClick(clickedItem Component) {
+	log.Printf("ButtonGroup: Handling click from child of type %T.", clickedItem)
 
-	// No component was found at the coordinates.
-	return nil
-}
-
-// HandleClick handles the SingleSelection logic.
-func (bg *ButtonGroup) HandleClick() {
-	log.Println("ButtonGroup: handle click.")
 	// Only proceed if the selection mode is SingleSelection.
 	if bg.SelectionMode != SingleSelection {
 		return
 	}
-	log.Println("ButtonGroup: SingleSelection click triggered.")
 
-	cx, cy := ebiten.CursorPosition()
-	clickedItem := bg.FindChildAt(cx, cy)
-
-	log.Printf("ButtonGroup: clickedItem is %T.", clickedItem)
-
-	// If no item was clicked, or if it's not a checkable component, return early.
-	checkableItem, ok := clickedItem.(checkable)
-	if !ok {
-		log.Println("ButtonGroup: No checkable item was clicked.")
-		return
-	}
-
-	// If the clicked item is already checked, there's nothing to do.
-	if checkableItem.IsChecked() {
-		log.Println("ButtonGroup: already checked.")
-		return
-	}
-
-	// Otherwise, uncheck everything and check the new item
-	log.Printf("ButtonGroup: SingleSelection click on %T.", clickedItem)
+	// Uncheck everything except for the item that was just clicked.
 	for _, child := range bg.children {
 		if checkable, ok := child.(checkable); ok {
-			log.Printf("ButtonGroup: Unchecking checkable item %T.\n", checkable)
-			checkable.SetChecked(false)
-		} else {
-			log.Printf("ButtonGroup: Not a checkable item %T.\n", child)
+			if child != clickedItem {
+				checkable.SetChecked(false)
+			}
 		}
 	}
-	checkableItem.SetChecked(true)
 }

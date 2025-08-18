@@ -52,16 +52,16 @@ func (rb *RadioButton) IsChecked() bool {
 	return rb.Checked
 }
 
-// updateCurrentStateImages sets the correct image references in the embedded interactiveComponent
-// based on the current `Checked` state.
+// updateCurrentStateImages regenerates the images for the current checked state.
 func (rb *RadioButton) updateCurrentStateImages() {
-	// Re-generate images based on the new checked state.
-	// The component's current interactive state (idle, hover, pressed) needs to be preserved
+	// Remember the current interactive state before regenerating images
 	currentInteractiveState := rb.state
+
 	rb.idleImg = rb.renderer.GenerateRadioButtonImage(rb.Bounds.Dx(), rb.Bounds.Dy(), rb.Label, ButtonIdle, rb.Checked)
 	rb.pressedImg = rb.renderer.GenerateRadioButtonImage(rb.Bounds.Dx(), rb.Bounds.Dy(), rb.Label, ButtonPressed, rb.Checked)
 	rb.hoverImg = rb.renderer.GenerateRadioButtonImage(rb.Bounds.Dx(), rb.Bounds.Dy(), rb.Label, ButtonHover, rb.Checked)
 	rb.disabledImg = rb.renderer.GenerateRadioButtonImage(rb.Bounds.Dx(), rb.Bounds.Dy(), rb.Label, ButtonDisabled, rb.Checked)
+
 	rb.state = currentInteractiveState // Restore interactive state
 }
 
@@ -86,10 +86,18 @@ func (rb *RadioButton) HandleRelease() {
 }
 
 // HandleClick toggles the radio button's state and calls the OnCheckChanged handler.
-// In a typical radio group, this would trigger other buttons to uncheck.
 func (rb *RadioButton) HandleClick() {
 	if rb.state != ButtonDisabled && !rb.Checked { // Only allow checking if not disabled and not already checked
 		rb.SetChecked(true)
-		log.Printf("RadioButton '%s' clicked. New state: %t", rb.Label, rb.Checked)
+		log.Printf("RadioButton '%s' checked.", rb.Label)
+
+		// Delegate the click to the parent ButtonGroup to handle mutual exclusivity.
+		if parent := rb.GetParent(); parent != nil {
+			if bg, ok := parent.(*ButtonGroup); ok {
+				if bg.SelectionMode == SingleSelection {
+					bg.HandleChildClick(rb.self)
+				}
+			}
+		}
 	}
 }
