@@ -85,7 +85,7 @@ func NewDemo() *Demo {
 	// --- Dropdown Menu ---
 	menuWidth := 200
 	// The menu's initial position will be set absolutely by the dropdown.
-	animalMenu := NewMenu(0, 0, menuWidth, theme, uiGenerator, ui)
+	animalMenu := NewMenu(0, 0, menuWidth, uiGenerator, ui)
 
 	dropdown := NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu, uiGenerator)
 	ui.AddChild(dropdown)
@@ -93,10 +93,11 @@ func NewDemo() *Demo {
 	animals := []string{"Lion", "Tiger", "Bear", "Elephant"}
 
 	for _, animal := range animals {
-		currentAnimal := animal // Capture loop variable
+		currentAnimal := animal
 		animalMenu.AddItem(currentAnimal, func() {
 			log.Printf("Dropdown: %s selected!", currentAnimal)
 			dropdown.SetSelectedOption(currentAnimal)
+			animalMenu.Hide()
 		})
 	}
 
