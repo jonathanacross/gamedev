@@ -46,26 +46,30 @@ func NewDemo() *Demo {
 
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
+	// --- Container ---
+	container := NewContainer(50, 50, 700, 400, uiGenerator)
+	ui.AddChild(container)
+
 	// --- Buttons ---
-	button := NewButton(100, 100, 150, 40, "Click me!", uiGenerator)
+	button := NewButton(50, 50, 150, 40, "Click me!", uiGenerator)
 	button.SetClickHandler(func() {
 		log.Println("Button clicked!")
 		button.SetText("Clicked!")
 	})
-	ui.AddChild(button)
+	container.AddChild(button)
 
-	button2 := NewButton(300, 100, 150, 40, "Disabled", uiGenerator)
+	button2 := NewButton(250, 50, 150, 40, "Disabled", uiGenerator)
 	button2.state = ButtonDisabled
 	button2.SetClickHandler(func() { button2.SetText("ack! clicked!") })
-	ui.AddChild(button2)
+	container.AddChild(button2)
 
 	// --- Dropdown Menu ---
 	menuWidth := 200
 	// The menu's initial position will be set absolutely by the dropdown.
 	animalMenu := NewMenu(0, 0, menuWidth, uiGenerator, ui)
 
-	dropdown := NewDropDown(350, 150, 200, 40, "Select an Animal", animalMenu, uiGenerator)
-	ui.AddChild(dropdown)
+	dropdown := NewDropDown(300, 100, 200, 40, "Select an Animal", animalMenu, uiGenerator)
+	container.AddChild(dropdown)
 
 	animals := []string{"Lion", "Tiger", "Bear", "Elephant"}
 
@@ -79,7 +83,7 @@ func NewDemo() *Demo {
 	}
 
 	// --- Checkbox ---
-	checkbox := NewCheckbox(100, 200, 150, 30, "Enable Feature", false, uiGenerator)
+	checkbox := NewCheckbox(50, 150, 150, 30, "Enable Feature", false, uiGenerator)
 	checkbox.OnCheckChanged = func(checked bool) {
 		log.Printf("Checkbox 'Enable Feature' state changed to: %t", checked)
 		if checked {
@@ -88,22 +92,18 @@ func NewDemo() *Demo {
 			button.SetText("Feature Disabled.")
 		}
 	}
-	ui.AddChild(checkbox)
+	container.AddChild(checkbox)
 
 	// --- TextField ---
-	nameField := NewTextField(100, 250, 300, 30, "Enter your name", uiGenerator)
-	ui.AddChild(nameField)
+	nameField := NewTextField(50, 200, 300, 30, "Enter your name", uiGenerator)
+	container.AddChild(nameField)
 
-	textField2 := NewTextField(100, 290, 300, 30, "another field", uiGenerator)
-	ui.AddChild(textField2)
-
-	// --- Container ---
-	container := NewContainer(50, 350, 700, 100, uiGenerator)
-	ui.AddChild(container)
+	textField2 := NewTextField(50, 240, 300, 30, "another field", uiGenerator)
+	container.AddChild(textField2)
 
 	// Create a label and add it to the container
 	// Label's x,y are relative to the container's top-left corner
-	infoLabel := NewLabel(10, 10, 380, 20, "This label is inside a container!", uiGenerator)
+	infoLabel := NewLabel(20, 20, 380, 20, "This label is inside a container!", uiGenerator)
 	container.AddChild(infoLabel)
 
 	// Add another label to the main UI to show it's separate

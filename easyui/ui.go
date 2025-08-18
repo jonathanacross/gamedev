@@ -46,16 +46,9 @@ func (u *Ui) Update() {
 		var targetComponent Component
 
 		if u.modalComponent != nil {
-			targetComponent = findDeepestComponentAt(u.modalComponent, cx, cy)
+			targetComponent = findDeepestComponent(u.modalComponent, cx, cy)
 		} else {
-			// Search through top-level children in reverse order (top-most first)
-			for i := len(u.children) - 1; i >= 0; i-- {
-				child := u.children[i]
-				targetComponent = findDeepestComponentAt(child, cx, cy)
-				if targetComponent != nil {
-					break
-				}
-			}
+			targetComponent = u.findDeepestChildAt(cx, cy)
 		}
 
 		if targetComponent != nil {
@@ -131,23 +124,21 @@ func (u *Ui) SetFocusedComponent(c Component) {
 	}
 }
 
-// Focus is a no-op for the root UI.
-func (u *Ui) Focus() {}
+// findDeepestChildAt finds the deepest child component at the given coordinates.
+func (u *Ui) findDeepestChildAt(x, y int) Component {
+	// Search through top-level children in reverse order (top-most first)
+	for i := len(u.children) - 1; i >= 0; i-- {
+		child := u.children[i]
+		found := findDeepestComponent(child, x, y)
+		if found != nil {
+			return found
+		}
+	}
+	return nil
+}
 
-// Unfocus is a no-op for the root UI.
-func (u *Ui) Unfocus() {}
-
-// HandlePress is a no-op for the root UI.
-func (u *Ui) HandlePress() {}
-
-// HandleRelease is a no-op for the root UI.
-func (u *Ui) HandleRelease() {}
-
-// HandleClick is a no-op for the root UI.
-func (u *Ui) HandleClick() {}
-
-// findDeepestComponentAt is a recursive helper to find the most specific component at a given position.
-func findDeepestComponentAt(c Component, x, y int) Component {
+// findDeepestComponent is a recursive helper to find the most specific component at a given position.
+func findDeepestComponent(c Component, x, y int) Component {
 	if !ContainsPoint(c, x, y) {
 		return nil
 	}
@@ -155,7 +146,7 @@ func findDeepestComponentAt(c Component, x, y int) Component {
 	children := c.GetChildren()
 	for i := len(children) - 1; i >= 0; i-- {
 		child := children[i]
-		found := findDeepestComponentAt(child, x, y)
+		found := findDeepestComponent(child, x, y)
 		if found != nil {
 			return found
 		}
