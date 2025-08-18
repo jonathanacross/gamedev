@@ -14,7 +14,6 @@ type DropDown struct {
 }
 
 // NewDropDown creates a new DropDown instance, generating its state-specific images.
-// It is now a standalone function.
 func NewDropDown(x, y, width, height int, initialLabel string, menu *Menu, renderer UiRenderer) *DropDown {
 	// Generate specific dropdown images using the renderer's methods
 	idleImg := renderer.GenerateDropdownImage(width, height, initialLabel, ButtonIdle)
@@ -56,7 +55,6 @@ func (d *DropDown) Update() {
 }
 
 // Draw draws the dropdown button using the image from its current state.
-// It now calls the embedded interactiveComponent's Draw method.
 func (d *DropDown) Draw(screen *ebiten.Image) {
 	d.interactiveComponent.Draw(screen)
 }
@@ -73,18 +71,15 @@ func (d *DropDown) HandleRelease() {
 
 // HandleClick manages the dropdown menu visibility.
 func (d *DropDown) HandleClick() {
-	if d.state == ButtonDisabled { // Do not respond if disabled
+	if d.state == ButtonDisabled {
 		return
 	}
 
-	// Fix: Compare the interface value to the concrete pointer. This relies on *Menu correctly
-	// implementing the Component interface (which it will after fixes to menu.go).
 	if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == Component(d.menu) {
 		d.menu.Hide() // If our menu is currently the modal, close it.
 	} else if d.menu.parentUi != nil && d.menu.parentUi.modalComponent == nil {
-		// Calculate the absolute position for the menu based on the dropdown's absolute position
 		absX, absY := d.GetAbsolutePosition()
 		d.menu.SetPosition(absX, absY+d.Bounds.Dy()) // Menu appears directly below the dropdown
-		d.menu.Show()                                // Show the menu if no other modal is active.
+		d.menu.Show()
 	}
 }

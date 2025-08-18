@@ -2,10 +2,8 @@ package main
 
 import (
 	"log"
-	// For cursor blinking
+
 	"github.com/hajimehoshi/ebiten/v2"
-	// Required for color.RGBA
-	// Required for image.Rectangle, image.Point
 )
 
 // CheckboxState holds the different image sets for a checkbox's visual states.
@@ -26,24 +24,23 @@ type CheckboxStateImages struct {
 
 // Checkbox represents a clickable UI component with a boolean (checked/unchecked) state.
 type Checkbox struct {
-	interactiveComponent                     // Embed the reusable interactive component logic
-	Label                string              // Text label next to the checkbox
-	Checked              bool                // Current checked state
-	OnCheckChanged       func(bool)          // Handler for when the checked state changes
-	renderer             UiRenderer          // Changed to UiRenderer interface
-	stateImages          CheckboxStateImages // All state-specific images for checked/unchecked
+	interactiveComponent
+	Label          string
+	Checked        bool
+	OnCheckChanged func(bool)
+	renderer       UiRenderer
+	stateImages    CheckboxStateImages
 }
 
 // NewCheckbox creates a new Checkbox instance.
-// It is now a standalone function.
 func NewCheckbox(x, y, width, height int, label string, initialChecked bool, renderer UiRenderer) *Checkbox {
-	// Generate images for unchecked states using the renderer
+	// Generate images for unchecked states
 	uncheckedIdle := renderer.GenerateCheckboxImage(width, height, label, ButtonIdle, false)
 	uncheckedPressed := renderer.GenerateCheckboxImage(width, height, label, ButtonPressed, false)
 	uncheckedHover := renderer.GenerateCheckboxImage(width, height, label, ButtonHover, false)
 	uncheckedDisabled := renderer.GenerateCheckboxImage(width, height, label, ButtonDisabled, false)
 
-	// Generate images for checked states using the renderer
+	// Generate images for checked states
 	checkedIdle := renderer.GenerateCheckboxImage(width, height, label, ButtonIdle, true)
 	checkedPressed := renderer.GenerateCheckboxImage(width, height, label, ButtonPressed, true)
 	checkedHover := renderer.GenerateCheckboxImage(width, height, label, ButtonHover, true)
@@ -99,9 +96,9 @@ func (c *Checkbox) SetChecked(checked bool) {
 // updateCurrentStateImages sets the correct image references in the embedded interactiveComponent
 // based on the current `Checked` state.
 func (c *Checkbox) updateCurrentStateImages() {
-	// Re-generate images based on the new checked state using the renderer
+	// Re-generate images based on the new checked state.
 	// The component's current interactive state (idle, hover, pressed) needs to be preserved
-	currentInteractiveState := c.state // Store current state temporarily
+	currentInteractiveState := c.state
 	if c.Checked {
 		c.idleImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonIdle, true)
 		c.pressedImg = c.renderer.GenerateCheckboxImage(c.Bounds.Dx(), c.Bounds.Dy(), c.Label, ButtonPressed, true)
@@ -139,8 +136,8 @@ func (c *Checkbox) HandleRelease() {
 
 // HandleClick toggles the checkbox's state and calls the OnCheckChanged handler.
 func (c *Checkbox) HandleClick() {
-	if c.state != ButtonDisabled { // Only toggle if not disabled
-		c.SetChecked(!c.Checked) // Toggle the checked state
+	if c.state != ButtonDisabled {
+		c.SetChecked(!c.Checked)
 		log.Printf("Checkbox '%s' clicked. New state: %t", c.Label, c.Checked)
 	}
 }

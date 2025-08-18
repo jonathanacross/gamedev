@@ -4,26 +4,23 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	// Required for image.Rectangle, image.Point
 )
 
 // Container represents a non-interactive grouping component that can hold child UI elements.
 // It serves as a visual and logical container for other components.
-// It now fully implements the Component interface.
 type Container struct {
-	component                   // Embed the base component struct to manage bounds and children
-	renderer      UiRenderer    // Reference to the UI renderer for drawing its background
-	backgroundImg *ebiten.Image // The pre-rendered image for the container's background
+	component
+	renderer      UiRenderer
+	backgroundImg *ebiten.Image
 }
 
 // NewContainer creates a new Container instance.
 // It initializes the container with its bounds and a reference to the UiRenderer.
 func NewContainer(x, y, width, height int, renderer UiRenderer) *Container {
-	// Create the Container first, then pass its pointer as 'self'
 	c := &Container{
 		renderer: renderer,
 	}
-	c.component = NewComponent(x, y, width, height, c) // Pass 'c' as self
+	c.component = NewComponent(x, y, width, height, c)
 
 	// Generate the initial background image for the container
 	c.backgroundImg = c.renderer.GenerateContainerImage(width, height)
@@ -31,7 +28,6 @@ func NewContainer(x, y, width, height int, renderer UiRenderer) *Container {
 }
 
 // Update iterates through and updates all child components within the container.
-// This method fully implements Component.Update().
 func (c *Container) Update() {
 	for _, child := range c.children {
 		child.Update()
@@ -39,15 +35,13 @@ func (c *Container) Update() {
 }
 
 // Draw draws the container's background image first, and then draws all its child components.
-// All drawing is relative to the container's absolute position.
-// This method fully implements Component.Draw().
 func (c *Container) Draw(screen *ebiten.Image) {
-	absX, absY := c.GetAbsolutePosition() // Get absolute position of the container itself
+	absX, absY := c.GetAbsolutePosition()
 
 	// Draw the container's background
 	if c.backgroundImg != nil {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(absX), float64(absY)) // Draw background at its absolute position
+		op.GeoM.Translate(float64(absX), float64(absY))
 		screen.DrawImage(c.backgroundImg, op)
 	} else {
 		log.Printf("Container at %v: WARNING: backgroundImg is nil! Cannot draw background.", c.Bounds)
@@ -55,7 +49,7 @@ func (c *Container) Draw(screen *ebiten.Image) {
 
 	// Draw all child components
 	for _, child := range c.children {
-		child.Draw(screen) // Child items will draw themselves using their own absolute positions
+		child.Draw(screen)
 	}
 }
 
@@ -67,13 +61,10 @@ func (c *Container) SetSize(width, height int) {
 }
 
 // HandlePress is a no-op for a static container.
-// This method fully implements Component.HandlePress().
 func (c *Container) HandlePress() {}
 
 // HandleRelease is a no-op for a static container.
-// This method fully implements Component.HandleRelease().
 func (c *Container) HandleRelease() {}
 
 // HandleClick is a no-op for a static container.
-// This method fully implements Component.HandleClick().
 func (c *Container) HandleClick() {}

@@ -6,10 +6,10 @@ import (
 
 // Button represents a clickable UI button.
 type Button struct {
-	interactiveComponent        // Embed the new interactive component
-	Label                string // Store the button's text
-	onClick              func()
-	renderer             UiRenderer // Changed to UiRenderer interface
+	interactiveComponent
+	Label    string
+	onClick  func()
+	renderer UiRenderer
 }
 
 // NewButton creates a new Button instance with the specified dimensions, label, and renderer.
@@ -22,10 +22,10 @@ func NewButton(x, y, width, height int, label string, renderer UiRenderer) *Butt
 	// Create the Button first, then pass its pointer as 'self'
 	b := &Button{
 		Label:    label,
-		onClick:  nil,      // Click handler set separately
-		renderer: renderer, // Store the renderer
+		onClick:  nil, // Click handler set separately
+		renderer: renderer,
 	}
-	b.interactiveComponent = NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled, b) // Pass 'b' as self
+	b.interactiveComponent = NewInteractiveComponent(x, y, width, height, idle, pressed, hover, disabled, b)
 
 	return b
 }
@@ -68,7 +68,6 @@ func (b *Button) HandleRelease() {
 
 // HandleClick calls the specific button's onClick handler.
 func (b *Button) HandleClick() {
-	// Only trigger onClick if not disabled. State is already managed by HandleRelease.
 	if b.state != ButtonDisabled && b.onClick != nil {
 		b.onClick()
 	}

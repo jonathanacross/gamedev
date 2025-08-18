@@ -6,7 +6,6 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
-	// For font metrics
 )
 
 // BareBonesTheme defines the color and font theme for UI elements.
@@ -20,8 +19,7 @@ type BareBonesTheme struct {
 	Face               font.Face  // The loaded font face
 }
 
-// BareBonesUiGenerator helps instantiate UI components with the defined theme.
-// It acts as a factory for creating all themed UI elements.
+// BareBonesUiGenerator helps draw UI components with the defined theme.
 type BareBonesUiGenerator struct {
 	theme BareBonesTheme
 }
@@ -29,7 +27,7 @@ type BareBonesUiGenerator struct {
 // Ensure BareBonesUiGenerator implements the UiRenderer interface
 var _ UiRenderer = (*BareBonesUiGenerator)(nil)
 
-// GenerateButtonImage implements UiRenderer.GenerateButtonImage
+// GenerateButtonImage draws a button
 func (b *BareBonesUiGenerator) GenerateButtonImage(width, height int, text string, state ButtonState) *ebiten.Image {
 	var bgColor, textColor color.RGBA
 	switch state {
@@ -40,20 +38,20 @@ func (b *BareBonesUiGenerator) GenerateButtonImage(width, height int, text strin
 		bgColor = b.theme.AccentColor
 		textColor = b.theme.OnPrimaryColor
 	case ButtonDisabled:
-		bgColor = b.theme.PrimaryColor     // Disabled button same as idle visually for background
-		textColor = b.theme.OnPrimaryColor // Maybe a darker text color for disabled
+		bgColor = b.theme.PrimaryColor
+		textColor = b.theme.OnPrimaryColor
 	}
 
 	dc := gg.NewContext(width, height)
 
 	// Draw button background with rounded corners
-	cornerRadius := float64(height) * 0.2 // 20% of height for radius
+	cornerRadius := float64(height) * 0.2
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.FillPreserve()
 	// Apply a stroke/border around the rounded rectangle
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(2)
+	dc.SetLineWidth(1)
 	dc.Stroke()
 
 	if b.theme.Face != nil {
@@ -89,7 +87,7 @@ func (b *BareBonesUiGenerator) GenerateDropdownImage(width, height int, text str
 	dc.DrawRectangle(0, 0, float64(width), float64(height)) // No rounded corners here
 	dc.FillPreserve()
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.SetLineWidth(2)
+	dc.SetLineWidth(1)
 	dc.Stroke()
 
 	// Draw the V arrow on the right side of the dropdown
@@ -136,8 +134,7 @@ func (b *BareBonesUiGenerator) GenerateMenuItemImage(width, height int, text str
 
 	dc := gg.NewContext(width, height)
 
-	// Draw menu item background with rounded corners for consistency
-	cornerRadius := float64(height) * 0.1 // Slightly smaller radius for menu items
+	cornerRadius := float64(height) * 0.1
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.Fill()
@@ -148,8 +145,8 @@ func (b *BareBonesUiGenerator) GenerateMenuItemImage(width, height int, text str
 
 	// Draw menu item text
 	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	textPadding := 10.0                                                   // Small padding from the left edge
-	dc.DrawStringAnchored(text, textPadding, float64(height)/2, 0.0, 0.5) // Anchor left-center
+	textPadding := 10.0
+	dc.DrawStringAnchored(text, textPadding, float64(height)/2, 0.0, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
@@ -162,7 +159,7 @@ func (b *BareBonesUiGenerator) GenerateMenuImage(width, height int) *ebiten.Imag
 	dc := gg.NewContext(width, height)
 
 	// Draw menu background (e.g., a simple rectangle) with rounded corners
-	cornerRadius := float64(10) // Small fixed radius for the overall menu background
+	cornerRadius := float64(10)
 	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.Fill()
@@ -174,13 +171,12 @@ func (b *BareBonesUiGenerator) GenerateMenuImage(width, height int) *ebiten.Imag
 func (b *BareBonesUiGenerator) GenerateCheckboxImage(
 	width, height int,
 	label string,
-	componentState ButtonState, // The state of the interactive component
+	componentState ButtonState,
 	isChecked bool,
 ) *ebiten.Image {
-	// Colors that stay constant for the overall component background and label text
 	componentBgColor := b.theme.BackgroundColor
 	labelColor := b.theme.OnPrimaryColor
-	checkmarkColor := b.theme.OnPrimaryColor // Checkmark color remains constant
+	checkmarkColor := b.theme.OnPrimaryColor
 
 	var boxOutlineColor color.RGBA
 	switch componentState {
@@ -193,12 +189,12 @@ func (b *BareBonesUiGenerator) GenerateCheckboxImage(
 	dc := gg.NewContext(width, height)
 
 	// Define fixed left padding for the checkbox square
-	const checkboxLeftPadding = 5.0 // Adjust as needed
+	const checkboxLeftPadding = 5.0
 	checkboxSize := float64(min(width, height)) * 0.8
 	checkboxPaddingY := (float64(height) - checkboxSize) / 2
 
 	// Text offset starts after the checkbox square and its right padding
-	textOffset := checkboxLeftPadding + checkboxSize + 5.0 // Small gap between box and text
+	textOffset := checkboxLeftPadding + checkboxSize + 5.0
 
 	// Draw the checkbox component's overall background
 	dc.SetRGBA255(int(componentBgColor.R), int(componentBgColor.G), int(componentBgColor.B), int(componentBgColor.A))
@@ -208,13 +204,12 @@ func (b *BareBonesUiGenerator) GenerateCheckboxImage(
 	// Draw the checkbox square outline
 	dc.SetRGBA255(int(boxOutlineColor.R), int(boxOutlineColor.G), int(boxOutlineColor.B), int(boxOutlineColor.A))
 	dc.SetLineWidth(2)
-	dc.DrawRoundedRectangle(checkboxLeftPadding, checkboxPaddingY, checkboxSize, checkboxSize, 3) // Small rounded corners for the box
+	dc.DrawRoundedRectangle(checkboxLeftPadding, checkboxPaddingY, checkboxSize, checkboxSize, 3)
 	dc.Stroke()
 
 	// Draw the checkmark if checked
 	if isChecked {
 		dc.SetRGBA255(int(checkmarkColor.R), int(checkmarkColor.G), int(checkmarkColor.B), int(checkmarkColor.A))
-		// Points are relative to the checkbox square's top-left (checkboxLeftPadding, checkboxPaddingY)
 		p1x := checkboxLeftPadding + checkboxSize*0.15
 		p1y := checkboxPaddingY + checkboxSize*0.5
 		p2x := checkboxLeftPadding + checkboxSize*0.5
@@ -234,20 +229,20 @@ func (b *BareBonesUiGenerator) GenerateCheckboxImage(
 	}
 
 	// Draw the label text, positioned after the checkbox
-	dc.SetRGBA255(int(labelColor.R), int(labelColor.G), int(labelColor.B), int(labelColor.A)) // Use labelColor for text color
-	dc.DrawStringAnchored(label, textOffset, float64(height)/2, 0.0, 0.5)                     // Anchor left-center after checkbox
+	dc.SetRGBA255(int(labelColor.R), int(labelColor.G), int(labelColor.B), int(labelColor.A))
+	dc.DrawStringAnchored(label, textOffset, float64(height)/2, 0.0, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateTextFieldImage implements UiRenderer.GenerateTextFieldImage
+// GenerateTextFieldImage renders a text field.
 func (b *BareBonesUiGenerator) GenerateTextFieldImage(
 	width, height int,
 	text string,
-	componentState ButtonState, // The state of the interactive component
+	componentState ButtonState,
 	isFocused bool,
 	cursorPos int,
-	showCursor bool, // Changed from blinkTimer to showCursor
+	showCursor bool,
 ) *ebiten.Image {
 	var bgColor, textColor color.RGBA
 	switch componentState {
@@ -307,10 +302,6 @@ func (b *BareBonesUiGenerator) GenerateLabelImage(
 ) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Labels typically have a transparent background, or the background of their parent.
-	// We just need to draw the text.
-	// You could fill with b.theme.BackgroundColor here if you want a solid background for labels.
-
 	if b.theme.Face != nil {
 		dc.SetFontFace(b.theme.Face)
 	}
@@ -319,17 +310,15 @@ func (b *BareBonesUiGenerator) GenerateLabelImage(
 	dc.SetRGBA255(int(b.theme.OnPrimaryColor.R), int(b.theme.OnPrimaryColor.G), int(b.theme.OnPrimaryColor.B), int(b.theme.OnPrimaryColor.A)) // Use OnPrimaryColor for label text
 	textX := 5.0                                                                                                                              // Small padding from left edge
 	textY := float64(height) / 2
-	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
+	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateContainerImage implements UiRenderer.GenerateContainerImage.
-// It simply fills the given dimensions with the theme's background color.
+// GenerateContainerImage fills a flat background color for the container.
 func (b *BareBonesUiGenerator) GenerateContainerImage(width, height int) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Fill the container's background with the theme's background color
 	dc.SetRGBA255(int(b.theme.BackgroundColor.R), int(b.theme.BackgroundColor.G), int(b.theme.BackgroundColor.B), int(b.theme.BackgroundColor.A))
 	dc.DrawRectangle(0, 0, float64(width), float64(height))
 	dc.Fill()
@@ -337,7 +326,7 @@ func (b *BareBonesUiGenerator) GenerateContainerImage(width, height int) *ebiten
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// Helper function to find the minimum of two integers.
+// Finds the minimum of two integers.
 func min(a, b int) int {
 	if a < b {
 		return a

@@ -22,9 +22,9 @@ type Component interface {
 	Draw(screen *ebiten.Image)
 	Update()
 	GetBounds() image.Rectangle
-	HandlePress()   // Called when mouse is pressed down over this component
-	HandleRelease() // Called when mouse is released, potentially over this component
-	HandleClick()   // Called when a full click (press + release) occurs over this component
+	HandlePress()
+	HandleRelease()
+	HandleClick()
 	GetChildren() []Component
 	SetParent(Component)
 	GetAbsolutePosition() (int, int)
@@ -34,10 +34,10 @@ type Component interface {
 // It includes a reference to its parent for hierarchical positioning, and a self-reference
 // to the concrete Component that embeds it, for correct parent setting.
 type component struct {
-	Bounds   image.Rectangle // The rectangular area occupied by the component (relative to parent)
-	children []Component     // Child components nested within this component
-	parent   Component       // Reference to the parent component
-	self     Component       // Reference to the embedding Component (e.g., *Button, *Menu)
+	Bounds   image.Rectangle // Coordinates are relative to the parent.
+	children []Component
+	parent   Component
+	self     Component
 }
 
 // NewComponent creates a new base component instance.
@@ -48,7 +48,7 @@ func NewComponent(x, y, width, height int, self Component) component {
 			Min: image.Point{X: x, Y: y},
 			Max: image.Point{X: x + width, Y: y + height},
 		},
-		self: self, // Store the reference to the embedding Component
+		self: self,
 	}
 }
 
@@ -61,7 +61,7 @@ func (c component) GetBounds() image.Rectangle {
 // and sets the child's parent reference to the embedding Component (c.self).
 func (c *component) AddChild(child Component) {
 	c.children = append(c.children, child)
-	child.SetParent(c.self) // Now 'c.self' refers to the actual Component (e.g., *Container, *Menu)
+	child.SetParent(c.self)
 }
 
 // GetChildren returns the child components.
@@ -70,13 +70,11 @@ func (c *component) GetChildren() []Component {
 }
 
 // SetParent sets the parent of this component.
-// This method is now on the base `component` struct to be inherited.
 func (c *component) SetParent(parent Component) {
 	c.parent = parent
 }
 
 // GetAbsolutePosition calculates and returns the component's absolute (window) X and Y coordinates.
-// This method is now on the base `component` struct to be inherited.
 func (c *component) GetAbsolutePosition() (int, int) {
 	absX, absY := c.Bounds.Min.X, c.Bounds.Min.Y
 
@@ -105,10 +103,9 @@ func ContainsPoint(comp Component, absX, absY int) bool {
 
 // interactiveComponent is a base struct for components that respond to mouse interaction.
 // It manages common visual states like idle, pressed, hover, and disabled.
-// This struct now *fully implements* the Component interface.
 type interactiveComponent struct {
-	component               // Embed the base component struct
-	state       ButtonState // Current interactive state
+	component
+	state       ButtonState
 	idleImg     *ebiten.Image
 	pressedImg  *ebiten.Image
 	hoverImg    *ebiten.Image
@@ -119,7 +116,7 @@ type interactiveComponent struct {
 // It requires the 'self' parameter which is the concrete Component embedding it.
 func NewInteractiveComponent(x, y, width, height int, idle, pressed, hover, disabled *ebiten.Image, self Component) interactiveComponent {
 	return interactiveComponent{
-		component:   NewComponent(x, y, width, height, self), // Pass self to the embedded component
+		component:   NewComponent(x, y, width, height, self),
 		state:       ButtonIdle,
 		idleImg:     idle,
 		pressedImg:  pressed,
@@ -129,14 +126,13 @@ func NewInteractiveComponent(x, y, width, height int, idle, pressed, hover, disa
 }
 
 // Update handles the interaction logic for the component (primarily hover state).
-// Press/Release/Click are now delegated from the root UI.
 func (ic *interactiveComponent) Update() {
 	if ic.state == ButtonDisabled {
 		return
 	}
 
-	cx, cy := ebiten.CursorPosition()                // Absolute cursor position
-	cursorInBounds := ContainsPoint(ic.self, cx, cy) // Use ic.self to get the actual component's bounds
+	cx, cy := ebiten.CursorPosition() // in absolute coordinates
+	cursorInBounds := ContainsPoint(ic.self, cx, cy)
 
 	// Only manage hover state here. Do not change state if currently pressed down.
 	if ic.state != ButtonPressed {
@@ -153,7 +149,7 @@ func (ic *interactiveComponent) Update() {
 func (ic *interactiveComponent) Draw(screen *ebiten.Image) {
 	absX, absY := ic.GetAbsolutePosition() // Get absolute position
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(absX), float64(absY)) // Translate by absolute position
+	op.GeoM.Translate(float64(absX), float64(absY))
 	screen.DrawImage(ic.GetCurrentStateImage(), op)
 }
 
@@ -199,8 +195,4 @@ func (ic *interactiveComponent) GetCurrentStateImage() *ebiten.Image {
 // HandleClick is a dummy method for the base interactiveComponent.
 // Concrete interactive components (Button, TextField, Checkbox, Dropdown) will override this
 // to perform their specific action.
-func (ic *interactiveComponent) HandleClick() {
-	// Added diagnostic log: This should NOT be printed if the embedding component
-	// (like MenuItem) properly overrides this method.
-	log.Printf("DIAGNOSTIC: interactiveComponent's (generic) HandleClick called for type %T! This should be overridden by a concrete component.", ic.self)
-}
+func (ic *interactiveComponent) HandleClick() {}

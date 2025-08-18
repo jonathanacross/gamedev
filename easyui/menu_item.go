@@ -4,30 +4,27 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	// Required for image.Rectangle, image.Point
 )
 
 // MenuItem represents a single selectable item within a menu.
 type MenuItem struct {
-	interactiveComponent // Embed the new interactive component
-	Label                string
-	onClick              func()
-	renderer             UiRenderer // Changed to UiRenderer interface
+	interactiveComponent
+	Label    string
+	onClick  func()
+	renderer UiRenderer
 }
 
 // NewMenuItem creates a new MenuItem instance.
-// It is now a standalone function.
 func NewMenuItem(x, y, width, height int, label string, renderer UiRenderer) *MenuItem {
 	idleImg := renderer.GenerateMenuItemImage(width, height, label, ButtonIdle)
 	hoverImg := renderer.GenerateMenuItemImage(width, height, label, ButtonHover)
 	pressedImg := renderer.GenerateMenuItemImage(width, height, label, ButtonPressed)
-	disabledImg := idleImg // Default disabled to idle, can be customized
+	disabledImg := idleImg
 
-	// Create the MenuItem first, then pass its pointer as 'self'
 	m := &MenuItem{
 		Label:    label,
-		onClick:  nil,      // Click handler set separately
-		renderer: renderer, // Store the renderer
+		onClick:  nil,
+		renderer: renderer,
 	}
 	m.interactiveComponent = NewInteractiveComponent(x, y, width, height, idleImg, pressedImg, hoverImg, disabledImg, m) // Pass 'm' as self
 
@@ -47,7 +44,7 @@ func (m *MenuItem) SetLabel(newLabel string) {
 	m.idleImg = m.renderer.GenerateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.Label, ButtonIdle)
 	m.hoverImg = m.renderer.GenerateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.Label, ButtonHover)
 	m.pressedImg = m.renderer.GenerateMenuItemImage(m.Bounds.Dx(), m.Bounds.Dy(), m.Label, ButtonPressed)
-	m.disabledImg = m.idleImg // Assuming disabled is same as idle for now.
+	m.disabledImg = m.idleImg
 }
 
 // Update calls the embedded interactiveComponent's Update method.
@@ -78,7 +75,7 @@ func (m *MenuItem) HandleRelease() {
 func (m *MenuItem) HandleClick() {
 	log.Printf("MenuItem '%s': HandleClick called. State: %v, onClick set: %t", m.Label, m.state, m.onClick != nil) // Diagnostic log
 	if m.state != ButtonDisabled && m.onClick != nil {
-		log.Printf("MenuItem '%s': Click handler triggered (calling onClick!).", m.Label) // THIS IS THE ONE WE WANT TO SEE
+		log.Printf("MenuItem '%s': Click handler triggered (calling onClick!).", m.Label)
 		m.onClick()
 	} else {
 		if m.state == ButtonDisabled {
