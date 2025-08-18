@@ -18,21 +18,31 @@ type ShapeTheme struct {
 	Face               font.Face
 }
 
-// Helper function to adjust the brightness of a color.
+func clamp(x, lo, hi float64) float64 {
+	if x < lo {
+		return lo
+	}
+	if x > hi {
+		return hi
+	}
+	return x
+}
+
+// A simple helper function to adjust the brightness of a color.
 func adjustBrightness(c color.Color, factor float64) color.Color {
 	r, g, b, a := c.RGBA()
 	return color.RGBA{
-		R: uint8(float64(r>>8) * factor),
-		G: uint8(float64(g>>8) * factor),
-		B: uint8(float64(b>>8) * factor),
+		R: uint8(clamp(float64(r>>8)*factor, 0, 255)),
+		G: uint8(clamp(float64(g>>8)*factor, 0, 255)),
+		B: uint8(clamp(float64(b>>8)*factor, 0, 255)),
 		A: uint8(a >> 8),
 	}
 }
 
-// Helper function to desaturate a color.
+// A simple helper function to desaturate a color.
 func desaturateColor(c color.Color) color.Color {
 	r, g, b, a := c.RGBA()
-	gray := uint8(float64(r>>8)*0.299 + float64(g>>8)*0.587 + float64(b>>8)*0.114)
+	gray := uint8(clamp(float64(r>>8)*0.299+float64(g>>8)*0.587+float64(b>>8)*0.114, 0, 255))
 	return color.RGBA{R: gray, G: gray, B: gray, A: uint8(a >> 8)}
 }
 
@@ -41,26 +51,47 @@ type ShapeRenderer struct {
 	theme ShapeTheme
 }
 
+// getStateColor returns a modified color based on the component's state.
+func (r *ShapeRenderer) getStateColor(baseColor color.Color, state ButtonState) color.Color {
+	switch state {
+	case ButtonIdle:
+		return baseColor
+	case ButtonHover:
+		return adjustBrightness(baseColor, 1.2)
+	case ButtonPressed:
+		return adjustBrightness(baseColor, 0.8)
+	case ButtonDisabled:
+		return desaturateColor(baseColor)
+	default:
+		return baseColor
+	}
+}
+
+// getButtonColors returns the background and text color for a standard button or dropdown.
+func (r *ShapeRenderer) getButtonColors(state ButtonState) (bgColor, textColor color.Color) {
+	bgColor = r.getStateColor(r.theme.SurfaceColor, state)
+	textColor = r.getStateColor(r.theme.TextColor, state)
+	return
+}
+
+// getCheckableColors returns the colors for a checkbox or radio button based on its state and checked status.
+func (r *ShapeRenderer) getCheckableColors(componentState ButtonState, isChecked bool) (boxColor, borderColor, checkDotColor color.Color) {
+	if isChecked {
+		boxColor = r.getStateColor(r.theme.PrimaryAccentColor, componentState)
+		borderColor = r.getStateColor(r.theme.PrimaryAccentColor, componentState)
+		checkDotColor = r.getStateColor(r.theme.TextColor, componentState)
+	} else { // unchecked
+		boxColor = r.getStateColor(r.theme.SurfaceColor, componentState)
+		borderColor = r.getStateColor(r.theme.BorderColor, componentState)
+		checkDotColor = r.getStateColor(r.theme.TextColor, componentState)
+	}
+	return
+}
+
 // GenerateButtonImage creates an image for a button in a specific state.
 func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
 	dc := gg.NewContext(width, height)
-	var bgColor color.Color
-	var textColor color.Color
-
-	switch state {
-	case ButtonIdle:
-		bgColor = r.theme.SurfaceColor
-		textColor = r.theme.TextColor
-	case ButtonHover:
-		bgColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
-		textColor = r.theme.TextColor
-	case ButtonPressed:
-		bgColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
-		textColor = r.theme.TextColor
-	case ButtonDisabled:
-		bgColor = desaturateColor(r.theme.SurfaceColor)
-		textColor = desaturateColor(r.theme.TextColor)
-	}
+	bgColor, textColor := r.getButtonColors(state)
 
 	// Draw button background
 	cornerRadius := 9.0
@@ -69,11 +100,8 @@ func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent strin
 	dc.FillPreserve()
 
 	// Draw border
-	if state != ButtonDisabled {
-		dc.SetColor(r.theme.BorderColor)
-	} else {
-		dc.SetColor(desaturateColor(r.theme.BorderColor))
-	}
+	borderColor := r.getStateColor(r.theme.BorderColor, state)
+	dc.SetColor(borderColor)
 	dc.SetLineWidth(1)
 	dc.Stroke()
 
@@ -88,35 +116,16 @@ func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent strin
 // GenerateDropdownImage creates an image for a dropdown button.
 func (r *ShapeRenderer) GenerateDropdownImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
 	dc := gg.NewContext(width, height)
+	bgColor, textColor := r.getButtonColors(state)
 
 	// Draw the button background and border
-	var bgColor color.Color
-	var textColor color.Color
-	switch state {
-	case ButtonIdle:
-		bgColor = r.theme.SurfaceColor
-		textColor = r.theme.TextColor
-	case ButtonHover:
-		bgColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
-		textColor = r.theme.TextColor
-	case ButtonPressed:
-		bgColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
-		textColor = r.theme.TextColor
-	case ButtonDisabled:
-		bgColor = desaturateColor(r.theme.SurfaceColor)
-		textColor = desaturateColor(r.theme.TextColor)
-	}
-
 	cornerRadius := 9.0
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.SetColor(bgColor)
 	dc.FillPreserve()
 
-	if state != ButtonDisabled {
-		dc.SetColor(r.theme.BorderColor)
-	} else {
-		dc.SetColor(desaturateColor(r.theme.BorderColor))
-	}
+	borderColor := r.getStateColor(r.theme.BorderColor, state)
+	dc.SetColor(borderColor)
 	dc.SetLineWidth(1)
 	dc.Stroke()
 
@@ -145,18 +154,18 @@ func (r *ShapeRenderer) GenerateDropdownImage(width, height int, textContent str
 // GenerateMenuItemImage creates an image for a menu item.
 func (r *ShapeRenderer) GenerateMenuItemImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
 	dc := gg.NewContext(width, height)
-	var bgColor, textColor color.Color
 
+	var bgColor, textColor color.Color
 	switch state {
 	case ButtonIdle:
 		bgColor = r.theme.SurfaceColor
 		textColor = r.theme.TextColor
 	case ButtonHover:
 		bgColor = r.theme.PrimaryAccentColor
-		textColor = color.White // High contrast for accent color
+		textColor = r.theme.TextColor
 	case ButtonPressed:
 		bgColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
-		textColor = color.White
+		textColor = r.theme.TextColor
 	case ButtonDisabled:
 		bgColor = desaturateColor(r.theme.SurfaceColor)
 		textColor = desaturateColor(r.theme.TextColor)
@@ -198,39 +207,7 @@ func (r *ShapeRenderer) GenerateCheckboxImage(width, height int, label string, c
 	checkboxSize := 15
 	checkboxX, checkboxY := 5.0, (float64(height)-float64(checkboxSize))/2
 
-	var boxColor, borderColor color.Color
-
-	if isChecked {
-		switch componentState {
-		case ButtonIdle:
-			boxColor = r.theme.PrimaryAccentColor
-			borderColor = r.theme.PrimaryAccentColor
-		case ButtonHover:
-			boxColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
-			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
-		case ButtonPressed:
-			boxColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
-			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
-		case ButtonDisabled:
-			boxColor = desaturateColor(r.theme.PrimaryAccentColor)
-			borderColor = desaturateColor(r.theme.PrimaryAccentColor)
-		}
-	} else { // unchecked
-		switch componentState {
-		case ButtonIdle:
-			boxColor = r.theme.SurfaceColor
-			borderColor = r.theme.BorderColor
-		case ButtonHover:
-			boxColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
-			borderColor = adjustBrightness(r.theme.BorderColor, 1.2)
-		case ButtonPressed:
-			boxColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
-			borderColor = adjustBrightness(r.theme.BorderColor, 0.8)
-		case ButtonDisabled:
-			boxColor = desaturateColor(r.theme.SurfaceColor)
-			borderColor = desaturateColor(r.theme.TextColor)
-		}
-	}
+	boxColor, borderColor, checkColor := r.getCheckableColors(componentState, isChecked)
 
 	dc.DrawRectangle(checkboxX, checkboxY, float64(checkboxSize), float64(checkboxSize))
 	dc.SetColor(boxColor)
@@ -243,10 +220,6 @@ func (r *ShapeRenderer) GenerateCheckboxImage(width, height int, label string, c
 
 	// Draw the checkmark
 	if isChecked {
-		checkColor := r.theme.TextColor
-		if componentState == ButtonDisabled {
-			checkColor = desaturateColor(checkColor)
-		}
 		dc.SetColor(checkColor)
 		dc.SetLineWidth(2)
 		dc.DrawLine(checkboxX+3, checkboxY+float64(checkboxSize)/2, checkboxX+float64(checkboxSize)/2, checkboxY+float64(checkboxSize)-3)
@@ -270,39 +243,7 @@ func (r *ShapeRenderer) GenerateRadioButtonImage(width, height int, label string
 	circleRadius := 7.0
 	circleX, circleY := 5.0+circleRadius, (float64(height)/2)+0.5 // Center the circle vertically in the component, +0.5 to fix pixel alignment
 
-	var circleColor, borderColor color.Color
-
-	if isChecked {
-		switch componentState {
-		case ButtonIdle:
-			circleColor = r.theme.PrimaryAccentColor
-			borderColor = r.theme.PrimaryAccentColor
-		case ButtonHover:
-			circleColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
-			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
-		case ButtonPressed:
-			circleColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
-			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
-		case ButtonDisabled:
-			circleColor = desaturateColor(r.theme.PrimaryAccentColor)
-			borderColor = desaturateColor(r.theme.PrimaryAccentColor)
-		}
-	} else { // unchecked
-		switch componentState {
-		case ButtonIdle:
-			circleColor = r.theme.SurfaceColor
-			borderColor = r.theme.BorderColor
-		case ButtonHover:
-			circleColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
-			borderColor = adjustBrightness(r.theme.BorderColor, 1.2)
-		case ButtonPressed:
-			circleColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
-			borderColor = adjustBrightness(r.theme.BorderColor, 0.8)
-		case ButtonDisabled:
-			circleColor = desaturateColor(r.theme.SurfaceColor)
-			borderColor = desaturateColor(r.theme.TextColor)
-		}
-	}
+	circleColor, borderColor, dotColor := r.getCheckableColors(componentState, isChecked)
 
 	dc.DrawCircle(circleX, circleY, circleRadius)
 	dc.SetColor(circleColor)
@@ -315,10 +256,7 @@ func (r *ShapeRenderer) GenerateRadioButtonImage(width, height int, label string
 
 	// Draw the inner dot if checked
 	if isChecked {
-		dotColor := r.theme.TextColor // Dot color should contrast with the accent color
-		if componentState == ButtonDisabled {
-			dotColor = desaturateColor(dotColor)
-		}
+		dotColor = r.getStateColor(r.theme.TextColor, componentState)
 		dc.SetColor(dotColor)
 		dc.DrawCircle(circleX, circleY, circleRadius*0.4) // Smaller inner circle
 		dc.Fill()
