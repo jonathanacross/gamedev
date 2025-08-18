@@ -8,93 +8,126 @@ import (
 	"golang.org/x/image/font"
 )
 
-// ShapeTheme defines the color and font theme for UI elements.
+// ShapeTheme holds the color scheme and font face for the UI components.
 type ShapeTheme struct {
-	BackgroundColor    color.RGBA // e.g. dark gray
-	PrimaryColor       color.RGBA // your color theme (for buttons, dropdowns)
-	OnPrimaryColor     color.RGBA // probably white/near white. color of text/border on primary elements
-	AccentColor        color.RGBA // for accents when pressed
-	MenuColor          color.RGBA // Color for the menu background
-	MenuItemHoverColor color.RGBA // Color for menu items on hover
-	Face               font.Face  // The loaded font face
+	PrimaryAccentColor color.Color
+	BackgroundColor    color.Color
+	SurfaceColor       color.Color
+	TextColor          color.Color
+	BorderColor        color.Color
+	Face               font.Face
 }
 
-// ShapeRenderer renders UI elements using graphic primitives without
-// relying on any external image data.
+// Helper function to adjust the brightness of a color.
+func adjustBrightness(c color.Color, factor float64) color.Color {
+	r, g, b, a := c.RGBA()
+	return color.RGBA{
+		R: uint8(float64(r>>8) * factor),
+		G: uint8(float64(g>>8) * factor),
+		B: uint8(float64(b>>8) * factor),
+		A: uint8(a >> 8),
+	}
+}
+
+// Helper function to desaturate a color.
+func desaturateColor(c color.Color) color.Color {
+	r, g, b, a := c.RGBA()
+	gray := uint8(float64(r>>8)*0.299 + float64(g>>8)*0.587 + float64(b>>8)*0.114)
+	return color.RGBA{R: gray, G: gray, B: gray, A: uint8(a >> 8)}
+}
+
+// ShapeRenderer implements the UiRenderer interface.
 type ShapeRenderer struct {
 	theme ShapeTheme
 }
 
-// Ensure ShapeRnderer implements the UiRenderer interface
-var _ UiRenderer = (*ShapeRenderer)(nil)
+// GenerateButtonImage creates an image for a button in a specific state.
+func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+	var bgColor color.Color
+	var textColor color.Color
 
-// GenerateButtonImage draws a button
-func (b *ShapeRenderer) GenerateButtonImage(width, height int, text string, state ButtonState) *ebiten.Image {
-	var bgColor, textColor color.RGBA
 	switch state {
 	case ButtonIdle:
-		bgColor = b.theme.PrimaryColor
-		textColor = b.theme.OnPrimaryColor
-	case ButtonPressed, ButtonHover:
-		bgColor = b.theme.AccentColor
-		textColor = b.theme.OnPrimaryColor
+		bgColor = r.theme.SurfaceColor
+		textColor = r.theme.TextColor
+	case ButtonHover:
+		bgColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
+		textColor = r.theme.TextColor
+	case ButtonPressed:
+		bgColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
+		textColor = r.theme.TextColor
 	case ButtonDisabled:
-		bgColor = b.theme.PrimaryColor
-		textColor = b.theme.OnPrimaryColor
+		bgColor = desaturateColor(r.theme.SurfaceColor)
+		textColor = desaturateColor(r.theme.TextColor)
 	}
 
-	dc := gg.NewContext(width, height)
-
-	// Draw button background with rounded corners
-	cornerRadius := float64(height) * 0.2
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	// Draw button background
+	cornerRadius := 9.0
+	dc.SetColor(bgColor)
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.FillPreserve()
-	// Apply a stroke/border around the rounded rectangle
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+
+	// Draw border
+	if state != ButtonDisabled {
+		dc.SetColor(r.theme.BorderColor)
+	} else {
+		dc.SetColor(desaturateColor(r.theme.BorderColor))
+	}
 	dc.SetLineWidth(1)
 	dc.Stroke()
 
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
-	}
-
-	// Draw button text
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.DrawStringAnchored(text, float64(width)/2, float64(height)/2, 0.5, 0.5)
+	// Draw the text
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(textColor)
+	dc.DrawStringAnchored(textContent, float64(width)/2, float64(height)/2, 0.5, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateDropdownImage implements UiRenderer.GenerateDropdownImage
-func (b *ShapeRenderer) GenerateDropdownImage(width, height int, text string, state ButtonState) *ebiten.Image {
-	var bgColor, textColor color.RGBA
-	switch state {
-	case ButtonIdle:
-		bgColor = b.theme.PrimaryColor
-		textColor = b.theme.OnPrimaryColor
-	case ButtonPressed, ButtonHover:
-		bgColor = b.theme.AccentColor
-		textColor = b.theme.OnPrimaryColor
-	case ButtonDisabled:
-		bgColor = b.theme.PrimaryColor
-		textColor = b.theme.OnPrimaryColor
-	}
-
+// GenerateDropdownImage creates an image for a dropdown button.
+func (r *ShapeRenderer) GenerateDropdownImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Draw the background of the dropdown button as a simple rectangle
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height)) // No rounded corners here
+	// Draw the button background and border
+	var bgColor color.Color
+	var textColor color.Color
+	switch state {
+	case ButtonIdle:
+		bgColor = r.theme.SurfaceColor
+		textColor = r.theme.TextColor
+	case ButtonHover:
+		bgColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
+		textColor = r.theme.TextColor
+	case ButtonPressed:
+		bgColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
+		textColor = r.theme.TextColor
+	case ButtonDisabled:
+		bgColor = desaturateColor(r.theme.SurfaceColor)
+		textColor = desaturateColor(r.theme.TextColor)
+	}
+
+	cornerRadius := 9.0
+	dc.SetColor(bgColor)
+	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
 	dc.FillPreserve()
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+
+	if state != ButtonDisabled {
+		dc.SetColor(r.theme.BorderColor)
+	} else {
+		dc.SetColor(desaturateColor(r.theme.BorderColor))
+	}
 	dc.SetLineWidth(1)
 	dc.Stroke()
 
-	// Draw the V arrow on the right side of the dropdown
-	arrowHeight := float64(height) / 5
-	arrowWidth := 2 * arrowHeight
+	// Draw the text
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(textColor)
+	dc.DrawStringAnchored(textContent, float64(width)/2-10, float64(height)/2, 0.5, 0.5)
 
+	// Draw the dropdown arrow
+	arrowHeight := float64(height) / 7
+	arrowWidth := 2 * arrowHeight
 	padding := float64(width) * 0.05
 	arrowX := float64(width) - arrowWidth - padding
 	arrowY := float64(height)/2 - arrowHeight/2
@@ -102,235 +135,172 @@ func (b *ShapeRenderer) GenerateDropdownImage(width, height int, text string, st
 	dc.MoveTo(arrowX, arrowY)
 	dc.LineTo(arrowX+arrowWidth/2, arrowY+arrowHeight)
 	dc.LineTo(arrowX+arrowWidth, arrowY)
+	dc.SetColor(textColor)
+	dc.SetLineWidth(2)
 	dc.Stroke()
-
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
-	}
-
-	// Set text color and draw the text
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.DrawStringAnchored(text, float64(width)/2-arrowWidth/2, float64(height)/2, 0.5, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateMenuItemImage implements UiRenderer.GenerateMenuItemImage
-func (b *ShapeRenderer) GenerateMenuItemImage(width, height int, text string, state ButtonState) *ebiten.Image {
-	var bgColor, textColor color.RGBA
+// GenerateMenuItemImage creates an image for a menu item.
+func (r *ShapeRenderer) GenerateMenuItemImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+	var bgColor, textColor color.Color
+
 	switch state {
 	case ButtonIdle:
-		bgColor = b.theme.MenuColor
-		textColor = b.theme.OnPrimaryColor
+		bgColor = r.theme.SurfaceColor
+		textColor = r.theme.TextColor
 	case ButtonHover:
-		bgColor = b.theme.MenuItemHoverColor
-		textColor = b.theme.OnPrimaryColor
+		bgColor = r.theme.PrimaryAccentColor
+		textColor = color.White // High contrast for accent color
 	case ButtonPressed:
-		bgColor = b.theme.AccentColor
-		textColor = b.theme.OnPrimaryColor
+		bgColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
+		textColor = color.White
 	case ButtonDisabled:
-		bgColor = b.theme.MenuColor // Disabled menu item same as idle
-		textColor = b.theme.OnPrimaryColor
+		bgColor = desaturateColor(r.theme.SurfaceColor)
+		textColor = desaturateColor(r.theme.TextColor)
 	}
 
-	dc := gg.NewContext(width, height)
-
-	cornerRadius := float64(height) * 0.1
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	cornerRadius := 5.0
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
+	dc.SetColor(bgColor)
 	dc.Fill()
 
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
-	}
-
-	// Draw menu item text
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	textPadding := 10.0
-	dc.DrawStringAnchored(text, textPadding, float64(height)/2, 0.0, 0.5)
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(textColor)
+	dc.DrawStringAnchored(textContent, float64(10), float64(height)/2, 0, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateMenuImage implements UiRenderer.GenerateMenuImage
-func (b *ShapeRenderer) GenerateMenuImage(width, height int) *ebiten.Image {
-	// Menu background doesn't change color based on hover/press, just theme color
-	bgColor := b.theme.MenuColor
-
+// GenerateMenuImage creates an image for the menu's background.
+func (r *ShapeRenderer) GenerateMenuImage(width, height int) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	// Draw menu background (e.g., a simple rectangle) with rounded corners
-	cornerRadius := float64(10)
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
+	cornerRadius := 5.0
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
-	dc.Fill()
+	dc.SetColor(r.theme.SurfaceColor)
+	dc.FillPreserve()
 
-	return ebiten.NewImageFromImage(dc.Image())
-}
-
-// GenerateCheckboxImage implements UiRenderer.GenerateCheckboxImage
-func (b *ShapeRenderer) GenerateCheckboxImage(
-	width, height int,
-	label string,
-	componentState ButtonState,
-	isChecked bool,
-) *ebiten.Image {
-	componentBgColor := b.theme.BackgroundColor
-	labelColor := b.theme.OnPrimaryColor
-	checkmarkColor := b.theme.OnPrimaryColor
-
-	var boxOutlineColor color.RGBA
-	switch componentState {
-	case ButtonIdle, ButtonDisabled:
-		boxOutlineColor = b.theme.PrimaryColor
-	case ButtonPressed, ButtonHover:
-		boxOutlineColor = b.theme.AccentColor
-	}
-
-	dc := gg.NewContext(width, height)
-
-	// Define fixed left padding for the checkbox square
-	const checkboxLeftPadding = 5.0
-	checkboxSize := float64(min(width, height)) * 0.8
-	checkboxPaddingY := (float64(height) - checkboxSize) / 2
-
-	// Text offset starts after the checkbox square and its right padding
-	textOffset := checkboxLeftPadding + checkboxSize + 5.0
-
-	// Draw the checkbox component's overall background
-	dc.SetRGBA255(int(componentBgColor.R), int(componentBgColor.G), int(componentBgColor.B), int(componentBgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height))
-	dc.Fill()
-
-	// Draw the checkbox square outline
-	dc.SetRGBA255(int(boxOutlineColor.R), int(boxOutlineColor.G), int(boxOutlineColor.B), int(boxOutlineColor.A))
-	dc.SetLineWidth(2)
-	dc.DrawRoundedRectangle(checkboxLeftPadding, checkboxPaddingY, checkboxSize, checkboxSize, 3)
-	dc.Stroke()
-
-	// Draw the checkmark if checked
-	if isChecked {
-		dc.SetRGBA255(int(checkmarkColor.R), int(checkmarkColor.G), int(checkmarkColor.B), int(checkmarkColor.A))
-		p1x := checkboxLeftPadding + checkboxSize*0.15
-		p1y := checkboxPaddingY + checkboxSize*0.5
-		p2x := checkboxLeftPadding + checkboxSize*0.5
-		p2y := checkboxPaddingY + checkboxSize*0.85
-		p3x := checkboxLeftPadding + checkboxSize*0.85
-		p3y := checkboxPaddingY + checkboxSize*0.15
-
-		dc.MoveTo(p1x, p1y)
-		dc.LineTo(p2x, p2y)
-		dc.LineTo(p3x, p3y)
-		dc.SetLineWidth(3)
-		dc.Stroke()
-	}
-
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
-	}
-
-	// Draw the label text, positioned after the checkbox
-	dc.SetRGBA255(int(labelColor.R), int(labelColor.G), int(labelColor.B), int(labelColor.A))
-	dc.DrawStringAnchored(label, textOffset, float64(height)/2, 0.0, 0.5)
-
-	return ebiten.NewImageFromImage(dc.Image())
-}
-
-// GenerateTextFieldImage renders a text field.
-func (b *ShapeRenderer) GenerateTextFieldImage(
-	width, height int,
-	text string,
-	componentState ButtonState,
-	isFocused bool,
-	cursorPos int,
-	showCursor bool,
-) *ebiten.Image {
-	var bgColor, textColor color.RGBA
-	switch componentState {
-	case ButtonIdle, ButtonDisabled:
-		bgColor = b.theme.PrimaryColor
-		textColor = b.theme.OnPrimaryColor
-	case ButtonPressed, ButtonHover:
-		bgColor = b.theme.AccentColor
-		textColor = b.theme.OnPrimaryColor
-	}
-
-	dc := gg.NewContext(width, height)
-
-	// Draw text field background
-	dc.SetRGBA255(int(bgColor.R), int(bgColor.G), int(bgColor.B), int(bgColor.A))
-	dc.DrawRectangle(0, 0, float64(width), float64(height))
-	dc.Fill()
-
-	// Draw a thin border
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+	dc.SetColor(r.theme.BorderColor)
 	dc.SetLineWidth(1)
 	dc.Stroke()
 
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// GenerateCheckboxImage creates an image for a checkbox.
+func (r *ShapeRenderer) GenerateCheckboxImage(width, height int, label string, componentState ButtonState, isChecked bool) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Draw the checkbox square
+	checkboxSize := 15
+	checkboxX, checkboxY := 5.0, (float64(height)-float64(checkboxSize))/2
+
+	boxColor := r.theme.SurfaceColor
+	borderColor := r.theme.BorderColor
+	if componentState == ButtonDisabled {
+		boxColor = desaturateColor(boxColor)
+		borderColor = desaturateColor(borderColor)
+	} else if isChecked {
+		boxColor = r.theme.PrimaryAccentColor
+		borderColor = r.theme.PrimaryAccentColor
 	}
 
-	textX := 5.0 // Padding from left edge
-	textY := float64(height) / 2
+	dc.DrawRectangle(checkboxX, checkboxY, float64(checkboxSize), float64(checkboxSize))
+	dc.SetColor(boxColor)
+	dc.Fill()
 
-	// Draw the text
-	dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
-	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5) // Anchor left-center
+	dc.SetColor(borderColor)
+	dc.SetLineWidth(1)
+	dc.DrawRectangle(checkboxX, checkboxY, float64(checkboxSize), float64(checkboxSize))
+	dc.Stroke()
 
-	// Draw blinking cursor if focused and showCursor is true
+	// Draw the checkmark
+	if isChecked {
+		checkColor := r.theme.TextColor
+		if componentState == ButtonDisabled {
+			checkColor = desaturateColor(checkColor)
+		}
+		dc.SetColor(checkColor)
+		dc.SetLineWidth(2)
+		dc.DrawLine(checkboxX+3, checkboxY+float64(checkboxSize)/2, checkboxX+float64(checkboxSize)/2, checkboxY+float64(checkboxSize)-3)
+		dc.DrawLine(checkboxX+float64(checkboxSize)/2, checkboxY+float64(checkboxSize)-3, checkboxX+float64(checkboxSize)-3, checkboxY+3)
+		dc.Stroke()
+	}
+
+	// Draw the label
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(r.theme.TextColor)
+	dc.DrawStringAnchored(label, checkboxX+float64(checkboxSize)+10, float64(height)/2, 0, 0.5)
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// GenerateTextFieldImage creates an image for a text field.
+func (r *ShapeRenderer) GenerateTextFieldImage(width, height int, textContent string, componentState ButtonState, isFocused bool, cursorPos int, showCursor bool) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.SetColor(r.theme.SurfaceColor)
+	dc.Fill()
+
+	borderColor := r.theme.BorderColor
+	if isFocused {
+		borderColor = r.theme.PrimaryAccentColor
+	}
+	if componentState == ButtonDisabled {
+		borderColor = desaturateColor(borderColor)
+	}
+	dc.SetColor(borderColor)
+	dc.SetLineWidth(2)
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Stroke()
+
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(r.theme.TextColor)
+	dc.DrawString(textContent, 5, float64(height)/2)
+
 	if isFocused && showCursor {
-		// Calculate cursor X position based on text width up to cursorPos
-		textRunes := []rune(text)
-		textBeforeCursor := string(textRunes[:min(cursorPos, len(textRunes))])
-
-		cursorXOffset, _ := dc.MeasureString(textBeforeCursor)
-		cursorX := textX + cursorXOffset
-
-		dc.SetRGBA255(int(textColor.R), int(textColor.G), int(textColor.B), int(textColor.A))
+		cursorX := 5.0
+		dc.SetFontFace(r.theme.Face)
+		w, _ := dc.MeasureString(textContent[:cursorPos])
+		cursorX += w
+		dc.SetColor(r.theme.TextColor)
 		dc.SetLineWidth(1)
-		dc.DrawLine(cursorX, textY-float64(b.theme.Face.Metrics().Height)/2, cursorX, textY+float64(b.theme.Face.Metrics().Height)/2)
+		dc.DrawLine(cursorX, 5, cursorX, float64(height-5))
 		dc.Stroke()
 	}
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateLabelImage implements UiRenderer.GenerateLabelImage
-func (b *ShapeRenderer) GenerateLabelImage(
-	width, height int,
-	text string,
-) *ebiten.Image {
+// GenerateLabelImage creates an image for a static text label.
+func (r *ShapeRenderer) GenerateLabelImage(width, height int, textContent string) *ebiten.Image {
 	dc := gg.NewContext(width, height)
+	dc.SetColor(color.Transparent)
+	dc.Clear()
 
-	if b.theme.Face != nil {
-		dc.SetFontFace(b.theme.Face)
-	}
-
-	// Draw the label text
-	dc.SetRGBA255(int(b.theme.OnPrimaryColor.R), int(b.theme.OnPrimaryColor.G), int(b.theme.OnPrimaryColor.B), int(b.theme.OnPrimaryColor.A)) // Use OnPrimaryColor for label text
-	textX := 5.0                                                                                                                              // Small padding from left edge
-	textY := float64(height) / 2
-	dc.DrawStringAnchored(text, textX, textY, 0.0, 0.5)
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(r.theme.TextColor)
+	dc.DrawString(textContent, 0, float64(height)/2)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
 
-// GenerateContainerImage fills a flat background color for the container.
-func (b *ShapeRenderer) GenerateContainerImage(width, height int) *ebiten.Image {
+// GenerateContainerImage creates an image for a container's background.
+func (r *ShapeRenderer) GenerateContainerImage(width, height int) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 
-	dc.SetRGBA255(int(b.theme.BackgroundColor.R), int(b.theme.BackgroundColor.G), int(b.theme.BackgroundColor.B), int(b.theme.BackgroundColor.A))
 	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.SetColor(r.theme.BackgroundColor)
 	dc.Fill()
 
-	return ebiten.NewImageFromImage(dc.Image())
-}
+	dc.SetColor(r.theme.BorderColor)
+	dc.SetLineWidth(2)
+	dc.DrawRectangle(0, 0, float64(width), float64(height))
+	dc.Stroke()
 
-// Finds the minimum of two integers.
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+	return ebiten.NewImageFromImage(dc.Image())
 }

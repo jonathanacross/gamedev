@@ -3,11 +3,9 @@ package main
 import (
 	"image/color"
 	"log"
-	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font/basicfont"
 )
 
 const (
@@ -32,55 +30,34 @@ func (g *Demo) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ScreenWidth, ScreenHeight
 }
 
-func loadFontFace() font.Face {
-	fontPath := "Go-Mono.ttf"
-	fontSize := 14.0
-
-	fontBytes, err := os.ReadFile(fontPath)
-	if err != nil {
-		log.Fatalf("Error loading font %s: %v", fontPath, err)
-	}
-
-	tt, err := opentype.Parse(fontBytes)
-	if err != nil {
-		log.Fatalf("Error parsing font: %v", err)
-	}
-
-	face, err := opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    fontSize,
-		DPI:     72,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		log.Fatalf("Error creating font face: %v", err)
-	}
-
-	return face
-}
-
 func NewDemo() *Demo {
-	face := loadFontFace()
+	face := basicfont.Face7x13
 
 	theme := ShapeTheme{
-		BackgroundColor:    color.RGBA{20, 20, 20, 255},
-		PrimaryColor:       color.RGBA{120, 120, 120, 255},
-		OnPrimaryColor:     color.RGBA{255, 255, 255, 255},
-		AccentColor:        color.RGBA{220, 120, 120, 255},
-		MenuColor:          color.RGBA{100, 100, 100, 255},
-		MenuItemHoverColor: color.RGBA{120, 120, 120, 255},
+		PrimaryAccentColor: color.RGBA{R: 0x40, G: 0x70, B: 0xB0, A: 0xFF},
+		BackgroundColor:    color.RGBA{R: 0x1A, G: 0x20, B: 0x2C, A: 0xFF},
+		SurfaceColor:       color.RGBA{R: 0x2D, G: 0x37, B: 0x48, A: 0xFF},
+		TextColor:          color.RGBA{R: 0xF8, G: 0xF8, B: 0xF8, A: 0xFF},
+		BorderColor:        color.RGBA{R: 0x4A, G: 0x55, B: 0x68, A: 0xFF},
 		Face:               face,
 	}
+
 	uiGenerator := &ShapeRenderer{theme}
 
 	ui := NewUi(0, 0, ScreenWidth, ScreenHeight)
 
-	// --- A button ---
-	button := NewButton(100, 100, 200, 50, "Click me!", uiGenerator)
+	// --- Buttons ---
+	button := NewButton(100, 100, 150, 40, "Click me!", uiGenerator)
 	button.SetClickHandler(func() {
-		log.Println("Regular button clicked!")
+		log.Println("Button clicked!")
 		button.SetText("Clicked!")
 	})
 	ui.AddChild(button)
+
+	button2 := NewButton(300, 100, 150, 40, "Disabled", uiGenerator)
+	button2.state = ButtonDisabled
+	button.SetClickHandler(func() {})
+	ui.AddChild(button2)
 
 	// --- Dropdown Menu ---
 	menuWidth := 200
