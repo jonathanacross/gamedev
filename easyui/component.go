@@ -122,10 +122,19 @@ func ContainsPoint(comp Component, absX, absY int) bool {
 		absY >= compAbsBounds.Min.Y && absY < compAbsBounds.Max.Y
 }
 
-// Focus is a no-op for the base component.
+// HandlePress is a no-op for a basic component.
+func (c *component) HandlePress() {}
+
+// HandleRelease is a no-op for a basic component.
+func (c *component) HandleRelease() {}
+
+// HandleClick is a no-op for a basic component.
+func (c *component) HandleClick() {}
+
+// Focus is a no-op for a basic component.
 func (c *component) Focus() {}
 
-// Unfocus is a no-op for the base component.
+// Unfocus is a no-op for a basic component.
 func (c *component) Unfocus() {}
 
 // interactiveComponent is a base struct for components that respond to mouse interaction.

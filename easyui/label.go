@@ -55,18 +55,3 @@ func (l *Label) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(float64(absX), float64(absY))
 	screen.DrawImage(l.idleImg, op)
 }
-
-// HandlePress is a no-op for a Label.
-func (l *Label) HandlePress() {}
-
-// HandleRelease is a no-op for a Label.
-func (l *Label) HandleRelease() {}
-
-// HandleClick is a no-op for a Label.
-func (l *Label) HandleClick() {}
-
-// Focus is a no-op for a Label.
-func (l *Label) Focus() {}
-
-// Unfocus is a no-op for a Label.
-func (l *Label) Unfocus() {}

@@ -72,9 +72,3 @@ func (b *Button) HandleClick() {
 		b.onClick()
 	}
 }
-
-// Focus is a no-op for a Button.
-func (b *Button) Focus() {}
-
-// Unfocus is a no-op for a Button.
-func (b *Button) Unfocus() {}

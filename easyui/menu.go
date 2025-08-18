@@ -136,9 +136,3 @@ func (m *Menu) SetPosition(x, y int) {
 	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
 	log.Printf("Menu.SetPosition: Menu position set to (%d, %d). New Bounds: %v (Dx: %d, Dy: %d)", x, y, m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
 }
-
-// HandlePress is a no-op for the menu background.
-func (m *Menu) HandlePress() {}
-
-// HandleRelease is a no-op for the menu background.
-func (m *Menu) HandleRelease() {}

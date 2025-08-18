@@ -59,18 +59,3 @@ func (c *Container) SetSize(width, height int) {
 	c.Bounds.Max.Y = c.Bounds.Min.Y + height
 	c.backgroundImg = c.renderer.GenerateContainerImage(width, height)
 }
-
-// HandlePress is a no-op for a static container.
-func (c *Container) HandlePress() {}
-
-// HandleRelease is a no-op for a static container.
-func (c *Container) HandleRelease() {}
-
-// HandleClick is a no-op for a static container.
-func (c *Container) HandleClick() {}
-
-// Focus is a no-op for a Container.
-func (c *Container) Focus() {}
-
-// Unfocus is a no-op for a Container.
-func (c *Container) Unfocus() {}

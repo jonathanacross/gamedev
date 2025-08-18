@@ -83,9 +83,3 @@ func (d *DropDown) HandleClick() {
 		d.menu.Show()
 	}
 }
-
-// Focus is a no-op for a DropDown.
-func (d *DropDown) Focus() {}
-
-// Unfocus is a no-op for a DropDown.
-func (d *DropDown) Unfocus() {}
