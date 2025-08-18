@@ -141,3 +141,9 @@ func (c *Checkbox) HandleClick() {
 		log.Printf("Checkbox '%s' clicked. New state: %t", c.Label, c.Checked)
 	}
 }
+
+// Focus is a no-op for a Checkbox.
+func (c *Checkbox) Focus() {}
+
+// Unfocus is a no-op for a Checkbox.
+func (c *Checkbox) Unfocus() {}

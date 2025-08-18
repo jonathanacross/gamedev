@@ -68,3 +68,9 @@ func (c *Container) HandleRelease() {}
 
 // HandleClick is a no-op for a static container.
 func (c *Container) HandleClick() {}
+
+// Focus is a no-op for a Container.
+func (c *Container) Focus() {}
+
+// Unfocus is a no-op for a Container.
+func (c *Container) Unfocus() {}

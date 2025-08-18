@@ -56,11 +56,17 @@ func (l *Label) Draw(screen *ebiten.Image) {
 	screen.DrawImage(l.idleImg, op)
 }
 
-// HandlePress is a no-op for a static Label.
+// HandlePress is a no-op for a Label.
 func (l *Label) HandlePress() {}
 
-// HandleRelease is a no-op for a static Label.
+// HandleRelease is a no-op for a Label.
 func (l *Label) HandleRelease() {}
 
-// HandleClick is a no-op for a static Label.
+// HandleClick is a no-op for a Label.
 func (l *Label) HandleClick() {}
+
+// Focus is a no-op for a Label.
+func (l *Label) Focus() {}
+
+// Unfocus is a no-op for a Label.
+func (l *Label) Unfocus() {}

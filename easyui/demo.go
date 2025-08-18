@@ -94,6 +94,9 @@ func NewDemo() *Demo {
 	nameField := NewTextField(100, 250, 300, 30, "Enter your name", uiGenerator)
 	ui.AddChild(nameField)
 
+	textField2 := NewTextField(100, 290, 300, 30, "another field", uiGenerator)
+	ui.AddChild(textField2)
+
 	// --- Container ---
 	container := NewContainer(50, 350, 700, 100, uiGenerator)
 	ui.AddChild(container)

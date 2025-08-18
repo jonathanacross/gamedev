@@ -2,10 +2,42 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
+
+// keyRepeatTracker manages the state for key repeat functionality.
+type keyRepeatTracker struct {
+	lastKeyEvent   time.Time
+	key            ebiten.Key
+	repeatCount    int
+	initialDelay   time.Duration
+	repeatInterval time.Duration
+}
+
+// newKeyRepeatTracker initializes a new tracker with default settings.
+func newKeyRepeatTracker() *keyRepeatTracker {
+	return &keyRepeatTracker{
+		initialDelay:   400 * time.Millisecond,
+		repeatInterval: 50 * time.Millisecond,
+	}
+}
+
+// isReadyToRepeat checks if the key is ready for a new repeat event.
+func (krt *keyRepeatTracker) isReadyToRepeat() bool {
+	if krt.key == ebiten.Key(0) {
+		return false // No key is being held
+	}
+
+	elapsed := time.Since(krt.lastKeyEvent)
+	if krt.repeatCount == 0 {
+		return elapsed >= krt.initialDelay
+	} else {
+		return elapsed >= krt.repeatInterval
+	}
+}
 
 // TextField represents a single-line text input field.
 type TextField struct {
@@ -15,6 +47,7 @@ type TextField struct {
 	cursorPos  int
 	blinkTimer float64
 	renderer   UiRenderer
+	keyRepeat  *keyRepeatTracker
 }
 
 // NewTextField creates a new TextField instance.
@@ -30,6 +63,7 @@ func NewTextField(x, y, width, height int, initialText string, renderer UiRender
 		Text:      initialText,
 		cursorPos: len(initialText), // Cursor at end initially
 		renderer:  renderer,
+		keyRepeat: newKeyRepeatTracker(),
 	}
 	tf.interactiveComponent = NewInteractiveComponent(x, y, width, height,
 		idle, pressed, hover, disabled, tf)
@@ -51,23 +85,9 @@ func (tf *TextField) Update() {
 	showCursor := tf.isFocused && (tf.blinkTimer < 60)
 
 	if tf.isFocused {
-		// Handle character input
-		for _, char := range ebiten.InputChars() {
-			if char >= ' ' && char <= '~' { // Basic printable ASCII characters
-				tf.Text = tf.Text[:tf.cursorPos] + string(char) + tf.Text[tf.cursorPos:]
-				tf.cursorPos++
-			}
-		}
+		tf.handleTextInput()
 
-		// Handle backspace
-		if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
-			if tf.cursorPos > 0 {
-				tf.Text = tf.Text[:tf.cursorPos-1] + tf.Text[tf.cursorPos:]
-				tf.cursorPos--
-			}
-		}
-
-		// Handle left/right arrow keys for cursor movement
+		// Handle left/right arrow keys for cursor movement (without repeat)
 		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 			if tf.cursorPos > 0 {
 				tf.cursorPos--
@@ -80,22 +100,60 @@ func (tf *TextField) Update() {
 		}
 
 		// Regenerate the image to reflect new text/cursor
-		tf.idleImg = tf.renderer.GenerateTextFieldImage(
-			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.Text, ButtonIdle, tf.isFocused, tf.cursorPos, showCursor)
-
-		tf.hoverImg = tf.renderer.GenerateTextFieldImage(
-			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.Text, ButtonHover, tf.isFocused, tf.cursorPos, showCursor)
-
-		tf.pressedImg = tf.renderer.GenerateTextFieldImage(
-			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.Text, ButtonPressed, tf.isFocused, tf.cursorPos, showCursor)
-
-		tf.disabledImg = tf.renderer.GenerateTextFieldImage(
-			tf.Bounds.Dx(), tf.Bounds.Dy(),
-			tf.Text, ButtonDisabled, tf.isFocused, tf.cursorPos, showCursor)
+		tf.regenerateImages(tf.isFocused, showCursor)
 	}
+}
+
+// handleTextInput handles all character and backspace input, including key repeat.
+func (tf *TextField) handleTextInput() {
+	// Handle character input from keyboard
+	for _, char := range ebiten.InputChars() {
+		tf.Text = tf.Text[:tf.cursorPos] + string(char) + tf.Text[tf.cursorPos:]
+		tf.cursorPos++
+	}
+
+	// Handle backspace with key repeat
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+		if tf.cursorPos > 0 {
+			tf.Text = tf.Text[:tf.cursorPos-1] + tf.Text[tf.cursorPos:]
+			tf.cursorPos--
+			tf.keyRepeat.lastKeyEvent = time.Now()
+			tf.keyRepeat.key = ebiten.KeyBackspace
+			tf.keyRepeat.repeatCount = 0
+		}
+	} else if ebiten.IsKeyPressed(ebiten.KeyBackspace) {
+		if tf.keyRepeat.key == ebiten.KeyBackspace && tf.keyRepeat.isReadyToRepeat() {
+			if tf.cursorPos > 0 {
+				tf.Text = tf.Text[:tf.cursorPos-1] + tf.Text[tf.cursorPos:]
+				tf.cursorPos--
+				tf.keyRepeat.lastKeyEvent = time.Now()
+				tf.keyRepeat.repeatCount++
+			}
+		}
+	} else if tf.keyRepeat.key == ebiten.KeyBackspace && !ebiten.IsKeyPressed(ebiten.KeyBackspace) {
+		// Reset state if key is released
+		tf.keyRepeat.key = ebiten.Key(0)
+		tf.keyRepeat.repeatCount = 0
+	}
+}
+
+// regenerateImages updates the cached images for the text field's states.
+func (tf *TextField) regenerateImages(isFocused bool, showCursor bool) {
+	tf.idleImg = tf.renderer.GenerateTextFieldImage(
+		tf.Bounds.Dx(), tf.Bounds.Dy(),
+		tf.Text, ButtonIdle, isFocused, tf.cursorPos, showCursor)
+
+	tf.hoverImg = tf.renderer.GenerateTextFieldImage(
+		tf.Bounds.Dx(), tf.Bounds.Dy(),
+		tf.Text, ButtonHover, isFocused, tf.cursorPos, showCursor)
+
+	tf.pressedImg = tf.renderer.GenerateTextFieldImage(
+		tf.Bounds.Dx(), tf.Bounds.Dy(),
+		tf.Text, ButtonPressed, isFocused, tf.cursorPos, showCursor)
+
+	tf.disabledImg = tf.renderer.GenerateTextFieldImage(
+		tf.Bounds.Dx(), tf.Bounds.Dy(),
+		tf.Text, ButtonDisabled, isFocused, tf.cursorPos, showCursor)
 }
 
 // Draw draws the text field's current state image to the screen.
@@ -115,39 +173,35 @@ func (tf *TextField) HandleRelease() {
 
 // HandleClick toggles the focus state of the text field.
 func (tf *TextField) HandleClick() {
-	// If the click happened on this text field, focus it.
-	cx, cy := ebiten.CursorPosition()
-	clickedInside := ContainsPoint(tf, cx, cy)
-
-	if clickedInside {
-		if !tf.isFocused {
-			log.Println("TextField focused!")
-			tf.isFocused = true
-			tf.cursorPos = len(tf.Text)
-			tf.blinkTimer = 0
-		}
-	} else {
-		// If click was outside, lose focus
-		if tf.isFocused {
-			log.Println("TextField unfocused.")
-			tf.isFocused = false
+	// Use a centralized approach to manage focus
+	rootUi := tf.GetRootUi()
+	if rootUi != nil {
+		cx, cy := ebiten.CursorPosition()
+		clickedInside := ContainsPoint(tf, cx, cy)
+		if clickedInside {
+			rootUi.SetFocusedComponent(tf.self)
+		} else {
+			rootUi.SetFocusedComponent(nil)
 		}
 	}
+}
 
-	// Re-render image to reflect focus change and current cursor state
-	// Determine showCursor based on new focus state (and potentially reset blink timer if focused)
-	showCursor := tf.isFocused // Initially assume true if focused, will be handled by update loop's blink logic
+// Focus is called by the Ui when this component gains focus.
+func (tf *TextField) Focus() {
+	if !tf.isFocused {
+		log.Println("TextField focused!")
+		tf.isFocused = true
+		tf.cursorPos = len(tf.Text)
+		tf.blinkTimer = 0
+		tf.regenerateImages(tf.isFocused, tf.isFocused)
+	}
+}
 
-	tf.idleImg = tf.renderer.GenerateTextFieldImage(
-		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.Text, ButtonIdle, tf.isFocused, tf.cursorPos, showCursor)
-	tf.hoverImg = tf.renderer.GenerateTextFieldImage(
-		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.Text, ButtonHover, tf.isFocused, tf.cursorPos, showCursor)
-	tf.pressedImg = tf.renderer.GenerateTextFieldImage(
-		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.Text, ButtonPressed, tf.isFocused, tf.cursorPos, showCursor)
-	tf.disabledImg = tf.renderer.GenerateTextFieldImage(
-		tf.Bounds.Dx(), tf.Bounds.Dy(),
-		tf.Text, ButtonDisabled, tf.isFocused, tf.cursorPos, showCursor)
+// Unfocus is called by the Ui when this component loses focus.
+func (tf *TextField) Unfocus() {
+	if tf.isFocused {
+		log.Println("TextField unfocused.")
+		tf.isFocused = false
+		tf.regenerateImages(tf.isFocused, tf.isFocused)
+	}
 }

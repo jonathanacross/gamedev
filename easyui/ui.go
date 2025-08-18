@@ -12,6 +12,7 @@ type Ui struct {
 	component
 	modalComponent   Component
 	pressedComponent Component
+	focusedComponent Component
 }
 
 // NewUi creates a new Ui instance with the specified dimensions.
@@ -19,6 +20,7 @@ func NewUi(x, y, width, height int) *Ui {
 	u := &Ui{
 		modalComponent:   nil,
 		pressedComponent: nil,
+		focusedComponent: nil,
 	}
 	u.component = NewComponent(x, y, width, height, u)
 	return u
@@ -28,6 +30,7 @@ func NewUi(x, y, width, height int) *Ui {
 // It also handles centralized mouse input detection for true click behavior and modal management.
 func (u *Ui) Update() {
 	// Update all currently active components (modal first, then others).
+	// This allows components to update their internal state (e.g., text field cursor blink, hover effect).
 	if u.modalComponent != nil {
 		u.modalComponent.Update()
 	} else {
@@ -44,12 +47,6 @@ func (u *Ui) Update() {
 		if currentModal != nil {
 			// Check if the press occurred on the modal component or its children
 			if ContainsPoint(currentModal, cx, cy) {
-				// Check for disabled state before handling press
-				if stateful, ok := currentModal.(ComponentWithState); ok && stateful.GetState() == ButtonDisabled {
-					u.pressedComponent = nil
-					return
-				}
-
 				u.pressedComponent = currentModal
 				currentModal.HandlePress()
 
@@ -58,14 +55,10 @@ func (u *Ui) Update() {
 				modalChildren := currentModal.GetChildren()
 				for i := len(modalChildren) - 1; i >= 0; i-- {
 					child := modalChildren[i]
-					if ContainsPoint(child, cx, cy) {
-						if stateful, ok := child.(ComponentWithState); ok && stateful.GetState() == ButtonDisabled {
-							u.pressedComponent = nil
-							return
-						}
 
+					if ContainsPoint(child, cx, cy) {
 						u.pressedComponent = child
-						u.pressedComponent.HandlePress()
+						child.HandlePress()
 						break // Only one child can be pressed
 					}
 				}
@@ -78,30 +71,9 @@ func (u *Ui) Update() {
 			for i := len(u.children) - 1; i >= 0; i-- {
 				child := u.children[i]
 				if ContainsPoint(child, cx, cy) {
-					if stateful, ok := child.(ComponentWithState); ok && stateful.GetState() == ButtonDisabled {
-						u.pressedComponent = nil
-						return
-					}
-
 					u.pressedComponent = child
 					u.pressedComponent.HandlePress()
 					break
-				}
-			}
-		}
-	} else if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		// Mouse is currently held down. Check if the pressed component's state needs to be updated.
-		if u.pressedComponent != nil {
-			// Use a type assertion with a comma-ok check to handle components that do not have a state (like Label).
-			if statefulComponent, ok := u.pressedComponent.(ComponentWithState); ok {
-				if statefulComponent.GetState() == ButtonDisabled {
-					return
-				}
-
-				if ContainsPoint(statefulComponent, cx, cy) {
-					statefulComponent.SetState(ButtonPressed)
-				} else {
-					statefulComponent.SetState(ButtonIdle)
 				}
 			}
 		}
@@ -110,24 +82,27 @@ func (u *Ui) Update() {
 	// Handle Mouse Button Release (ButtonUp)
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		if u.pressedComponent != nil {
+			// Store pressedComponent in a local variable BEFORE calling HandleClick
+			// because HandleClick might clear u.pressedComponent (e.g., via ClearModal).
 			originalPressedComponent := u.pressedComponent
 
-			if stateful, ok := originalPressedComponent.(ComponentWithState); ok && stateful.GetState() == ButtonDisabled {
-				u.pressedComponent = nil
-				return
-			}
-
 			if ContainsPoint(originalPressedComponent, cx, cy) {
+				// This is a "click" - released over the same component that was pressed
 				originalPressedComponent.HandleClick()
 			}
+
+			// Always call release on the original component, regardless if HandleClick cleared u.pressedComponent.
+			// The original component should still be valid.
 			originalPressedComponent.HandleRelease()
-			u.pressedComponent = nil
+			u.pressedComponent = nil // Clear pressed component after handling release
 		} else {
+			// No component was pressed (e.g., clicked on background), but released.
+			// This specifically handles closing a modal when clicking outside its bounds.
 			currentModal := u.modalComponent
 			if currentModal != nil {
 				if !ContainsPoint(currentModal, cx, cy) {
-					log.Println("Ui.Update: Mouse released on modal background (outside modal's bounds), calling modal's HandleClick (to close).")
-					currentModal.HandleClick()
+					log.Println("Ui.Update: Mouse released on modal background (outside modal's bounds), calling modal's HandleClick (to close).") // Diagnostic
+					currentModal.HandleClick()                                                                                                     // This will typically hide the menu
 				}
 			}
 		}
@@ -156,8 +131,26 @@ func (u *Ui) SetModal(c Component) {
 func (u *Ui) ClearModal() {
 	log.Printf("Ui.ClearModal: Modal component cleared (was type %T).", u.modalComponent)
 	u.modalComponent = nil
-	u.pressedComponent = nil
+	u.pressedComponent = nil // Also clear any lingering pressed state related to the modal
 }
+
+// SetFocusedComponent manages focus for interactive components.
+// It will unfocus the previously focused component and focus the new one.
+func (u *Ui) SetFocusedComponent(c Component) {
+	if u.focusedComponent != nil {
+		u.focusedComponent.Unfocus()
+	}
+	u.focusedComponent = c
+	if u.focusedComponent != nil {
+		u.focusedComponent.Focus()
+	}
+}
+
+// Focus is a no-op for the root UI.
+func (u *Ui) Focus() {}
+
+// Unfocus is a no-op for the root UI.
+func (u *Ui) Unfocus() {}
 
 // HandlePress is a no-op for the root UI.
 func (u *Ui) HandlePress() {}

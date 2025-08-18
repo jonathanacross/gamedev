@@ -27,14 +27,10 @@ type Component interface {
 	HandleClick()
 	GetChildren() []Component
 	SetParent(Component)
+	GetParent() Component
 	GetAbsolutePosition() (int, int)
-}
-
-// ComponentWithState is an interface for components that have a managed state.
-type ComponentWithState interface {
-	Component
-	SetState(state ButtonState)
-	GetState() ButtonState
+	Focus()
+	Unfocus()
 }
 
 // component is the base struct that other UI widgets will embed.
@@ -81,6 +77,11 @@ func (c *component) SetParent(parent Component) {
 	c.parent = parent
 }
 
+// GetParent returns the parent of this component.
+func (c *component) GetParent() Component {
+	return c.parent
+}
+
 // GetAbsolutePosition calculates and returns the component's absolute (window) X and Y coordinates.
 func (c *component) GetAbsolutePosition() (int, int) {
 	absX, absY := c.Bounds.Min.X, c.Bounds.Min.Y
@@ -91,6 +92,19 @@ func (c *component) GetAbsolutePosition() (int, int) {
 		absY += parentAbsY
 	}
 	return absX, absY
+}
+
+// GetRootUi traverses the parent hierarchy to find the root Ui component.
+func (c *component) GetRootUi() *Ui {
+	current := c.parent
+	for current != nil {
+		if rootUi, ok := current.(*Ui); ok {
+			return rootUi
+		}
+		// Move up the hierarchy
+		current = current.GetParent()
+	}
+	return nil
 }
 
 // ContainsPoint checks if a given (x, y) coordinate (absolute window coordinates)
@@ -107,6 +121,12 @@ func ContainsPoint(comp Component, absX, absY int) bool {
 	return absX >= compAbsBounds.Min.X && absX < compAbsBounds.Max.X &&
 		absY >= compAbsBounds.Min.Y && absY < compAbsBounds.Max.Y
 }
+
+// Focus is a no-op for the base component.
+func (c *component) Focus() {}
+
+// Unfocus is a no-op for the base component.
+func (c *component) Unfocus() {}
 
 // interactiveComponent is a base struct for components that respond to mouse interaction.
 // It manages common visual states like idle, pressed, hover, and disabled.
@@ -138,25 +158,47 @@ func (ic *interactiveComponent) Update() {
 		return
 	}
 
-	// Only manage hover state here; state changes for button click/release
-	// handled in ui.go
-	cx, cy := ebiten.CursorPosition()
+	cx, cy := ebiten.CursorPosition() // in absolute coordinates
 	cursorInBounds := ContainsPoint(ic.self, cx, cy)
 
-	if cursorInBounds {
-		ic.state = ButtonHover
-	} else {
-		ic.state = ButtonIdle
+	// Only manage hover state here. Do not change state if currently pressed down.
+	if ic.state != ButtonPressed {
+		if cursorInBounds {
+			ic.state = ButtonHover
+		} else {
+			ic.state = ButtonIdle
+		}
 	}
 }
 
 // Draw handles the generic drawing for any interactiveComponent.
 // Concrete components will often call this method.
 func (ic *interactiveComponent) Draw(screen *ebiten.Image) {
-	absX, absY := ic.GetAbsolutePosition()
+	absX, absY := ic.GetAbsolutePosition() // Get absolute position
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(absX), float64(absY))
 	screen.DrawImage(ic.GetCurrentStateImage(), op)
+}
+
+// HandlePress sets the component to the pressed state.
+func (ic *interactiveComponent) HandlePress() {
+	if ic.state != ButtonDisabled {
+		ic.state = ButtonPressed
+	}
+}
+
+// HandleRelease resets the component's state after a mouse release.
+func (ic *interactiveComponent) HandleRelease() {
+	if ic.state == ButtonDisabled {
+		return
+	}
+	cx, cy := ebiten.CursorPosition()
+	// If the mouse is released over the component, set to Hover, otherwise Idle.
+	if ContainsPoint(ic.self, cx, cy) {
+		ic.state = ButtonHover
+	} else {
+		ic.state = ButtonIdle
+	}
 }
 
 // GetCurrentStateImage returns the correct image for the component's current state.
@@ -177,36 +219,13 @@ func (ic *interactiveComponent) GetCurrentStateImage() *ebiten.Image {
 	}
 }
 
-// HandlePress sets the component to the pressed state.
-func (ic *interactiveComponent) HandlePress() {
-	if ic.state == ButtonDisabled {
-		return
-	}
-	ic.state = ButtonPressed
-}
-
-// HandleRelease resets the component's state after a mouse release.
-func (ic *interactiveComponent) HandleRelease() {
-	if ic.state == ButtonDisabled {
-		return
-	}
-	cx, cy := ebiten.CursorPosition()
-	if ContainsPoint(ic.self, cx, cy) {
-		ic.state = ButtonHover
-	} else {
-		ic.state = ButtonIdle
-	}
-}
-
 // HandleClick is a dummy method for the base interactiveComponent.
+// Concrete interactive components (Button, TextField, Checkbox, Dropdown) will override this
+// to perform their specific action.
 func (ic *interactiveComponent) HandleClick() {}
 
-// SetState sets the button's state directly, used by the centralized UI.
-func (ic *interactiveComponent) SetState(state ButtonState) {
-	ic.state = state
-}
+// Focus is a no-op for the base interactive component.
+func (ic *interactiveComponent) Focus() {}
 
-// GetState returns the current state of the button.
-func (ic *interactiveComponent) GetState() ButtonState {
-	return ic.state
-}
+// Unfocus is a no-op for the base interactive component.
+func (ic *interactiveComponent) Unfocus() {}
