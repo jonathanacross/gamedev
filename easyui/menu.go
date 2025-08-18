@@ -14,7 +14,6 @@ type Menu struct {
 	renderer   UiRenderer
 	background *ebiten.Image
 	parentUi   *Ui
-	justOpened bool // True if the menu was just opened this frame. Prevents immediate self-close.
 }
 
 // NewMenu creates a new Menu instance.
@@ -32,7 +31,6 @@ func NewMenu(x, y, width int, renderer UiRenderer, parentUi *Ui) *Menu {
 	m.component = NewComponent(x, y, width, defaultInitialMenuHeight, m)
 
 	m.isVisible = false
-	m.justOpened = false
 
 	// Initial background image generation
 	m.background = m.renderer.GenerateMenuImage(m.Bounds.Dx(), m.Bounds.Dy())
@@ -73,9 +71,6 @@ func (m *Menu) Update() {
 	if !m.isVisible {
 		return
 	}
-	// Clear the justOpened flag after the first frame
-	m.justOpened = false
-
 	for _, item := range m.items {
 		item.Update()
 	}
@@ -102,21 +97,17 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 
 // HandleClick passes the click to the correct menu item if the click is within the menu.
 func (m *Menu) HandleClick() {
-	// If a click happens on the menu background, it's a no-op. The click is handled by the items.
-	// If the click is outside the menu, the modal system in ui.go will call this
-	// and we should close the menu.
-	if m.isVisible && !m.justOpened {
-		log.Println("Menu.HandleClick: Closing menu because a click was registered outside its bounds.") // Diagnostic
-		m.Hide()
-	}
+	// This method is called by the UI when a click occurs outside the modal.
+	// We simply hide the menu.
+	log.Println("Menu.HandleClick: Closing menu because a click was registered outside its bounds.") // Diagnostic
+	m.Hide()
 }
 
 // Show makes the menu visible and sets it as the modal component in the UI.
 func (m *Menu) Show() {
 	log.Printf("Menu.Show: Parent UI: %v", m.parentUi) // Diagnostic
 	m.isVisible = true
-	m.justOpened = true
-	log.Printf("Menu.Show: Menu set to visible and justOpened=true. Current Bounds: %v (Dx: %d, Dy: %d)", m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
+	log.Printf("Menu.Show: Menu set to visible. Current Bounds: %v (Dx: %d, Dy: %d)", m.Bounds, m.Bounds.Dx(), m.Bounds.Dy()) // Diagnostic
 	if m.parentUi != nil {
 		m.parentUi.SetModal(m)
 	}
