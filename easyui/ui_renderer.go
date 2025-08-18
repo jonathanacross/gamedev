@@ -24,6 +24,11 @@ type UiRenderer interface {
 	// `isChecked` refers to the checkbox's boolean checked/unchecked status
 	GenerateCheckboxImage(width, height int, label string, componentState ButtonState, isChecked bool) *ebiten.Image
 
+	// GenerateRadioButtonImage creates an image for a checkbox in a specific state and checked status.
+	// `componentState` refers to ButtonState (Idle, Hover, Pressed, Disabled)
+	// `isChecked` refers to the checkbox's boolean checked/unchecked status
+	GenerateRadioButtonImage(width, height int, label string, componentState ButtonState, isChecked bool) *ebiten.Image
+
 	// GenerateTextFieldImage creates an image for a text field in a specific state, with its current text and cursor.
 	// `showCursor` is a boolean indicating whether the cursor should be drawn.
 	GenerateTextFieldImage(width, height int, text string, componentState ButtonState, isFocused bool, cursorPos int, showCursor bool) *ebiten.Image

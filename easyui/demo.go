@@ -94,6 +94,31 @@ func NewDemo() *Demo {
 	}
 	container.AddChild(checkbox)
 
+	// --- Radio buttons ---
+	radioLabels := []string{"Peanuts", "Crackers", "Cookies"}
+	radioButtons := make([]*RadioButton, len(radioLabels))
+	initialY := 150
+
+	for i, label := range radioLabels {
+		rb := NewRadioButton(400, initialY+(i*30), 150, 30, label, i == 0, uiGenerator) // i==0 sets the first button as checked
+		radioButtons[i] = rb
+		container.AddChild(rb)
+
+		// Create a closure to capture the correct button for the handler
+		currentButton := rb
+		currentButton.OnCheckChanged = func(checked bool) {
+			if checked {
+				log.Printf("Radio button '%s' checked.", currentButton.Label)
+				// Uncheck all other radio buttons
+				for _, otherRb := range radioButtons {
+					if otherRb != currentButton {
+						otherRb.SetChecked(false)
+					}
+				}
+			}
+		}
+	}
+
 	// --- TextField ---
 	nameField := NewTextField(50, 200, 300, 30, "Enter your name", uiGenerator)
 	container.AddChild(nameField)

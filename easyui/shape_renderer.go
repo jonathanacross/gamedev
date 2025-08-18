@@ -108,8 +108,8 @@ func (r *ShapeRenderer) GenerateDropdownImage(width, height int, textContent str
 	}
 
 	cornerRadius := 9.0
-	dc.SetColor(bgColor)
 	dc.DrawRoundedRectangle(0, 0, float64(width), float64(height), cornerRadius)
+	dc.SetColor(bgColor)
 	dc.FillPreserve()
 
 	if state != ButtonDisabled {
@@ -258,6 +258,76 @@ func (r *ShapeRenderer) GenerateCheckboxImage(width, height int, label string, c
 	dc.SetFontFace(r.theme.Face)
 	dc.SetColor(r.theme.TextColor)
 	dc.DrawStringAnchored(label, checkboxX+float64(checkboxSize)+10, float64(height)/2, 0, 0.5)
+
+	return ebiten.NewImageFromImage(dc.Image())
+}
+
+// GenerateRadioButtonImage creates an image for a radio button.
+func (r *ShapeRenderer) GenerateRadioButtonImage(width, height int, label string, componentState ButtonState, isChecked bool) *ebiten.Image {
+	dc := gg.NewContext(width, height)
+
+	// Draw the radio button circle
+	circleRadius := 7.0
+	circleX, circleY := 5.0+circleRadius, (float64(height)/2)+0.5 // Center the circle vertically in the component, +0.5 to fix pixel alignment
+
+	var circleColor, borderColor color.Color
+
+	if isChecked {
+		switch componentState {
+		case ButtonIdle:
+			circleColor = r.theme.PrimaryAccentColor
+			borderColor = r.theme.PrimaryAccentColor
+		case ButtonHover:
+			circleColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
+			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 1.2)
+		case ButtonPressed:
+			circleColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
+			borderColor = adjustBrightness(r.theme.PrimaryAccentColor, 0.8)
+		case ButtonDisabled:
+			circleColor = desaturateColor(r.theme.PrimaryAccentColor)
+			borderColor = desaturateColor(r.theme.PrimaryAccentColor)
+		}
+	} else { // unchecked
+		switch componentState {
+		case ButtonIdle:
+			circleColor = r.theme.SurfaceColor
+			borderColor = r.theme.BorderColor
+		case ButtonHover:
+			circleColor = adjustBrightness(r.theme.SurfaceColor, 1.2)
+			borderColor = adjustBrightness(r.theme.BorderColor, 1.2)
+		case ButtonPressed:
+			circleColor = adjustBrightness(r.theme.SurfaceColor, 0.8)
+			borderColor = adjustBrightness(r.theme.BorderColor, 0.8)
+		case ButtonDisabled:
+			circleColor = desaturateColor(r.theme.SurfaceColor)
+			borderColor = desaturateColor(r.theme.TextColor)
+		}
+	}
+
+	dc.DrawCircle(circleX, circleY, circleRadius)
+	dc.SetColor(circleColor)
+	dc.Fill()
+
+	dc.SetColor(borderColor)
+	dc.SetLineWidth(1)
+	dc.DrawCircle(circleX, circleY, circleRadius)
+	dc.Stroke()
+
+	// Draw the inner dot if checked
+	if isChecked {
+		dotColor := r.theme.TextColor // Dot color should contrast with the accent color
+		if componentState == ButtonDisabled {
+			dotColor = desaturateColor(dotColor)
+		}
+		dc.SetColor(dotColor)
+		dc.DrawCircle(circleX, circleY, circleRadius*0.4) // Smaller inner circle
+		dc.Fill()
+	}
+
+	// Draw the label
+	dc.SetFontFace(r.theme.Face)
+	dc.SetColor(r.theme.TextColor)
+	dc.DrawStringAnchored(label, circleX+circleRadius+10, float64(height)/2, 0, 0.5)
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
