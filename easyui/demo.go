@@ -56,7 +56,7 @@ func NewDemo() *Demo {
 
 	button2 := NewButton(300, 100, 150, 40, "Disabled", uiGenerator)
 	button2.state = ButtonDisabled
-	button.SetClickHandler(func() {})
+	button2.SetClickHandler(func() { button2.SetText("ack! clicked!") })
 	ui.AddChild(button2)
 
 	// --- Dropdown Menu ---

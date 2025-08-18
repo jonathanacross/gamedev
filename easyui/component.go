@@ -30,6 +30,13 @@ type Component interface {
 	GetAbsolutePosition() (int, int)
 }
 
+// ComponentWithState is an interface for components that have a managed state.
+type ComponentWithState interface {
+	Component
+	SetState(state ButtonState)
+	GetState() ButtonState
+}
+
 // component is the base struct that other UI widgets will embed.
 // It includes a reference to its parent for hierarchical positioning, and a self-reference
 // to the concrete Component that embeds it, for correct parent setting.
@@ -131,47 +138,25 @@ func (ic *interactiveComponent) Update() {
 		return
 	}
 
-	cx, cy := ebiten.CursorPosition() // in absolute coordinates
+	// Only manage hover state here; state changes for button click/release
+	// handled in ui.go
+	cx, cy := ebiten.CursorPosition()
 	cursorInBounds := ContainsPoint(ic.self, cx, cy)
 
-	// Only manage hover state here. Do not change state if currently pressed down.
-	if ic.state != ButtonPressed {
-		if cursorInBounds {
-			ic.state = ButtonHover
-		} else {
-			ic.state = ButtonIdle
-		}
+	if cursorInBounds {
+		ic.state = ButtonHover
+	} else {
+		ic.state = ButtonIdle
 	}
 }
 
 // Draw handles the generic drawing for any interactiveComponent.
 // Concrete components will often call this method.
 func (ic *interactiveComponent) Draw(screen *ebiten.Image) {
-	absX, absY := ic.GetAbsolutePosition() // Get absolute position
+	absX, absY := ic.GetAbsolutePosition()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(absX), float64(absY))
 	screen.DrawImage(ic.GetCurrentStateImage(), op)
-}
-
-// HandlePress sets the component to the pressed state.
-func (ic *interactiveComponent) HandlePress() {
-	if ic.state != ButtonDisabled {
-		ic.state = ButtonPressed
-	}
-}
-
-// HandleRelease resets the component's state after a mouse release.
-func (ic *interactiveComponent) HandleRelease() {
-	if ic.state == ButtonDisabled {
-		return
-	}
-	cx, cy := ebiten.CursorPosition()
-	// If the mouse is released over the component, set to Hover, otherwise Idle.
-	if ContainsPoint(ic.self, cx, cy) {
-		ic.state = ButtonHover
-	} else {
-		ic.state = ButtonIdle
-	}
 }
 
 // GetCurrentStateImage returns the correct image for the component's current state.
@@ -192,7 +177,36 @@ func (ic *interactiveComponent) GetCurrentStateImage() *ebiten.Image {
 	}
 }
 
+// HandlePress sets the component to the pressed state.
+func (ic *interactiveComponent) HandlePress() {
+	if ic.state == ButtonDisabled {
+		return
+	}
+	ic.state = ButtonPressed
+}
+
+// HandleRelease resets the component's state after a mouse release.
+func (ic *interactiveComponent) HandleRelease() {
+	if ic.state == ButtonDisabled {
+		return
+	}
+	cx, cy := ebiten.CursorPosition()
+	if ContainsPoint(ic.self, cx, cy) {
+		ic.state = ButtonHover
+	} else {
+		ic.state = ButtonIdle
+	}
+}
+
 // HandleClick is a dummy method for the base interactiveComponent.
-// Concrete interactive components (Button, TextField, Checkbox, Dropdown) will override this
-// to perform their specific action.
 func (ic *interactiveComponent) HandleClick() {}
+
+// SetState sets the button's state directly, used by the centralized UI.
+func (ic *interactiveComponent) SetState(state ButtonState) {
+	ic.state = state
+}
+
+// GetState returns the current state of the button.
+func (ic *interactiveComponent) GetState() ButtonState {
+	return ic.state
+}
