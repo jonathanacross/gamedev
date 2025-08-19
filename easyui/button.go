@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -9,7 +10,9 @@ import (
 // Button represents a clickable UI button.
 type Button struct {
 	interactiveComponent
-	Label        string
+	Label string
+	// Note this does not use ebiten.Image, since we need to get the image data before the game starts
+	Icon         image.Image
 	IsToggleable bool
 	Checked      bool
 	onClick      func()
@@ -17,16 +20,18 @@ type Button struct {
 }
 
 // NewButton creates a new Button instance with the specified dimensions, label, toggle state, and renderer.
-func NewButton(x, y, width, height int, label string, isToggleable bool, renderer UiRenderer) *Button {
+// Update the function signature to accept the icon image.
+func NewButton(x, y, width, height int, label string, icon image.Image, isToggleable bool, renderer UiRenderer) *Button {
 	// Generate initial images based on the checked state
-	initialIdleImg := renderer.GenerateButtonImage(width, height, label, ButtonIdle, false)
-	initialPressedImg := renderer.GenerateButtonImage(width, height, label, ButtonPressed, false)
-	initialHoverImg := renderer.GenerateButtonImage(width, height, label, ButtonHover, false)
-	initialDisabledImg := renderer.GenerateButtonImage(width, height, label, ButtonDisabled, false)
+	initialIdleImg := renderer.GenerateButtonImage(width, height, label, icon, ButtonIdle, false)
+	initialPressedImg := renderer.GenerateButtonImage(width, height, label, icon, ButtonPressed, false)
+	initialHoverImg := renderer.GenerateButtonImage(width, height, label, icon, ButtonHover, false)
+	initialDisabledImg := renderer.GenerateButtonImage(width, height, label, icon, ButtonDisabled, false)
 
 	// Create the Button first, then pass its pointer as 'self'
 	b := &Button{
 		Label:        label,
+		Icon:         icon,
 		IsToggleable: isToggleable,
 		Checked:      false,
 		renderer:     renderer,
@@ -67,10 +72,10 @@ func (b *Button) updateCurrentStateImages() {
 	// Remember the current interactive state before regenerating images
 	currentInteractiveState := b.state
 
-	b.idleImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, ButtonIdle, b.Checked)
-	b.pressedImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, ButtonPressed, b.Checked)
-	b.hoverImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, ButtonHover, b.Checked)
-	b.disabledImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, ButtonDisabled, b.Checked)
+	b.idleImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, b.Icon, ButtonIdle, b.Checked)
+	b.pressedImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, b.Icon, ButtonPressed, b.Checked)
+	b.hoverImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, b.Icon, ButtonHover, b.Checked)
+	b.disabledImg = b.renderer.GenerateButtonImage(b.Bounds.Dx(), b.Bounds.Dy(), b.Label, b.Icon, ButtonDisabled, b.Checked)
 
 	b.state = currentInteractiveState // Restore interactive state
 }

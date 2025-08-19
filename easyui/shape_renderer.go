@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 
 	"github.com/fogleman/gg"
@@ -88,8 +89,7 @@ func (r *ShapeRenderer) getCheckableColors(componentState ButtonState, isChecked
 	return
 }
 
-// GenerateButtonImage creates an image for a button in a specific state.
-func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent string, state ButtonState, isChecked bool) *ebiten.Image {
+func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent string, icon image.Image, state ButtonState, isChecked bool) *ebiten.Image {
 	dc := gg.NewContext(width, height)
 	var bgColor color.Color
 	if isChecked {
@@ -111,10 +111,42 @@ func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent strin
 	dc.SetLineWidth(1)
 	dc.Stroke()
 
+	// Define icon and text positions
+	var textX float64
+	textY := float64(height) / 2
+
+	if icon != nil && len(textContent) > 0 {
+		// Icon + text
+		// Calculate the new text position to account for the icon.
+		iconRect := icon.Bounds()
+		textWidth, _ := dc.MeasureString(textContent)
+		iconX := (float64(width) - float64(iconRect.Dx()) - textWidth - 5) / 2
+		iconY := (float64(height) - float64(iconRect.Dy())) / 2
+
+		dc.DrawImage(icon, int(iconX), int(iconY))
+
+		textX = iconX + float64(iconRect.Dx()) + 5 // Position text to the right of the icon with some padding.
+	} else if icon != nil {
+		// Icon only
+		iconRect := icon.Bounds()
+		iconX := (float64(width) - float64(iconRect.Dx())) / 2
+		iconY := (float64(height) - float64(iconRect.Dy())) / 2
+
+		dc.DrawImage(icon, int(iconX), int(iconY))
+	} else {
+		// Text only
+		textX = float64(width) / 2
+	}
+
 	// Draw the text
 	dc.SetFontFace(r.theme.Face)
 	dc.SetColor(textColor)
-	dc.DrawStringAnchored(textContent, float64(width)/2, float64(height)/2, 0.5, 0.5)
+	// Use the new position for the text.
+	if icon != nil {
+		dc.DrawString(textContent, textX, textY)
+	} else {
+		dc.DrawStringAnchored(textContent, textX, textY, 0.5, 0.5)
+	}
 
 	return ebiten.NewImageFromImage(dc.Image())
 }
