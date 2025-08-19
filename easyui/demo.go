@@ -51,14 +51,14 @@ func NewDemo() *Demo {
 	ui.AddChild(container)
 
 	// --- Buttons ---
-	button := NewButton(50, 50, 150, 40, "Click me!", uiGenerator)
+	button := NewButton(50, 50, 150, 40, "Click me!", false, uiGenerator)
 	button.SetClickHandler(func() {
 		log.Println("Button clicked!")
 		button.SetText("Clicked!")
 	})
 	container.AddChild(button)
 
-	button2 := NewButton(250, 50, 150, 40, "Disabled", uiGenerator)
+	button2 := NewButton(250, 50, 150, 40, "Disabled", false, uiGenerator)
 	button2.state = ButtonDisabled
 	button2.SetClickHandler(func() { button2.SetText("ack! clicked!") })
 	container.AddChild(button2)
@@ -107,14 +107,16 @@ func NewDemo() *Demo {
 	radioGroup.AddChild(rb3)
 
 	// -- Toggle button bar --
-	b1 := NewButton(450, 50, 30, 30, "A", uiGenerator)
-	b2 := NewButton(480, 50, 30, 30, "B", uiGenerator)
-	b3 := NewButton(510, 50, 30, 30, "C", uiGenerator)
-	b4 := NewButton(540, 50, 30, 30, "D", uiGenerator)
-	container.AddChild(b1)
-	container.AddChild(b2)
-	container.AddChild(b3)
-	container.AddChild(b4)
+	toggleButtonGroup := NewButtonGroup(450, 50, 1, 1, LayoutHorizontal, SingleSelection, 2)
+	b1 := NewButton(0, 0, 30, 30, "A", true, uiGenerator)
+	b2 := NewButton(0, 0, 30, 30, "B", true, uiGenerator)
+	b3 := NewButton(0, 0, 30, 30, "C", true, uiGenerator)
+	b4 := NewButton(0, 0, 30, 30, "D", true, uiGenerator)
+	toggleButtonGroup.AddChild(b1)
+	toggleButtonGroup.AddChild(b2)
+	toggleButtonGroup.AddChild(b3)
+	toggleButtonGroup.AddChild(b4)
+	container.AddChild(toggleButtonGroup)
 
 	// --- TextField ---
 	nameField := NewTextField(50, 200, 300, 30, "Enter your name", uiGenerator)

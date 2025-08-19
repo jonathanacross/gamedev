@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -71,6 +72,17 @@ func (bg *ButtonGroup) AddChild(c Component) {
 	}
 
 	bg.children = append(bg.children, c)
+
+	// Update the ButtonGroup size to fit all the children.
+	// This is needed so that clicks to the children work.
+	newChildBounds := c.GetBounds()
+	newWidth := newChildBounds.Max.X
+	newHeight := newChildBounds.Max.Y
+
+	bg.Bounds = image.Rectangle{
+		Min: bg.Bounds.Min,
+		Max: image.Point{X: bg.Bounds.Min.X + newWidth, Y: bg.Bounds.Min.Y + newHeight},
+	}
 }
 
 // Update calls Update on all child components.
@@ -80,7 +92,7 @@ func (bg *ButtonGroup) Update() {
 	}
 }
 
-// Draw draws the button group and its children.
+// Draw just draws the children; the group itself is invisible.
 func (bg *ButtonGroup) Draw(screen *ebiten.Image) {
 	for _, child := range bg.children {
 		child.Draw(screen)

@@ -8,7 +8,7 @@ import (
 // Implementations will map component states to specific visual outputs (e.g., colors, textures).
 type UiRenderer interface {
 	// GenerateButtonImage creates an image for a button in a specific state.
-	GenerateButtonImage(width, height int, text string, state ButtonState) *ebiten.Image
+	GenerateButtonImage(width, height int, text string, state ButtonState, isChecked bool) *ebiten.Image
 
 	// GenerateDropdownImage creates an image for a dropdown button in a specific state.
 	GenerateDropdownImage(width, height int, text string, state ButtonState) *ebiten.Image

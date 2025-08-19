@@ -89,9 +89,15 @@ func (r *ShapeRenderer) getCheckableColors(componentState ButtonState, isChecked
 }
 
 // GenerateButtonImage creates an image for a button in a specific state.
-func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent string, state ButtonState) *ebiten.Image {
+func (r *ShapeRenderer) GenerateButtonImage(width, height int, textContent string, state ButtonState, isChecked bool) *ebiten.Image {
 	dc := gg.NewContext(width, height)
-	bgColor, textColor := r.getButtonColors(state)
+	var bgColor color.Color
+	if isChecked {
+		bgColor = r.getStateColor(r.theme.PrimaryAccentColor, state)
+	} else {
+		bgColor = r.getStateColor(r.theme.SurfaceColor, state)
+	}
+	textColor := r.getStateColor(r.theme.TextColor, state)
 
 	// Draw button background
 	cornerRadius := 9.0
