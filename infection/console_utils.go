@@ -15,7 +15,7 @@ func DrawBoard(b *Board) string {
 	result += "\n"
 	result += "    +"
 	for range BoardSize {
-		result += fmt.Sprintf("--")
+		result += "--"
 	}
 	result += "\n"
 	for r := range BoardSize {
