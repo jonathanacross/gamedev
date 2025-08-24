@@ -90,18 +90,6 @@
                  "width":16,
                  "x":48,
                  "y":192
-                }, 
-                {
-                 "gid":25,
-                 "height":16,
-                 "id":16,
-                 "name":"Checkpoint",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":16,
-                 "x":336,
-                 "y":192
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -110,7 +98,7 @@
          "y":0
         }],
  "nextlayerid":6,
- "nextobjectid":17,
+ "nextobjectid":19,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

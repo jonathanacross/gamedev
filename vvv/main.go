@@ -13,6 +13,7 @@ type Game struct {
 	currentLevelNum int // Store the number of the current level
 	currentLevel    *Level
 	gravity         float64
+	allCheckpoints  map[int]*Checkpoint
 }
 
 const (
@@ -51,21 +52,16 @@ func (g *Game) checkLevelExits() {
 
 	for _, exit := range g.currentLevel.exits {
 		if playerHitRect.Intersects(&exit.Rect) {
-			log.Printf("Player collided with exit to level %d", exit.ToLevel)
+			log.Printf("Player collided with exit to level %d\n", exit.ToLevel)
 			g.switchLevel(exit)
-			return // Exit after the first collision is found and processed
+			break
 		}
 	}
 }
 
 func (g *Game) switchLevel(exit LevelExit) {
-	newLevel, ok := LoadedLevels[exit.ToLevel]
-	if !ok {
-		log.Printf("Level %d not found in loaded levels.", exit.ToLevel)
-		return
-	}
-	g.currentLevel = newLevel
 	g.currentLevelNum = exit.ToLevel
+	g.currentLevel = LoadedLevels[g.currentLevelNum]
 
 	// Determine the transition direction and adjust the player's position.
 	// You can add properties to the LevelExit object to specify the entry point,
@@ -78,6 +74,15 @@ func (g *Game) switchLevel(exit LevelExit) {
 		g.player.Y = 10.0 // Start at the top of the new screen
 	} else if exit.top <= 1 { // Exit at the top of the screen
 		g.player.Y = float64(ScreenHeight) - g.player.HitRect().Height() - 10.0 // Start at the bottom of the new screen
+	}
+}
+
+func (g *Game) Respawn() {
+	if cp, ok := g.allCheckpoints[g.player.checkpointId]; ok {
+		g.player.X, g.player.Y = cp.X, cp.Y
+	} else {
+		// This should only happen at the start of the game
+		g.player.X, g.player.Y = g.currentLevel.startPoint.X, g.currentLevel.startPoint.Y
 	}
 }
 
@@ -100,7 +105,20 @@ func main() {
 		currentLevelNum: 1,
 		currentLevel:    startLevel,
 		gravity:         0.5,
+		allCheckpoints:  make(map[int]*Checkpoint),
 	}
+
+	for _, level := range LoadedLevels {
+		for _, cp := range level.checkpoints {
+			g.allCheckpoints[cp.Id] = cp
+			if cp.Active {
+				g.player.X, g.player.Y = cp.X, cp.Y
+				g.player.checkpointId = cp.Id
+			}
+		}
+	}
+
+	g.player.game = g
 
 	ebiten.SetWindowSize(3*ScreenWidth, 3*ScreenHeight)
 

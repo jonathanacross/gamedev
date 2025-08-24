@@ -16,12 +16,15 @@ type LevelExit struct {
 	ToLevel int
 }
 
+// BaseSprite provides common fields and methods for any visible game entity.
+// It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
 	Location
 	spriteSheet *SpriteSheet
 	srcRect     image.Rectangle
 }
 
+// HitRect returns the collision rectangle for the BaseSprite.
 func (bs *BaseSprite) HitRect() Rect {
 	return Rect{
 		left:   bs.X,
@@ -31,8 +34,10 @@ func (bs *BaseSprite) HitRect() Rect {
 	}
 }
 
+// GetX returns the X coordinate of the BaseSprite.
 func (bs *BaseSprite) GetX() float64 { return bs.X }
 
+// GetY returns the Y coordinate of the BaseSprite.
 func (bs *BaseSprite) GetY() float64 { return bs.Y }
 
 func (bs *BaseSprite) Draw(screen *ebiten.Image) {
@@ -65,20 +70,27 @@ type Level struct {
 	tiles       *[]Tile
 	spikes      []Spike
 	exits       []LevelExit
-	checkpoints []Checkpoint
+	checkpoints []*Checkpoint
 	width       float64
 	height      float64
+	startPoint  Location
 }
 
+// DrawRectFrame draws a 1-pixel wide frame around the given Rect with the specified color.
 func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
 	lineWidth := float32(1)
+
 	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.right), float32(rect.top), lineWidth, clr, false)
 	vector.StrokeLine(screen, float32(rect.left), float32(rect.bottom), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
 	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.left), float32(rect.bottom), lineWidth, clr, false)
 	vector.StrokeLine(screen, float32(rect.right), float32(rect.top), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
 }
 
+// findTileData returns the TilesetTileJSON for a given GID.
 func findTilesetTileData(tilesetData TilesetDataJSON, gid int) *TilesetTileJSON {
+	// The `id` in tileset JSON is 0-based, while `gid` in level JSON is 1-based.
+	// We need to account for this and any potential offset from `firstgid`.
+	// For simplicity, let's assume `firstgid` is always 1 for now.
 	for _, tile := range tilesetData.Tiles {
 		if tile.ID == gid-1 {
 			return &tile
@@ -109,21 +121,6 @@ func getBoolProperty(properties []PropertiesJSON, name string) (bool, bool) {
 	return false, false
 }
 
-func isSolid(tilesetData TilesetDataJSON, id int) bool {
-	tileData := findTilesetTileData(tilesetData, id)
-	if tileData == nil {
-		return false
-	}
-	for _, prop := range tileData.Properties {
-		if prop.Name == "solid" {
-			if isSolid, ok := prop.BoolValue(); ok {
-				return isSolid
-			}
-		}
-	}
-	return false
-}
-
 func getHitboxFromTileData(obj ObjectJSON, tilesetTileData *TilesetTileJSON) Rect {
 	if tilesetTileData != nil && len(tilesetTileData.ObjectGroup.Objects) > 0 {
 		rectData := tilesetTileData.ObjectGroup.Objects[0]
@@ -143,10 +140,26 @@ func getHitboxFromTileData(obj ObjectJSON, tilesetTileData *TilesetTileJSON) Rec
 	}
 }
 
-func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) ([]Spike, []LevelExit, []Checkpoint) {
+func isSolid(tilesetData TilesetDataJSON, id int) bool {
+	tileData := findTilesetTileData(tilesetData, id)
+	if tileData == nil {
+		return false
+	}
+	for _, prop := range tileData.Properties {
+		if prop.Name == "solid" {
+			if isSolid, ok := prop.BoolValue(); ok {
+				return isSolid
+			}
+		}
+	}
+	return false
+}
+
+func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) ([]Spike, []LevelExit, []*Checkpoint, Location) {
 	spikes := []Spike{}
 	exits := []LevelExit{}
-	checkpoints := []Checkpoint{}
+	checkpoints := []*Checkpoint{}
+	var startPoint Location
 
 	for _, layer := range leveljson.Layers {
 		if layer.Type == "objectgroup" {
@@ -234,7 +247,7 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 						}
 					}
 
-					checkpoint := Checkpoint{
+					checkpoint := &Checkpoint{
 						BaseSprite: BaseSprite{
 							Location: Location{
 								X: obj.X,
@@ -253,11 +266,15 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 						Id:     obj.ID,
 					}
 					checkpoints = append(checkpoints, checkpoint)
+
+					if isActive {
+						startPoint = checkpoint.Location
+					}
 				}
 			}
 		}
 	}
-	return spikes, exits, checkpoints
+	return spikes, exits, checkpoints, startPoint
 }
 
 func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *[]Tile {
@@ -289,7 +306,7 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 }
 
 func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Level {
-	spikes, exits, checkpoints := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet)
+	spikes, exits, checkpoints, startPoint := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet)
 	return &Level{
 		tilemapJson: leveljson,
 		spriteSheet: spriteSheet,
@@ -299,7 +316,17 @@ func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 		checkpoints: checkpoints,
 		width:       float64(leveljson.Width * TileSize),
 		height:      float64(leveljson.Height * TileSize),
+		startPoint:  startPoint,
 	}
+}
+
+func (level *Level) FindCheckpoint(id int) *Checkpoint {
+	for _, cp := range level.checkpoints {
+		if cp.Id == id {
+			return cp
+		}
+	}
+	return nil
 }
 
 func (level *Level) Draw(screen *ebiten.Image) {
