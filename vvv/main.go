@@ -79,6 +79,11 @@ func (g *Game) switchLevel(exit LevelExit) {
 
 func (g *Game) Respawn() {
 	if cp, ok := g.allCheckpoints[g.player.checkpointId]; ok {
+		// If the checkpoint is on a different level, switch to that level
+		if cp.LevelNum != g.currentLevelNum {
+			g.currentLevelNum = cp.LevelNum
+			g.currentLevel = LoadedLevels[g.currentLevelNum]
+		}
 		g.player.X, g.player.Y = cp.X, cp.Y
 	} else {
 		// This should only happen at the start of the game
@@ -91,7 +96,7 @@ func main() {
 
 	// Pre-load all levels and their objects using the TilesetData.
 	for levelNum, levelJSON := range Levels {
-		LoadedLevels[levelNum] = NewLevel(levelJSON, TilesetData, spriteSheet)
+		LoadedLevels[levelNum] = NewLevel(levelJSON, TilesetData, spriteSheet, levelNum)
 	}
 
 	// Set the initial level to 1

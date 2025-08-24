@@ -59,9 +59,10 @@ type Spike struct {
 
 type Checkpoint struct {
 	BaseSprite
-	hitbox Rect
-	Active bool
-	Id     int
+	hitbox   Rect
+	Active   bool
+	Id       int
+	LevelNum int
 }
 
 type Level struct {
@@ -86,12 +87,12 @@ func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
 	vector.StrokeLine(screen, float32(rect.right), float32(rect.top), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
 }
 
-// findTileData returns the TilesetTileJSON for a given GID.
+// findTilesetTileData returns the TilesetTileJSON for a given GID.
 func findTilesetTileData(tilesetData TilesetDataJSON, gid int) *TilesetTileJSON {
-	// The `id` in tileset JSON is 0-based, while `gid` in level JSON is 1-based.
-	// We need to account for this and any potential offset from `firstgid`.
-	// For simplicity, let's assume `firstgid` is always 1 for now.
 	for _, tile := range tilesetData.Tiles {
+		// The `id` in tileset JSON is 0-based, while `gid` in level JSON is 1-based.
+		// We need to account for this and any potential offset from `firstgid`.
+		// For simplicity, let's assume `firstgid` is always 1 for now.
 		if tile.ID == gid-1 {
 			return &tile
 		}
@@ -155,7 +156,7 @@ func isSolid(tilesetData TilesetDataJSON, id int) bool {
 	return false
 }
 
-func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) ([]Spike, []LevelExit, []*Checkpoint, Location) {
+func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, Location) {
 	spikes := []Spike{}
 	exits := []LevelExit{}
 	checkpoints := []*Checkpoint{}
@@ -262,8 +263,9 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 							right:  obj.X + obj.Width,
 							bottom: adjustedY + obj.Height,
 						},
-						Active: isActive,
-						Id:     obj.ID,
+						Active:   isActive,
+						Id:       obj.ID,
+						LevelNum: levelNum,
 					}
 					checkpoints = append(checkpoints, checkpoint)
 
@@ -305,8 +307,8 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 	return &tiles
 }
 
-func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Level {
-	spikes, exits, checkpoints, startPoint := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet)
+func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Level {
+	spikes, exits, checkpoints, startPoint := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet, levelNum)
 	return &Level{
 		tilemapJson: leveljson,
 		spriteSheet: spriteSheet,

@@ -134,6 +134,16 @@ func (p *Player) HandleCheckpoints() {
 	}
 }
 
+func (p *Player) HandleSpikeCollisions() {
+	playerRect := p.HitRect()
+	for _, spike := range p.game.currentLevel.spikes {
+		if playerRect.Intersects(&spike.hitbox) {
+			p.game.Respawn()
+			return
+		}
+	}
+}
+
 func (p *Player) Update(game *Game) {
 	p.HandleUserInput()
 	p.HandleGravity(game.gravity)
@@ -143,6 +153,7 @@ func (p *Player) Update(game *Game) {
 	p.Y += p.Vy
 	p.HandleCollisions(game.currentLevel, false)
 	p.HandleCheckpoints()
+	p.HandleSpikeCollisions()
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
