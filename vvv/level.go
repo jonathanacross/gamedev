@@ -11,26 +11,6 @@ import (
 
 const TileSize = 16
 
-type Location struct {
-	X float64
-	Y float64
-}
-
-type Rect struct {
-	left   float64
-	top    float64
-	right  float64
-	bottom float64
-}
-
-func (r Rect) Width() float64 {
-	return r.right - r.left
-}
-
-func (r Rect) Height() float64 {
-	return r.bottom - r.top
-}
-
 type LevelExit struct {
 	Rect
 	ToLevel int

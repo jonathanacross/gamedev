@@ -30,11 +30,6 @@ func NewPlayer() *Player {
 	}
 }
 
-func (r1 *Rect) Intersects(r2 *Rect) bool {
-	return r1.left < r2.right && r1.right > r2.left &&
-		r1.top < r2.bottom && r1.bottom > r2.top
-}
-
 func (p *Player) FixPlayerX(tile *Tile) {
 	playerRect := p.HitRect()
 	tileRect := tile.HitRect()
