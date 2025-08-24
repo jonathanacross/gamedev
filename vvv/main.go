@@ -84,8 +84,9 @@ func (g *Game) switchLevel(exit LevelExit) {
 func main() {
 	spriteSheet := NewSpriteSheet(TileSet, TileSize, TileSize, 5, 7)
 
-	for levelNum, tilemapJson := range Levels {
-		LoadedLevels[levelNum] = NewLevel(tilemapJson, spriteSheet)
+	// Pre-load all levels and their objects using the TilesetData.
+	for levelNum, levelJSON := range Levels {
+		LoadedLevels[levelNum] = NewLevel(levelJSON, TilesetData, spriteSheet)
 	}
 
 	// Set the initial level to 1

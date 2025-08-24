@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -30,24 +31,17 @@ func (r Rect) Height() float64 {
 	return r.bottom - r.top
 }
 
-type Object struct {
-	Rect
-}
-
 type LevelExit struct {
 	Rect
 	ToLevel int
 }
 
-// BaseSprite provides common fields and methods for any visible game entity.
-// It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
 	Location
 	spriteSheet *SpriteSheet
-	srcRect     image.Rectangle // The specific rectangle on the sprite sheet to draw
+	srcRect     image.Rectangle
 }
 
-// HitRect returns the collision rectangle for the BaseSprite.
 func (bs *BaseSprite) HitRect() Rect {
 	return Rect{
 		left:   bs.X,
@@ -57,79 +51,151 @@ func (bs *BaseSprite) HitRect() Rect {
 	}
 }
 
-// GetX returns the X coordinate of the BaseSprite.
 func (bs *BaseSprite) GetX() float64 { return bs.X }
 
-// GetY returns the Y coordinate of the BaseSprite.
 func (bs *BaseSprite) GetY() float64 { return bs.Y }
+
+func (bs *BaseSprite) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(bs.X, bs.Y)
+	currImage := bs.spriteSheet.image.SubImage(bs.srcRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
+}
 
 type Tile struct {
 	BaseSprite
-	solid    bool
-	damaging bool
+	solid bool
+}
+
+type Spike struct {
+	BaseSprite
+	hitbox Rect
 }
 
 type Level struct {
-	tilemapJson TilemapJSON
+	tilemapJson LevelJSON
 	spriteSheet *SpriteSheet
 	tiles       *[]Tile
+	spikes      []Spike
 	exits       []LevelExit
 	width       float64
 	height      float64
 }
 
-// Hack: these functions depend on the particular number/location
-// of tiles in the tileset.
-// TODO: read from tileset properties
-func isSolid(id int) bool    { return id <= 20 }
-func isDamaging(id int) bool { return id == 22 || id == 23 }
-
-func getTiles(tilemapJson TilemapJSON, spriteSheet *SpriteSheet) *[]Tile {
-	tiles := []Tile{}
-
-	for layerIdx, layer := range tilemapJson.Layers {
-		if layerIdx != 0 {
-			// TODO: consider filtering based on layer name
-			continue
-		}
-		for idx, id := range layer.Data {
-			x := (idx % layer.Width) * TileSize
-			y := (idx / layer.Width) * TileSize
-
-			// Json stores ids as one-based
-			tile := Tile{
-				BaseSprite: BaseSprite{
-					Location: Location{
-						X: float64(x),
-						Y: float64(y),
-					},
-					spriteSheet: spriteSheet,
-					srcRect:     spriteSheet.Rect(id - 1),
-				},
-				solid:    isSolid(id),
-				damaging: isDamaging(id),
-			}
-			tiles = append(tiles, tile)
-		}
-	}
-
-	return &tiles
+func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
+	lineWidth := float32(1)
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.right), float32(rect.top), lineWidth, clr, false)
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.bottom), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.left), float32(rect.bottom), lineWidth, clr, false)
+	vector.StrokeLine(screen, float32(rect.right), float32(rect.top), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
 }
 
-func getLevelExits(tilemapJson TilemapJSON) []LevelExit {
+func findTilesetTileData(tilesetData TilesetDataJSON, gid int) *TilesetTileJSON {
+	for _, tile := range tilesetData.Tiles {
+		if tile.ID == gid-1 {
+			return &tile
+		}
+	}
+	return nil
+}
+
+func isSolid(tilesetData TilesetDataJSON, id int) bool {
+	tileData := findTilesetTileData(tilesetData, id)
+	if tileData == nil {
+		return false
+	}
+	for _, prop := range tileData.Properties {
+		if prop.Name == "solid" {
+			if isSolid, ok := prop.BoolValue(); ok {
+				return isSolid
+			}
+		}
+	}
+	return false
+}
+
+func getHitboxFromTileData(obj ObjectJSON, tilesetTileData *TilesetTileJSON) Rect {
+	if tilesetTileData != nil && len(tilesetTileData.ObjectGroup.Objects) > 0 {
+		rectData := tilesetTileData.ObjectGroup.Objects[0]
+		return Rect{
+			left:   obj.X + rectData.X,
+			top:    obj.Y + rectData.Y,
+			right:  obj.X + rectData.X + rectData.Width,
+			bottom: obj.Y + rectData.Y + rectData.Height,
+		}
+	} else {
+		return Rect{
+			left:   obj.X,
+			top:    obj.Y,
+			right:  obj.X + obj.Width,
+			bottom: obj.Y + obj.Height,
+		}
+	}
+}
+
+func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) ([]Spike, []LevelExit) {
+	spikes := []Spike{}
 	exits := []LevelExit{}
-	for _, layer := range tilemapJson.Layers {
+	for _, layer := range leveljson.Layers {
 		if layer.Type == "objectgroup" {
 			for _, obj := range layer.Objects {
-				if obj.Type == "LevelExit" {
+				objType := obj.Type
+				if objType == "" && obj.Gid > 0 {
+					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
+					if tilesetTileData != nil && len(tilesetTileData.ObjectGroup.Objects) > 0 && tilesetTileData.ObjectGroup.Objects[0].Name == "Spikes" {
+						objType = "Spike"
+					}
+				}
+
+				switch objType {
+				case "Spike":
+					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
+					if tilesetTileData == nil {
+						log.Println("Tileset tile data not found for Spike, Gid:", obj.Gid)
+						continue
+					}
+					// Tiled JSON uses the bottom-left corner for an object's y-position.
+					// We need to adjust it to be the top-left for drawing.
+					adjustedY := obj.Y - obj.Height
+
+					// Recalculate the hitbox based on the corrected y-position
+					var hitbox Rect
+					if len(tilesetTileData.ObjectGroup.Objects) > 0 {
+						rectData := tilesetTileData.ObjectGroup.Objects[0]
+						hitbox = Rect{
+							left:   obj.X + rectData.X,
+							top:    adjustedY + rectData.Y,
+							right:  obj.X + rectData.X + rectData.Width,
+							bottom: adjustedY + rectData.Y + rectData.Height,
+						}
+					} else {
+						// Fallback to the object's dimensions if no specific hitbox is defined
+						hitbox = Rect{
+							left:   obj.X,
+							top:    adjustedY,
+							right:  obj.X + obj.Width,
+							bottom: adjustedY + obj.Height,
+						}
+					}
+
+					spike := Spike{
+						BaseSprite: BaseSprite{
+							Location: Location{
+								X: obj.X,
+								Y: adjustedY,
+							},
+							spriteSheet: spriteSheet,
+							srcRect:     spriteSheet.Rect(obj.Gid - 1),
+						},
+						hitbox: hitbox,
+					}
+					spikes = append(spikes, spike)
+				case "LevelExit":
 					toLevel := 0
 					for _, prop := range obj.Properties {
 						if prop.Name == "ToLevel" {
-							var ok bool
-							toLevel, ok = prop.IntValue()
-							if !ok {
-								// If the value couldn't be decoded, skip this object or handle the error.
-								continue
+							if toLevelVal, ok := prop.IntValue(); ok {
+								toLevel = toLevelVal
 							}
 							break
 						}
@@ -148,49 +214,58 @@ func getLevelExits(tilemapJson TilemapJSON) []LevelExit {
 			}
 		}
 	}
-	return exits
+	return spikes, exits
 }
 
-func NewLevel(tilemapJson TilemapJSON, spriteSheet *SpriteSheet) *Level {
-	return &Level{
-		tilemapJson: tilemapJson,
-		spriteSheet: spriteSheet,
-		tiles:       getTiles(tilemapJson, spriteSheet),
-		exits:       getLevelExits(tilemapJson),
-		width:       float64(tilemapJson.Width * TileSize),
-		height:      float64(tilemapJson.Height * TileSize),
+func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *[]Tile {
+	tiles := []Tile{}
+	for layerIdx, layer := range leveljson.Layers {
+		if layerIdx != 0 {
+			continue
+		}
+		for idx, id := range layer.Data {
+			x := (idx % layer.Width) * TileSize
+			y := (idx / layer.Width) * TileSize
+			tile := Tile{
+				BaseSprite: BaseSprite{
+					Location: Location{
+						X: float64(x),
+						Y: float64(y),
+					},
+					spriteSheet: spriteSheet,
+					srcRect:     spriteSheet.Rect(id - 1),
+				},
+				solid: isSolid(tilesetData, id),
+			}
+			tiles = append(tiles, tile)
+		}
 	}
+	return &tiles
 }
 
-// DrawRectFrame draws a 1-pixel wide frame around the given Rect with the specified color.
-func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
-	lineWidth := float32(1)
-
-	// Draw top line
-	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.right), float32(rect.top), lineWidth, clr, false)
-	// Draw bottom line
-	vector.StrokeLine(screen, float32(rect.left), float32(rect.bottom), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
-	// Draw left line
-	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.left), float32(rect.bottom), lineWidth, clr, false)
-	// Draw right line
-	vector.StrokeLine(screen, float32(rect.right), float32(rect.top), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
-}
-
-func (bs *BaseSprite) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(bs.X, bs.Y)
-	currImage := bs.spriteSheet.image.SubImage(bs.srcRect).(*ebiten.Image)
-	screen.DrawImage(currImage, op)
+func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Level {
+	spikes, exits := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet)
+	return &Level{
+		tilemapJson: leveljson,
+		spriteSheet: spriteSheet,
+		tiles:       getTiles(leveljson, tilesetData, spriteSheet),
+		spikes:      spikes,
+		exits:       exits,
+		width:       float64(leveljson.Width * TileSize),
+		height:      float64(leveljson.Height * TileSize),
+	}
 }
 
 func (level *Level) Draw(screen *ebiten.Image) {
 	for _, tile := range *level.tiles {
 		tile.Draw(screen)
 	}
-
-	// Draw the exits for debugging
+	for _, spike := range level.spikes {
+		spike.BaseSprite.Draw(screen)
+		DrawRectFrame(screen, spike.hitbox, color.RGBA{255, 165, 0, 255})
+	}
 	for _, exit := range level.exits {
-		DrawRectFrame(screen, exit.Rect, color.RGBA{255, 0, 0, 255})
+		DrawRectFrame(screen, exit.Rect, color.RGBA{0, 255, 0, 255})
 	}
 }
 
