@@ -14,7 +14,7 @@ type Player struct {
 }
 
 func NewPlayer() *Player {
-	spriteSheet := NewSpriteSheet(TileSet, TileSize, TileSize, 5, 7)
+	spriteSheet := NewSpriteSheet(PlayerSprite, TileSize, TileSize, 1, 1)
 	return &Player{
 		BaseSprite: BaseSprite{
 			Location: Location{
@@ -22,7 +22,7 @@ func NewPlayer() *Player {
 				Y: 100.0,
 			},
 			spriteSheet: spriteSheet,
-			srcRect:     spriteSheet.Rect(31),
+			srcRect:     spriteSheet.Rect(0),
 		},
 		Vx:       0.0,
 		Vy:       0.0,
@@ -30,7 +30,7 @@ func NewPlayer() *Player {
 	}
 }
 
-func (r1 *Rect) Overlaps(r2 *Rect) bool {
+func (r1 *Rect) Intersects(r2 *Rect) bool {
 	return r1.left < r2.right && r1.right > r2.left &&
 		r1.top < r2.bottom && r1.bottom > r2.top
 }
@@ -38,7 +38,7 @@ func (r1 *Rect) Overlaps(r2 *Rect) bool {
 func (p *Player) FixPlayerX(tile *Tile) {
 	playerRect := p.HitRect()
 	tileRect := tile.HitRect()
-	if !playerRect.Overlaps(&tileRect) {
+	if !playerRect.Intersects(&tileRect) {
 		return
 	}
 
@@ -60,7 +60,7 @@ func (p *Player) FixPlayerX(tile *Tile) {
 func (p *Player) FixPlayerY(tile *Tile) {
 	playerRect := p.HitRect()
 	tileRect := tile.HitRect()
-	if !playerRect.Overlaps(&tileRect) {
+	if !playerRect.Intersects(&tileRect) {
 		return
 	}
 
@@ -127,10 +127,10 @@ func (p *Player) Update(game *Game) {
 	p.HandleUserInput()
 	p.HandleGravity(game.gravity)
 	p.X += p.Vx
-	p.HandleCollisions(&game.level, true)
+	p.HandleCollisions(game.currentLevel, true)
 	p.onGround = false
 	p.Y += p.Vy
-	p.HandleCollisions(&game.level, false)
+	p.HandleCollisions(game.currentLevel, false)
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {

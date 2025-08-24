@@ -2,8 +2,10 @@ package main
 
 import (
 	"image"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const TileSize = 16
@@ -18,6 +20,23 @@ type Rect struct {
 	top    float64
 	right  float64
 	bottom float64
+}
+
+func (r Rect) Width() float64 {
+	return r.right - r.left
+}
+
+func (r Rect) Height() float64 {
+	return r.bottom - r.top
+}
+
+type Object struct {
+	Rect
+}
+
+type LevelExit struct {
+	Rect
+	ToLevel int
 }
 
 // BaseSprite provides common fields and methods for any visible game entity.
@@ -48,32 +67,22 @@ type Tile struct {
 	BaseSprite
 	solid    bool
 	damaging bool
-	isLeft   bool
-	isRight  bool
-	isUp     bool
-	isDown   bool
 }
 
 type Level struct {
 	tilemapJson TilemapJSON
 	spriteSheet *SpriteSheet
 	tiles       *[]Tile
-	levelLeft   int
-	levelRight  int
-	levelUp     int
-	levelDown   int
+	exits       []LevelExit
+	width       float64
+	height      float64
 }
 
 // Hack: these functions depend on the particular number/location
 // of tiles in the tileset.
 // TODO: read from tileset properties
-// TODO: consider directions to objects with level ids
 func isSolid(id int) bool    { return id <= 20 }
 func isDamaging(id int) bool { return id == 22 || id == 23 }
-func isLeft(id int) bool     { return id == 31 }
-func isRight(id int) bool    { return id == 32 }
-func isUp(id int) bool       { return id == 33 }
-func isDown(id int) bool     { return id == 34 }
 
 func getTiles(tilemapJson TilemapJSON, spriteSheet *SpriteSheet) *[]Tile {
 	tiles := []Tile{}
@@ -107,12 +116,64 @@ func getTiles(tilemapJson TilemapJSON, spriteSheet *SpriteSheet) *[]Tile {
 	return &tiles
 }
 
+func getLevelExits(tilemapJson TilemapJSON) []LevelExit {
+	exits := []LevelExit{}
+	for _, layer := range tilemapJson.Layers {
+		if layer.Type == "objectgroup" {
+			for _, obj := range layer.Objects {
+				if obj.Type == "LevelExit" {
+					toLevel := 0
+					for _, prop := range obj.Properties {
+						if prop.Name == "ToLevel" {
+							var ok bool
+							toLevel, ok = prop.IntValue()
+							if !ok {
+								// If the value couldn't be decoded, skip this object or handle the error.
+								continue
+							}
+							break
+						}
+					}
+					exit := LevelExit{
+						Rect: Rect{
+							left:   obj.X,
+							top:    obj.Y,
+							right:  obj.X + obj.Width,
+							bottom: obj.Y + obj.Height,
+						},
+						ToLevel: toLevel,
+					}
+					exits = append(exits, exit)
+				}
+			}
+		}
+	}
+	return exits
+}
+
 func NewLevel(tilemapJson TilemapJSON, spriteSheet *SpriteSheet) *Level {
 	return &Level{
 		tilemapJson: tilemapJson,
 		spriteSheet: spriteSheet,
 		tiles:       getTiles(tilemapJson, spriteSheet),
+		exits:       getLevelExits(tilemapJson),
+		width:       float64(tilemapJson.Width * TileSize),
+		height:      float64(tilemapJson.Height * TileSize),
 	}
+}
+
+// DrawRectFrame draws a 1-pixel wide frame around the given Rect with the specified color.
+func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
+	lineWidth := float32(1)
+
+	// Draw top line
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.right), float32(rect.top), lineWidth, clr, false)
+	// Draw bottom line
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.bottom), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
+	// Draw left line
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.left), float32(rect.bottom), lineWidth, clr, false)
+	// Draw right line
+	vector.StrokeLine(screen, float32(rect.right), float32(rect.top), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
 }
 
 func (bs *BaseSprite) Draw(screen *ebiten.Image) {
@@ -125,6 +186,11 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 func (level *Level) Draw(screen *ebiten.Image) {
 	for _, tile := range *level.tiles {
 		tile.Draw(screen)
+	}
+
+	// Draw the exits for debugging
+	for _, exit := range level.exits {
+		DrawRectFrame(screen, exit.Rect, color.RGBA{255, 0, 0, 255})
 	}
 }
 
