@@ -194,7 +194,6 @@
          "objectgroup":
             {
              "draworder":"index",
-             "id":2,
              "name":"",
              "objects":[
                     {
@@ -214,6 +213,34 @@
              "x":0,
              "y":0
             }
+        }, 
+        {
+         "id":23,
+         "properties":[
+                {
+                 "name":"Active",
+                 "type":"bool",
+                 "value":true
+                }, 
+                {
+                 "name":"Type",
+                 "type":"string",
+                 "value":"Checkpoint"
+                }]
+        }, 
+        {
+         "id":24,
+         "properties":[
+                {
+                 "name":"Active",
+                 "type":"bool",
+                 "value":false
+                }, 
+                {
+                 "name":"Type",
+                 "type":"string",
+                 "value":"Checkpoint"
+                }]
         }],
  "tilewidth":16,
  "type":"tileset",

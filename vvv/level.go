@@ -52,12 +52,20 @@ type Spike struct {
 	hitbox Rect
 }
 
+type Checkpoint struct {
+	BaseSprite
+	hitbox Rect
+	Active bool
+	Id     int
+}
+
 type Level struct {
 	tilemapJson LevelJSON
 	spriteSheet *SpriteSheet
 	tiles       *[]Tile
 	spikes      []Spike
 	exits       []LevelExit
+	checkpoints []Checkpoint
 	width       float64
 	height      float64
 }
@@ -77,6 +85,28 @@ func findTilesetTileData(tilesetData TilesetDataJSON, gid int) *TilesetTileJSON 
 		}
 	}
 	return nil
+}
+
+func getStringProperty(properties []PropertiesJSON, name string) (string, bool) {
+	for _, prop := range properties {
+		if prop.Name == name {
+			if v, ok := prop.Value.(string); ok {
+				return v, true
+			}
+		}
+	}
+	return "", false
+}
+
+func getBoolProperty(properties []PropertiesJSON, name string) (bool, bool) {
+	for _, prop := range properties {
+		if prop.Name == name {
+			if v, ok := prop.BoolValue(); ok {
+				return v, true
+			}
+		}
+	}
+	return false, false
 }
 
 func isSolid(tilesetData TilesetDataJSON, id int) bool {
@@ -113,9 +143,11 @@ func getHitboxFromTileData(obj ObjectJSON, tilesetTileData *TilesetTileJSON) Rec
 	}
 }
 
-func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) ([]Spike, []LevelExit) {
+func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) ([]Spike, []LevelExit, []Checkpoint) {
 	spikes := []Spike{}
 	exits := []LevelExit{}
+	checkpoints := []Checkpoint{}
+
 	for _, layer := range leveljson.Layers {
 		if layer.Type == "objectgroup" {
 			for _, obj := range layer.Objects {
@@ -124,6 +156,11 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
 					if tilesetTileData != nil && len(tilesetTileData.ObjectGroup.Objects) > 0 && tilesetTileData.ObjectGroup.Objects[0].Name == "Spikes" {
 						objType = "Spike"
+					}
+					if tilesetTileData != nil {
+						if tileType, ok := getStringProperty(tilesetTileData.Properties, "Type"); ok {
+							objType = tileType
+						}
 					}
 				}
 
@@ -134,11 +171,8 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 						log.Println("Tileset tile data not found for Spike, Gid:", obj.Gid)
 						continue
 					}
-					// Tiled JSON uses the bottom-left corner for an object's y-position.
-					// We need to adjust it to be the top-left for drawing.
 					adjustedY := obj.Y - obj.Height
 
-					// Recalculate the hitbox based on the corrected y-position
 					var hitbox Rect
 					if len(tilesetTileData.ObjectGroup.Objects) > 0 {
 						rectData := tilesetTileData.ObjectGroup.Objects[0]
@@ -149,7 +183,6 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 							bottom: adjustedY + rectData.Y + rectData.Height,
 						}
 					} else {
-						// Fallback to the object's dimensions if no specific hitbox is defined
 						hitbox = Rect{
 							left:   obj.X,
 							top:    adjustedY,
@@ -190,47 +223,80 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 						ToLevel: toLevel,
 					}
 					exits = append(exits, exit)
+				case "Checkpoint":
+					adjustedY := obj.Y - obj.Height
+
+					isActive := false
+					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
+					if tilesetTileData != nil {
+						if activeVal, ok := getBoolProperty(tilesetTileData.Properties, "Active"); ok {
+							isActive = activeVal
+						}
+					}
+
+					checkpoint := Checkpoint{
+						BaseSprite: BaseSprite{
+							Location: Location{
+								X: obj.X,
+								Y: adjustedY,
+							},
+							spriteSheet: spriteSheet,
+							srcRect:     spriteSheet.Rect(obj.Gid - 1),
+						},
+						hitbox: Rect{
+							left:   obj.X,
+							top:    adjustedY,
+							right:  obj.X + obj.Width,
+							bottom: adjustedY + obj.Height,
+						},
+						Active: isActive,
+						Id:     obj.ID,
+					}
+					checkpoints = append(checkpoints, checkpoint)
 				}
 			}
 		}
 	}
-	return spikes, exits
+	return spikes, exits, checkpoints
 }
 
 func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *[]Tile {
 	tiles := []Tile{}
-	for layerIdx, layer := range leveljson.Layers {
-		if layerIdx != 0 {
-			continue
-		}
-		for idx, id := range layer.Data {
-			x := (idx % layer.Width) * TileSize
-			y := (idx / layer.Width) * TileSize
-			tile := Tile{
-				BaseSprite: BaseSprite{
-					Location: Location{
-						X: float64(x),
-						Y: float64(y),
+	for _, layer := range leveljson.Layers {
+		if layer.Type == "tilelayer" {
+			for idx, id := range layer.Data {
+				if id == 0 {
+					continue
+				}
+				x := (idx % layer.Width) * TileSize
+				y := (idx / layer.Width) * TileSize
+				tile := Tile{
+					BaseSprite: BaseSprite{
+						Location: Location{
+							X: float64(x),
+							Y: float64(y),
+						},
+						spriteSheet: spriteSheet,
+						srcRect:     spriteSheet.Rect(id - 1),
 					},
-					spriteSheet: spriteSheet,
-					srcRect:     spriteSheet.Rect(id - 1),
-				},
-				solid: isSolid(tilesetData, id),
+					solid: isSolid(tilesetData, id),
+				}
+				tiles = append(tiles, tile)
 			}
-			tiles = append(tiles, tile)
 		}
 	}
 	return &tiles
 }
 
 func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Level {
-	spikes, exits := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet)
+	spikes, exits, checkpoints := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet)
 	return &Level{
 		tilemapJson: leveljson,
 		spriteSheet: spriteSheet,
 		tiles:       getTiles(leveljson, tilesetData, spriteSheet),
 		spikes:      spikes,
 		exits:       exits,
+		checkpoints: checkpoints,
 		width:       float64(leveljson.Width * TileSize),
 		height:      float64(leveljson.Height * TileSize),
 	}
@@ -247,7 +313,20 @@ func (level *Level) Draw(screen *ebiten.Image) {
 	for _, exit := range level.exits {
 		DrawRectFrame(screen, exit.Rect, color.RGBA{0, 255, 0, 255})
 	}
+	for _, checkpoint := range level.checkpoints {
+		checkpoint.BaseSprite.Draw(screen)
+		DrawRectFrame(screen, checkpoint.hitbox, color.RGBA{255, 255, 0, 255})
+	}
 }
 
 func (level *Level) Update() {
+}
+
+func (c *Checkpoint) SetActive(active bool) {
+	c.Active = active
+	if active {
+		c.srcRect = c.spriteSheet.Rect(23)
+	} else {
+		c.srcRect = c.spriteSheet.Rect(24)
+	}
 }

@@ -78,6 +78,30 @@
                  "width":16,
                  "x":288,
                  "y":192
+                }, 
+                {
+                 "gid":24,
+                 "height":16,
+                 "id":13,
+                 "name":"Start Checkpoint",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":48,
+                 "y":192
+                }, 
+                {
+                 "gid":25,
+                 "height":16,
+                 "id":16,
+                 "name":"Checkpoint",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":336,
+                 "y":192
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -86,7 +110,7 @@
          "y":0
         }],
  "nextlayerid":6,
- "nextobjectid":13,
+ "nextobjectid":17,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -94,7 +118,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"tileset.tsx"
+         "source":"..\/tileset.json"
         }],
  "tilewidth":16,
  "type":"map",
