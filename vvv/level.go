@@ -20,17 +20,12 @@ type BaseSprite struct {
 	Location
 	spriteSheet *SpriteSheet
 	srcRect     image.Rectangle
-	// TODO: add hitbox here
+	hitbox      Rect
 }
 
 // HitRect returns the collision rectangle for the BaseSprite.
 func (bs *BaseSprite) HitRect() Rect {
-	return Rect{
-		left:   bs.X,
-		top:    bs.Y,
-		right:  bs.X + float64(bs.spriteSheet.tileWidth),
-		bottom: bs.Y + float64(bs.spriteSheet.tileHeight),
-	}
+	return bs.hitbox
 }
 
 // GetX returns the X coordinate of the BaseSprite.
@@ -74,6 +69,38 @@ func (f *FlippableSprite) Draw(screen *ebiten.Image) {
 	// Draw the sprite
 	currImage := f.spriteSheet.image.SubImage(f.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
+
+	// show hitbox
+	hb := f.FlippedHitbox()
+	DrawRectFrame(screen, hb, color.RGBA{255, 255, 255, 255})
+}
+
+// FlippedHitbox returns the transformed hitbox based on the current
+// flipping state.
+func (f *FlippableSprite) FlippedHitbox() Rect {
+	// TODO: should be using base hitbox
+	// Start with the base hitbox
+	hitbox := Rect{
+		left:   f.X,
+		top:    f.Y,
+		right:  f.X + float64(f.spriteSheet.tileWidth),
+		bottom: f.Y + float64(f.spriteSheet.tileHeight),
+	}
+
+	// TODO: flip around, keeping base hitbox intact
+	// Apply horizontal flip if needed
+	// if f.flipHoriz {
+	// 	hitbox.left = f.X - float64(f.spriteSheet.tileWidth)
+	// 	hitbox.right = f.X
+	// }
+
+	// // Apply vertical flip if needed
+	// if f.flipVert {
+	// 	hitbox.top = f.Y - float64(f.spriteSheet.tileHeight)
+	// 	hitbox.bottom = f.Y
+	// }
+
+	return hitbox
 }
 
 type Tile struct {
@@ -83,12 +110,10 @@ type Tile struct {
 
 type Spike struct {
 	BaseSprite
-	hitbox Rect
 }
 
 type Checkpoint struct {
 	BaseSprite
-	hitbox   Rect
 	Active   bool
 	Id       int
 	LevelNum int
@@ -96,7 +121,6 @@ type Checkpoint struct {
 
 type Platform struct {
 	BaseSprite
-	hitbox         Rect
 	Vx             float64
 	Vy             float64
 	startX, startY float64
@@ -233,8 +257,8 @@ func processSpikeObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet
 			},
 			spriteSheet: spriteSheet,
 			srcRect:     spriteSheet.Rect(obj.Gid - 1),
+			hitbox:      hitbox,
 		},
-		hitbox: hitbox,
 	}
 }
 
@@ -280,12 +304,12 @@ func processCheckpointObject(obj ObjectJSON, tilesetData TilesetDataJSON, sprite
 			},
 			spriteSheet: spriteSheet,
 			srcRect:     spriteSheet.Rect(obj.Gid - 1),
-		},
-		hitbox: Rect{
-			left:   obj.X,
-			top:    adjustedY,
-			right:  obj.X + obj.Width,
-			bottom: adjustedY + obj.Height,
+			hitbox: Rect{
+				left:   obj.X,
+				top:    adjustedY,
+				right:  obj.X + obj.Width,
+				bottom: adjustedY + obj.Height,
+			},
 		},
 		Active:   isActive,
 		Id:       obj.ID,
@@ -320,12 +344,12 @@ func processPlatformObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSh
 			},
 			spriteSheet: spriteSheet,
 			srcRect:     spriteSheet.Rect(obj.Gid - 1),
-		},
-		hitbox: Rect{
-			left:   obj.X,
-			top:    adjustedY,
-			right:  obj.X + obj.Width,
-			bottom: adjustedY + obj.Height,
+			hitbox: Rect{
+				left:   obj.X,
+				top:    adjustedY,
+				right:  obj.X + obj.Width,
+				bottom: adjustedY + obj.Height,
+			},
 		},
 		startX: obj.X,
 		startY: adjustedY,
@@ -352,6 +376,12 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 						},
 						spriteSheet: spriteSheet,
 						srcRect:     spriteSheet.Rect(id - 1),
+						hitbox: Rect{
+							left:   float64(x),
+							top:    float64(y),
+							right:  float64(x + TileSize),
+							bottom: float64(y + TileSize),
+						},
 					},
 					solid: isSolid(tilesetData, id),
 				}

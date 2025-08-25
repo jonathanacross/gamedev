@@ -42,11 +42,18 @@ func NewPlayer() *Player {
 				},
 				spriteSheet: spriteSheet,
 				srcRect:     spriteSheet.Rect(0),
+				hitbox: Rect{ // Initialize the hitbox
+					left:   100.0,
+					top:    100.0,
+					right:  100.0 + TileSize,
+					bottom: 100.0 + TileSize,
+				},
 			},
 		},
-		Vx:       0.0,
-		Vy:       0.0,
-		onGround: false,
+		Vx:         0.0,
+		Vy:         0.0,
+		onGround:   false,
+		facingLeft: false,
 	}
 }
 
@@ -86,21 +93,21 @@ func (p *Player) IsOnGround() bool {
 	return p.onGround
 }
 
-// ResolveCollision handles collision resolution on a specified axis.
-func (p *Player) ResolveCollision(tile Tile, axis CollisionAxis) {
-	playerRect := p.HitRect()
-	tileRect := tile.HitRect()
+// resolveCollision handles collision resolution on a specified axis.
+// It now takes a generic Rect, allowing it to work with any object.
+func (p *Player) resolveCollision(otherRect Rect, axis CollisionAxis) {
+	playerRect := p.FlippedHitbox()
 
-	if !playerRect.Intersects(&tileRect) {
+	if !playerRect.Intersects(&otherRect) {
 		return
 	}
 
 	if axis == AxisX {
 		overlap := 0.0
 		if p.Vx > 0 { // moving right
-			overlap = playerRect.right - tileRect.left
+			overlap = playerRect.right - otherRect.left
 		} else if p.Vx < 0 { // moving left
-			overlap = playerRect.left - tileRect.right
+			overlap = playerRect.left - otherRect.right
 		}
 
 		if math.Abs(overlap) > 0 {
@@ -110,9 +117,9 @@ func (p *Player) ResolveCollision(tile Tile, axis CollisionAxis) {
 	} else if axis == AxisY {
 		overlap := 0.0
 		if p.Vy > 0 { // moving down
-			overlap = playerRect.bottom - tileRect.top
+			overlap = playerRect.bottom - otherRect.top
 		} else if p.Vy < 0 { // moving up
-			overlap = playerRect.top - tileRect.bottom
+			overlap = playerRect.top - otherRect.bottom
 		}
 
 		if math.Abs(overlap) > 0 {
@@ -126,7 +133,7 @@ func (p *Player) ResolveCollision(tile Tile, axis CollisionAxis) {
 // HandleCollisions checks for and resolves collisions for the player.
 func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
 	// Only check the tiles near the player to improve performance
-	playerHitRect := p.HitRect()
+	playerHitRect := p.FlippedHitbox()
 	minX := int(math.Floor(playerHitRect.left/TileSize)) - 1
 	maxX := int(math.Floor(playerHitRect.right/TileSize)) + 1
 	minY := int(math.Floor(playerHitRect.top/TileSize)) - 1
@@ -143,12 +150,24 @@ func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
 			continue
 		}
 
-		p.ResolveCollision(tile, axis)
+		p.resolveCollision(tile.HitRect(), axis)
+	}
+}
+
+func (p *Player) HandlePlatformCollisions(platforms []*Platform, axis CollisionAxis) {
+	playerHitRect := p.FlippedHitbox()
+
+	// Check for collision with each platform
+	for _, platform := range platforms {
+		platformRect := platform.hitbox
+		if playerHitRect.Intersects(&platformRect) {
+			p.resolveCollision(platform.HitRect(), axis)
+		}
 	}
 }
 
 func (p *Player) CheckCheckpointCollisions(level *Level) *Checkpoint {
-	playerHitRect := p.HitRect()
+	playerHitRect := p.FlippedHitbox()
 
 	for _, cp := range level.checkpoints {
 		if playerHitRect.Intersects(&cp.hitbox) {
@@ -160,7 +179,7 @@ func (p *Player) CheckCheckpointCollisions(level *Level) *Checkpoint {
 
 // HandleSpikeCollisions now returns a boolean indicating if a respawn is needed.
 func (p *Player) HandleSpikeCollisions(level *Level) bool {
-	playerRect := p.HitRect()
+	playerRect := p.FlippedHitbox()
 	for _, spike := range level.spikes {
 		if playerRect.Intersects(&spike.hitbox) {
 			return true // Player needs to respawn
@@ -170,7 +189,7 @@ func (p *Player) HandleSpikeCollisions(level *Level) bool {
 }
 
 func (p *Player) checkLevelExits(level *Level) PlayerActionEvent {
-	playerHitRect := p.HitRect()
+	playerHitRect := p.FlippedHitbox()
 
 	for _, exit := range level.exits {
 		if playerHitRect.Intersects(&exit.Rect) {
@@ -187,10 +206,12 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 
 	p.X += p.Vx
 	p.HandleCollisions(level, AxisX)
+	p.HandlePlatformCollisions(level.platforms, AxisX)
 
 	p.onGround = false
 	p.Y += p.Vy
 	p.HandleCollisions(level, AxisY)
+	p.HandlePlatformCollisions(level.platforms, AxisY)
 
 	if newCheckpoint := p.CheckCheckpointCollisions(level); newCheckpoint != nil {
 		return PlayerActionEvent{Action: CheckpointReachedAction, Payload: newCheckpoint}
