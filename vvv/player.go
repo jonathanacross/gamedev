@@ -80,7 +80,7 @@ func (p *Player) FixPlayerY(tile *Tile) {
 }
 
 func (p *Player) HandleCollisions(level *Level, horiz bool) {
-	for _, tile := range *level.tiles {
+	for _, tile := range level.tiles {
 		if !tile.solid {
 			continue
 		}

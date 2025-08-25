@@ -68,7 +68,7 @@ type Checkpoint struct {
 type Level struct {
 	tilemapJson LevelJSON
 	spriteSheet *SpriteSheet
-	tiles       *[]Tile
+	tiles       []Tile
 	spikes      []Spike
 	exits       []LevelExit
 	checkpoints []*Checkpoint
@@ -239,7 +239,7 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 	return spikes, exits, checkpoints, startPoint
 }
 
-func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *[]Tile {
+func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) []Tile {
 	tiles := []Tile{}
 	for _, layer := range leveljson.Layers {
 		if layer.Type == "tilelayer" {
@@ -264,19 +264,18 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 			}
 		}
 	}
-	return &tiles
+	return tiles
 }
 
 func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Level {
 	spikes, exits, checkpoints, startPoint := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet, levelNum)
 
-	// Create a new offscreen image for the level's tiles.
 	levelImage := ebiten.NewImage(leveljson.Width*TileSize, leveljson.Height*TileSize)
 
 	// Get all tiles and draw them to the offscreen image.
 	tiles := getTiles(leveljson, tilesetData, spriteSheet)
-	for _, tile := range *tiles {
-		tile.Draw(levelImage) // Draw each tile to the offscreen image
+	for _, tile := range tiles {
+		tile.Draw(levelImage)
 	}
 
 	return &Level{
@@ -289,7 +288,7 @@ func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 		width:       float64(leveljson.Width * TileSize),
 		height:      float64(leveljson.Height * TileSize),
 		startPoint:  startPoint,
-		levelImage:  levelImage, // Assign the pre-rendered image
+		levelImage:  levelImage,
 	}
 }
 
