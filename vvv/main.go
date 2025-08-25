@@ -7,6 +7,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
+// PlayerAction defines the type of action the player is requesting.
+type PlayerAction int
+
+const (
+	NoAction PlayerAction = iota // Default, no specific action requested
+	RespawnAction
+	SwitchLevelAction
+)
+
+// PlayerActionEvent bundles the action type and any associated data.
+type PlayerActionEvent struct {
+	Action  PlayerAction
+	Payload interface{} // e.g., LevelExit for SwitchLevelAction
+}
+
 // Game is the main game struct.
 type Game struct {
 	player          *Player
@@ -27,10 +42,23 @@ func (g *Game) Update() error {
 	}
 
 	g.currentLevel.Update()
-	g.player.Update(g)
 
-	// Check for collision with level exits
-	g.checkLevelExits()
+	// Pass gravity directly to the player's Update method
+	actionEvent := g.player.Update(g.currentLevel, g.gravity)
+
+	// Process player actions
+	switch actionEvent.Action {
+	case RespawnAction:
+		g.Respawn()
+	case SwitchLevelAction:
+		if exit, ok := actionEvent.Payload.(LevelExit); ok {
+			g.switchLevel(exit)
+		} else {
+			log.Println("Error: SwitchLevelAction payload is not of type LevelExit")
+		}
+	case NoAction:
+		// Do nothing
+	}
 
 	PlayMusic()
 
@@ -44,19 +72,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return ScreenWidth, ScreenHeight
-}
-
-// checkLevelExits checks for a collision between the player and any level exits.
-func (g *Game) checkLevelExits() {
-	playerHitRect := g.player.HitRect()
-
-	for _, exit := range g.currentLevel.exits {
-		if playerHitRect.Intersects(&exit.Rect) {
-			log.Printf("Player collided with exit to level %d\n", exit.ToLevel)
-			g.switchLevel(exit)
-			break
-		}
-	}
 }
 
 func (g *Game) switchLevel(exit LevelExit) {
@@ -123,8 +138,6 @@ func main() {
 			}
 		}
 	}
-
-	g.player.game = g
 
 	ebiten.SetWindowSize(3*ScreenWidth, 3*ScreenHeight)
 

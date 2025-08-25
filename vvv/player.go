@@ -12,7 +12,6 @@ type Player struct {
 	Vy               float64
 	onGround         bool
 	checkpointId     int
-	game             *Game
 	activeCheckpoint *Checkpoint
 }
 
@@ -121,8 +120,10 @@ func (p *Player) HandleUserInput() {
 		p.Vx = 0.0
 	}
 }
-func (p *Player) HandleCheckpoints() {
-	for _, cp := range p.game.currentLevel.checkpoints {
+
+// HandleCheckpoints now accepts the current level.
+func (p *Player) HandleCheckpoints(level *Level) {
+	for _, cp := range level.checkpoints {
 		if p.HitRect().Intersects(&cp.hitbox) {
 			if !cp.Active {
 				if p.activeCheckpoint != nil {
@@ -136,26 +137,51 @@ func (p *Player) HandleCheckpoints() {
 	}
 }
 
-func (p *Player) HandleSpikeCollisions() {
+// HandleSpikeCollisions now returns a boolean indicating if a respawn is needed.
+func (p *Player) HandleSpikeCollisions(level *Level) bool {
 	playerRect := p.HitRect()
-	for _, spike := range p.game.currentLevel.spikes {
+	for _, spike := range level.spikes {
 		if playerRect.Intersects(&spike.hitbox) {
-			p.game.Respawn()
-			return
+			return true // Player needs to respawn
 		}
 	}
+	return false // No respawn needed
 }
 
-func (p *Player) Update(game *Game) {
+func (p *Player) checkLevelExits(level *Level) PlayerActionEvent {
+	playerHitRect := p.HitRect()
+
+	for _, exit := range level.exits {
+		if playerHitRect.Intersects(&exit.Rect) {
+			return PlayerActionEvent{Action: SwitchLevelAction, Payload: exit}
+		}
+	}
+	return PlayerActionEvent{Action: NoAction}
+}
+
+// Update moves the player and handles collisions, returning any requested game actions.
+func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 	p.HandleUserInput()
-	p.HandleGravity(game.gravity)
+	p.HandleGravity(gravity)
+
 	p.X += p.Vx
-	p.HandleCollisions(game.currentLevel, true)
+	p.HandleCollisions(level, true)
+
 	p.onGround = false
 	p.Y += p.Vy
-	p.HandleCollisions(game.currentLevel, false)
-	p.HandleCheckpoints()
-	p.HandleSpikeCollisions()
+	p.HandleCollisions(level, false)
+
+	p.HandleCheckpoints(level)
+
+	if p.HandleSpikeCollisions(level) {
+		return PlayerActionEvent{Action: RespawnAction}
+	}
+
+	if actionEvent := p.checkLevelExits(level); actionEvent.Action != NoAction {
+		return actionEvent
+	}
+
+	return PlayerActionEvent{Action: NoAction}
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
