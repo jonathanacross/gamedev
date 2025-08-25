@@ -29,6 +29,7 @@ type Game struct {
 	currentLevel    *Level
 	gravity         float64
 	allCheckpoints  map[int]*Checkpoint
+	debug           bool
 }
 
 const (
@@ -37,6 +38,12 @@ const (
 )
 
 func (g *Game) Update() error {
+	// Toggle debug mode on backtick key press
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackquote) {
+		g.debug = !g.debug
+		log.Printf("Debug mode is now: %v\n", g.debug)
+	}
+
 	if g.player.IsOnGround() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		g.gravity *= -1
 	}
@@ -66,7 +73,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.currentLevel.Draw(screen)
+	g.currentLevel.Draw(screen, g.debug)
 	g.player.Draw(screen)
 }
 

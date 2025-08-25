@@ -301,7 +301,7 @@ func (level *Level) FindCheckpoint(id int) *Checkpoint {
 	return nil
 }
 
-func (level *Level) Draw(screen *ebiten.Image) {
+func (level *Level) Draw(screen *ebiten.Image, debug bool) {
 	// Draw the pre-rendered level image
 	op := &ebiten.DrawImageOptions{}
 	screen.DrawImage(level.levelImage, op)
@@ -309,17 +309,19 @@ func (level *Level) Draw(screen *ebiten.Image) {
 	// Draw dynamic objects (spikes, exits, checkpoints)
 	for _, spike := range level.spikes {
 		spike.BaseSprite.Draw(screen)
-		DrawRectFrame(screen, spike.hitbox, color.RGBA{255, 165, 0, 255})
+		if debug {
+			DrawRectFrame(screen, spike.hitbox, color.RGBA{255, 165, 0, 255})
+		}
 	}
 	for _, exit := range level.exits {
-		DrawRectFrame(screen, exit.Rect, color.RGBA{0, 255, 0, 255})
+		if debug {
+			DrawRectFrame(screen, exit.Rect, color.RGBA{0, 255, 0, 255})
+		}
 	}
 	for _, cp := range level.checkpoints {
-		if cp.Active {
-			cp.Draw(screen)
+		cp.Draw(screen)
+		if debug {
 			DrawRectFrame(screen, cp.hitbox, color.RGBA{0, 0, 255, 255})
-		} else {
-			cp.Draw(screen)
 		}
 	}
 }
