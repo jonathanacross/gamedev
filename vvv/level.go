@@ -9,8 +9,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-const TileSize = 16
-
 type LevelExit struct {
 	Rect
 	ToLevel int

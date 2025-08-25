@@ -7,6 +7,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
+const (
+	ScreenWidth  = 384
+	ScreenHeight = 240
+	TileSize     = 16
+
+	Gravity  = 0.5
+	RunSpeed = 1.67
+
+	StartLevelId = 1
+)
+
 // PlayerAction defines the type of action the player is requesting.
 type PlayerAction int
 
@@ -31,11 +42,6 @@ type Game struct {
 	allCheckpoints  map[int]*Checkpoint
 	debug           bool
 }
-
-const (
-	ScreenWidth  = 384
-	ScreenHeight = 240
-)
 
 func (g *Game) Update() error {
 	// Toggle debug mode on backtick key press
@@ -122,8 +128,7 @@ func NewGame() *Game {
 		LoadedLevels[levelNum] = NewLevel(levelJSON, TilesetData, spriteSheet, levelNum)
 	}
 
-	// Set the initial level to 1
-	startLevel, ok := LoadedLevels[1]
+	startLevel, ok := LoadedLevels[StartLevelId]
 	if !ok {
 		panic("starting level not found")
 	}
@@ -133,7 +138,7 @@ func NewGame() *Game {
 		player:          NewPlayer(),
 		currentLevelNum: 1,
 		currentLevel:    startLevel,
-		gravity:         0.5,
+		gravity:         Gravity,
 		allCheckpoints:  make(map[int]*Checkpoint),
 	}
 

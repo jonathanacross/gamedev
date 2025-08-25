@@ -45,13 +45,11 @@ func NewPlayer() *Player {
 
 // HandleUserInput is a cleaner version using a switch statement.
 func (p *Player) HandleUserInput() {
-	runSpeed := 100.0 / float64(ebiten.TPS())
-
 	// Check for movement keys
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		p.Vx = -runSpeed
+		p.Vx = -RunSpeed
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		p.Vx = runSpeed
+		p.Vx = RunSpeed
 	} else {
 		p.Vx = 0.0
 	}
