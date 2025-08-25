@@ -78,8 +78,8 @@ func (g *Game) switchLevel(exit LevelExit) {
 }
 
 func (g *Game) Respawn() {
-	if cp, ok := g.allCheckpoints[g.player.checkpointId]; ok {
-		// If the checkpoint is on a different level, switch to that level
+	if g.player.activeCheckpoint != nil {
+		cp := g.player.activeCheckpoint
 		if cp.LevelNum != g.currentLevelNum {
 			g.currentLevelNum = cp.LevelNum
 			g.currentLevel = LoadedLevels[g.currentLevelNum]
@@ -117,6 +117,7 @@ func main() {
 		for _, cp := range level.checkpoints {
 			g.allCheckpoints[cp.Id] = cp
 			if cp.Active {
+				g.player.activeCheckpoint = cp
 				g.player.X, g.player.Y = cp.X, cp.Y
 				g.player.checkpointId = cp.Id
 			}

@@ -8,11 +8,12 @@ type Player struct {
 	BaseSprite
 
 	// Player state
-	Vx           float64
-	Vy           float64
-	onGround     bool
-	checkpointId int
-	game         *Game
+	Vx               float64
+	Vy               float64
+	onGround         bool
+	checkpointId     int
+	game             *Game
+	activeCheckpoint *Checkpoint
 }
 
 func NewPlayer() *Player {
@@ -26,9 +27,10 @@ func NewPlayer() *Player {
 			spriteSheet: spriteSheet,
 			srcRect:     spriteSheet.Rect(0),
 		},
-		Vx:       0.0,
-		Vy:       0.0,
-		onGround: false,
+		Vx:               0.0,
+		Vy:               0.0,
+		onGround:         false,
+		activeCheckpoint: nil,
 	}
 }
 
@@ -119,15 +121,15 @@ func (p *Player) HandleUserInput() {
 		p.Vx = 0.0
 	}
 }
-
 func (p *Player) HandleCheckpoints() {
 	for _, cp := range p.game.currentLevel.checkpoints {
 		if p.HitRect().Intersects(&cp.hitbox) {
 			if !cp.Active {
-				for _, otherCp := range p.game.allCheckpoints {
-					otherCp.SetActive(false)
+				if p.activeCheckpoint != nil {
+					p.activeCheckpoint.SetActive(false)
 				}
 				cp.SetActive(true)
+				p.activeCheckpoint = cp
 				p.checkpointId = cp.Id
 			}
 		}
