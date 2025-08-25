@@ -14,13 +14,23 @@ const (
 	AxisY
 )
 
+type PlayerState int
+
+const (
+	Walking = iota
+	Idle
+)
+
 type Player struct {
-	BaseSprite
+	FlippableSprite
 
 	// Player state
-	Vx               float64
-	Vy               float64
-	onGround         bool
+	Vx         float64
+	Vy         float64
+	onGround   bool
+	facingLeft bool
+
+	// TODO: should these be on the player? they seem potentially game-related
 	checkpointId     int
 	activeCheckpoint *Checkpoint
 }
@@ -28,13 +38,15 @@ type Player struct {
 func NewPlayer() *Player {
 	spriteSheet := NewSpriteSheet(PlayerSprite, TileSize, TileSize, 1, 1)
 	return &Player{
-		BaseSprite: BaseSprite{
-			Location: Location{
-				X: 100.0,
-				Y: 100.0,
+		FlippableSprite: FlippableSprite{
+			BaseSprite: BaseSprite{
+				Location: Location{
+					X: 100.0,
+					Y: 100.0,
+				},
+				spriteSheet: spriteSheet,
+				srcRect:     spriteSheet.Rect(0),
 			},
-			spriteSheet: spriteSheet,
-			srcRect:     spriteSheet.Rect(0),
 		},
 		Vx:               0.0,
 		Vy:               0.0,
@@ -48,15 +60,20 @@ func (p *Player) HandleUserInput() {
 	// Check for movement keys
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		p.Vx = -RunSpeed
+		p.facingLeft = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		p.Vx = RunSpeed
+		p.facingLeft = false
 	} else {
 		p.Vx = 0.0
 	}
+
+	p.flipHoriz = p.facingLeft
 }
 
 func (p *Player) HandleGravity(gravity float64) {
 	p.Vy += gravity
+	p.flipVert = gravity < 0
 }
 
 func (p *Player) IsOnGround() bool {

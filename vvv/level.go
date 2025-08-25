@@ -20,6 +20,7 @@ type BaseSprite struct {
 	Location
 	spriteSheet *SpriteSheet
 	srcRect     image.Rectangle
+	// TODO: add hitbox here
 }
 
 // HitRect returns the collision rectangle for the BaseSprite.
@@ -42,6 +43,36 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(bs.X, bs.Y)
 	currImage := bs.spriteSheet.image.SubImage(bs.srcRect).(*ebiten.Image)
+	screen.DrawImage(currImage, op)
+}
+
+type FlippableSprite struct {
+	BaseSprite
+	flipHoriz bool
+	flipVert  bool
+}
+
+// Draw method for the flippable sprite. It handles the flipping logic.
+func (f *FlippableSprite) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+
+	// Apply horizontal flip
+	if f.flipHoriz {
+		op.GeoM.Scale(-1, 1)
+		op.GeoM.Translate(float64(f.spriteSheet.tileWidth), 0)
+	}
+
+	// Apply vertical flip
+	if f.flipVert {
+		op.GeoM.Scale(1, -1)
+		op.GeoM.Translate(0, float64(f.spriteSheet.tileHeight))
+	}
+
+	// Translate to the sprite's position
+	op.GeoM.Translate(f.X, f.Y)
+
+	// Draw the sprite
+	currImage := f.spriteSheet.image.SubImage(f.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
 
