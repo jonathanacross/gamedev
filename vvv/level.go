@@ -116,7 +116,7 @@ func isSolid(tilesetData TilesetDataJSON, id int) bool {
 	return false
 }
 
-func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, Location) {
+func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, Location) {
 	spikes := []Spike{}
 	exits := []LevelExit{}
 	checkpoints := []*Checkpoint{}
@@ -140,96 +140,17 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 
 				switch objType {
 				case "Spike":
-					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-					if tilesetTileData == nil {
-						log.Println("Tileset tile data not found for Spike, Gid:", obj.Gid)
-						continue
+					spike := processSpikeObject(obj, tilesetData, spriteSheet)
+					if spike != nil {
+						spikes = append(spikes, *spike)
 					}
-					adjustedY := obj.Y - obj.Height
-
-					var hitbox Rect
-					if len(tilesetTileData.ObjectGroup.Objects) > 0 {
-						rectData := tilesetTileData.ObjectGroup.Objects[0]
-						hitbox = Rect{
-							left:   obj.X + rectData.X,
-							top:    adjustedY + rectData.Y,
-							right:  obj.X + rectData.X + rectData.Width,
-							bottom: adjustedY + rectData.Y + rectData.Height,
-						}
-					} else {
-						hitbox = Rect{
-							left:   obj.X,
-							top:    adjustedY,
-							right:  obj.X + obj.Width,
-							bottom: adjustedY + obj.Height,
-						}
-					}
-
-					spike := Spike{
-						BaseSprite: BaseSprite{
-							Location: Location{
-								X: obj.X,
-								Y: adjustedY,
-							},
-							spriteSheet: spriteSheet,
-							srcRect:     spriteSheet.Rect(obj.Gid - 1),
-						},
-						hitbox: hitbox,
-					}
-					spikes = append(spikes, spike)
 				case "LevelExit":
-					toLevel := 0
-					for _, prop := range obj.Properties {
-						if prop.Name == "ToLevel" {
-							if toLevelVal, ok := prop.IntValue(); ok {
-								toLevel = toLevelVal
-							}
-							break
-						}
-					}
-					exit := LevelExit{
-						Rect: Rect{
-							left:   obj.X,
-							top:    obj.Y,
-							right:  obj.X + obj.Width,
-							bottom: obj.Y + obj.Height,
-						},
-						ToLevel: toLevel,
-					}
+					exit := processLevelExit(obj)
 					exits = append(exits, exit)
 				case "Checkpoint":
-					adjustedY := obj.Y - obj.Height
-
-					isActive := false
-					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-					if tilesetTileData != nil {
-						if activeVal, ok := getBoolProperty(tilesetTileData.Properties, "Active"); ok {
-							isActive = activeVal
-						}
-					}
-
-					checkpoint := &Checkpoint{
-						BaseSprite: BaseSprite{
-							Location: Location{
-								X: obj.X,
-								Y: adjustedY,
-							},
-							spriteSheet: spriteSheet,
-							srcRect:     spriteSheet.Rect(obj.Gid - 1),
-						},
-						hitbox: Rect{
-							left:   obj.X,
-							top:    adjustedY,
-							right:  obj.X + obj.Width,
-							bottom: adjustedY + obj.Height,
-						},
-						Active:   isActive,
-						Id:       obj.ID,
-						LevelNum: levelNum,
-					}
+					checkpoint := processCheckpointObject(obj, tilesetData, spriteSheet, levelNum)
 					checkpoints = append(checkpoints, checkpoint)
-
-					if isActive {
+					if checkpoint.Active {
 						startPoint = checkpoint.Location
 					}
 				}
@@ -237,6 +158,101 @@ func getLevelObjectsAndExits(leveljson LevelJSON, tilesetData TilesetDataJSON, s
 		}
 	}
 	return spikes, exits, checkpoints, startPoint
+}
+
+// New helper function to process a single Spike object.
+func processSpikeObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Spike {
+	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
+	if tilesetTileData == nil {
+		log.Println("Tileset tile data not found for Spike, Gid:", obj.Gid)
+		return nil
+	}
+	adjustedY := obj.Y - obj.Height
+
+	var hitbox Rect
+	if len(tilesetTileData.ObjectGroup.Objects) > 0 {
+		rectData := tilesetTileData.ObjectGroup.Objects[0]
+		hitbox = Rect{
+			left:   obj.X + rectData.X,
+			top:    adjustedY + rectData.Y,
+			right:  obj.X + rectData.X + rectData.Width,
+			bottom: adjustedY + rectData.Y + rectData.Height,
+		}
+	} else {
+		hitbox = Rect{
+			left:   obj.X,
+			top:    adjustedY,
+			right:  obj.X + obj.Width,
+			bottom: adjustedY + obj.Height,
+		}
+	}
+
+	return &Spike{
+		BaseSprite: BaseSprite{
+			Location: Location{
+				X: obj.X,
+				Y: adjustedY,
+			},
+			spriteSheet: spriteSheet,
+			srcRect:     spriteSheet.Rect(obj.Gid - 1),
+		},
+		hitbox: hitbox,
+	}
+}
+
+// New helper function to process a single LevelExit object.
+func processLevelExit(obj ObjectJSON) LevelExit {
+	toLevel := 0
+	for _, prop := range obj.Properties {
+		if prop.Name == "ToLevel" {
+			if toLevelVal, ok := prop.IntValue(); ok {
+				toLevel = toLevelVal
+			}
+			break
+		}
+	}
+	return LevelExit{
+		Rect: Rect{
+			left:   obj.X,
+			top:    obj.Y,
+			right:  obj.X + obj.Width,
+			bottom: obj.Y + obj.Height,
+		},
+		ToLevel: toLevel,
+	}
+}
+
+// New helper function to process a single Checkpoint object.
+func processCheckpointObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Checkpoint {
+	adjustedY := obj.Y - obj.Height
+
+	isActive := false
+	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
+	if tilesetTileData != nil {
+		if activeVal, ok := getBoolProperty(tilesetTileData.Properties, "Active"); ok {
+			isActive = activeVal
+		}
+	}
+
+	return &Checkpoint{
+		BaseSprite: BaseSprite{
+			Location: Location{
+				X: obj.X,
+				Y: adjustedY,
+			},
+			spriteSheet: spriteSheet,
+			srcRect:     spriteSheet.Rect(obj.Gid - 1),
+		},
+		hitbox: Rect{
+			left:   obj.X,
+			top:    adjustedY,
+			right:  obj.X + obj.Width,
+			bottom: adjustedY + obj.Height,
+		},
+		Active:   isActive,
+		Id:       obj.ID,
+		LevelNum: levelNum,
+	}
 }
 
 func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) []Tile {
@@ -268,7 +284,7 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 }
 
 func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Level {
-	spikes, exits, checkpoints, startPoint := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet, levelNum)
+	spikes, exits, checkpoints, startPoint := getLevelObjects(leveljson, tilesetData, spriteSheet, levelNum)
 
 	levelImage := ebiten.NewImage(leveljson.Width*TileSize, leveljson.Height*TileSize)
 
