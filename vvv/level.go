@@ -75,6 +75,7 @@ type Level struct {
 	width       float64
 	height      float64
 	startPoint  Location
+	levelImage  *ebiten.Image
 }
 
 // DrawRectFrame draws a 1-pixel wide frame around the given Rect with the specified color.
@@ -268,16 +269,27 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 
 func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Level {
 	spikes, exits, checkpoints, startPoint := getLevelObjectsAndExits(leveljson, tilesetData, spriteSheet, levelNum)
+
+	// Create a new offscreen image for the level's tiles.
+	levelImage := ebiten.NewImage(leveljson.Width*TileSize, leveljson.Height*TileSize)
+
+	// Get all tiles and draw them to the offscreen image.
+	tiles := getTiles(leveljson, tilesetData, spriteSheet)
+	for _, tile := range *tiles {
+		tile.Draw(levelImage) // Draw each tile to the offscreen image
+	}
+
 	return &Level{
 		tilemapJson: leveljson,
 		spriteSheet: spriteSheet,
-		tiles:       getTiles(leveljson, tilesetData, spriteSheet),
+		tiles:       tiles,
 		spikes:      spikes,
 		exits:       exits,
 		checkpoints: checkpoints,
 		width:       float64(leveljson.Width * TileSize),
 		height:      float64(leveljson.Height * TileSize),
 		startPoint:  startPoint,
+		levelImage:  levelImage, // Assign the pre-rendered image
 	}
 }
 
@@ -291,9 +303,11 @@ func (level *Level) FindCheckpoint(id int) *Checkpoint {
 }
 
 func (level *Level) Draw(screen *ebiten.Image) {
-	for _, tile := range *level.tiles {
-		tile.Draw(screen)
-	}
+	// Draw the pre-rendered level image
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(level.levelImage, op)
+
+	// Draw dynamic objects (spikes, exits, checkpoints)
 	for _, spike := range level.spikes {
 		spike.BaseSprite.Draw(screen)
 		DrawRectFrame(screen, spike.hitbox, color.RGBA{255, 165, 0, 255})
@@ -301,9 +315,13 @@ func (level *Level) Draw(screen *ebiten.Image) {
 	for _, exit := range level.exits {
 		DrawRectFrame(screen, exit.Rect, color.RGBA{0, 255, 0, 255})
 	}
-	for _, checkpoint := range level.checkpoints {
-		checkpoint.BaseSprite.Draw(screen)
-		DrawRectFrame(screen, checkpoint.hitbox, color.RGBA{255, 255, 0, 255})
+	for _, cp := range level.checkpoints {
+		if cp.Active {
+			cp.Draw(screen)
+			DrawRectFrame(screen, cp.hitbox, color.RGBA{0, 0, 255, 255})
+		} else {
+			cp.Draw(screen)
+		}
 	}
 }
 
