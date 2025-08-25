@@ -157,18 +157,11 @@ func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteShe
 				objType := obj.Type
 				if objType == "" && obj.Gid > 0 {
 					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-					if tilesetTileData != nil && len(tilesetTileData.ObjectGroup.Objects) > 0 && tilesetTileData.ObjectGroup.Objects[0].Name == "Spikes" {
-						objType = "Spike"
-					}
-					if tilesetTileData != nil {
-						if tileType, ok := getStringProperty(tilesetTileData.Properties, "Type"); ok {
-							objType = tileType
-						}
-					}
+					objType = tilesetTileData.Type
 				}
 
 				switch objType {
-				case "Spike":
+				case "Spikes":
 					spike := processSpikeObject(obj, tilesetData, spriteSheet)
 					if spike != nil {
 						spikes = append(spikes, *spike)

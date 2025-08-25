@@ -190,7 +190,52 @@
                 }]
         }, 
         {
-         "id":21,
+         "id":20
+        }, 
+        {
+         "id":21
+        }, 
+        {
+         "id":22,
+         "type":"Crystal"
+        }, 
+        {
+         "id":23,
+         "properties":[
+                {
+                 "name":"Active",
+                 "type":"bool",
+                 "value":true
+                }],
+         "type":"Checkpoint"
+        }, 
+        {
+         "id":24,
+         "properties":[
+                {
+                 "name":"Active",
+                 "type":"bool",
+                 "value":false
+                }],
+         "type":"Checkpoint"
+        }, 
+        {
+         "id":25
+        }, 
+        {
+         "id":26
+        }, 
+        {
+         "id":27
+        }, 
+        {
+         "id":28
+        }, 
+        {
+         "id":29
+        }, 
+        {
+         "id":30,
          "objectgroup":
             {
              "draworder":"index",
@@ -212,35 +257,107 @@
              "visible":true,
              "x":0,
              "y":0
-            }
+            },
+         "type":"Spikes"
         }, 
         {
-         "id":23,
-         "properties":[
-                {
-                 "name":"Active",
-                 "type":"bool",
-                 "value":true
-                }, 
-                {
-                 "name":"Type",
-                 "type":"string",
-                 "value":"Checkpoint"
-                }]
+         "id":31,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":9,
+                     "id":2,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Spikes"
         }, 
         {
-         "id":24,
-         "properties":[
-                {
-                 "name":"Active",
-                 "type":"bool",
-                 "value":false
-                }, 
-                {
-                 "name":"Type",
-                 "type":"string",
-                 "value":"Checkpoint"
-                }]
+         "id":32,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":16,
+                     "id":1,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":9,
+                     "x":7,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Spikes"
+        }, 
+        {
+         "id":33,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":16,
+                     "id":4,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":9,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Spikes"
+        }, 
+        {
+         "id":34
+        }, 
+        {
+         "id":35
+        }, 
+        {
+         "id":36
+        }, 
+        {
+         "id":37
+        }, 
+        {
+         "id":38
+        }, 
+        {
+         "id":39
         }],
  "tilewidth":16,
  "type":"tileset",

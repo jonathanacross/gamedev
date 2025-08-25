@@ -97,6 +97,7 @@ type TilesetTileJSON struct {
 	ID          int                    `json:"id"`
 	ObjectGroup TilesetObjectGroupJSON `json:"objectgroup"`
 	Properties  []PropertiesJSON       `json:"properties"`
+	Type        string                 `json:"type"`
 }
 
 type TilesetDataJSON struct {
