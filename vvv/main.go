@@ -25,6 +25,7 @@ const (
 	NoAction PlayerAction = iota // Default, no specific action requested
 	RespawnAction
 	SwitchLevelAction
+	CheckpointReachedAction
 )
 
 // PlayerActionEvent bundles the action type and any associated data.
@@ -35,12 +36,13 @@ type PlayerActionEvent struct {
 
 // Game is the main game struct.
 type Game struct {
-	player          *Player
-	currentLevelNum int // Store the number of the current level
-	currentLevel    *Level
-	gravity         float64
-	allCheckpoints  map[int]*Checkpoint
-	debug           bool
+	player           *Player
+	currentLevelNum  int // Store the number of the current level
+	currentLevel     *Level
+	gravity          float64
+	allCheckpoints   map[int]*Checkpoint
+	activeCheckpoint *Checkpoint
+	debug            bool
 }
 
 func (g *Game) Update() error {
@@ -64,11 +66,12 @@ func (g *Game) Update() error {
 	case RespawnAction:
 		g.Respawn()
 	case SwitchLevelAction:
-		if exit, ok := actionEvent.Payload.(LevelExit); ok {
-			g.switchLevel(exit)
-		} else {
-			log.Println("Error: SwitchLevelAction payload is not of type LevelExit")
-		}
+		exit := actionEvent.Payload.(LevelExit)
+		g.switchLevel(exit)
+	case CheckpointReachedAction:
+		newCheckpoint := actionEvent.Payload.(*Checkpoint)
+		g.SetActiveCheckpoint(newCheckpoint)
+
 	case NoAction:
 		// Do nothing
 	}
@@ -106,8 +109,8 @@ func (g *Game) switchLevel(exit LevelExit) {
 }
 
 func (g *Game) Respawn() {
-	if g.player.activeCheckpoint != nil {
-		cp := g.player.activeCheckpoint
+	if g.activeCheckpoint != nil {
+		cp := g.activeCheckpoint
 		if cp.LevelNum != g.currentLevelNum {
 			g.currentLevelNum = cp.LevelNum
 			g.currentLevel = LoadedLevels[g.currentLevelNum]
@@ -117,6 +120,17 @@ func (g *Game) Respawn() {
 		// This should only happen at the start of the game
 		g.player.X, g.player.Y = g.currentLevel.startPoint.X, g.currentLevel.startPoint.Y
 	}
+}
+
+func (g *Game) SetActiveCheckpoint(cp *Checkpoint) {
+	// Deactivate all checkpoints first
+	for _, checkpoint := range g.allCheckpoints {
+		checkpoint.SetActive(false)
+	}
+
+	// Now activate the new checkpoint
+	cp.SetActive(true)
+	g.activeCheckpoint = cp
 }
 
 // NewGame creates and initializes a new Game struct.
@@ -147,9 +161,8 @@ func NewGame() *Game {
 		for _, cp := range level.checkpoints {
 			g.allCheckpoints[cp.Id] = cp
 			if cp.Active {
-				g.player.activeCheckpoint = cp
+				g.activeCheckpoint = cp
 				g.player.X, g.player.Y = cp.X, cp.Y
-				g.player.checkpointId = cp.Id
 			}
 		}
 	}

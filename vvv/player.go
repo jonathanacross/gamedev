@@ -29,10 +29,6 @@ type Player struct {
 	Vy         float64
 	onGround   bool
 	facingLeft bool
-
-	// TODO: should these be on the player? they seem potentially game-related
-	checkpointId     int
-	activeCheckpoint *Checkpoint
 }
 
 func NewPlayer() *Player {
@@ -48,10 +44,9 @@ func NewPlayer() *Player {
 				srcRect:     spriteSheet.Rect(0),
 			},
 		},
-		Vx:               0.0,
-		Vy:               0.0,
-		onGround:         false,
-		activeCheckpoint: nil,
+		Vx:       0.0,
+		Vy:       0.0,
+		onGround: false,
 	}
 }
 
@@ -141,21 +136,15 @@ func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
 	}
 }
 
-func (p *Player) HandleCheckpoints(level *Level) {
+func (p *Player) CheckCheckpointCollisions(level *Level) *Checkpoint {
 	playerHitRect := p.HitRect()
 
 	for _, cp := range level.checkpoints {
 		if playerHitRect.Intersects(&cp.hitbox) {
-			if p.activeCheckpoint != nil && p.activeCheckpoint.Id != cp.Id {
-				if p.activeCheckpoint.LevelNum == cp.LevelNum {
-					p.activeCheckpoint.SetActive(false)
-				}
-			}
-			cp.SetActive(true)
-			p.activeCheckpoint = cp
-			p.checkpointId = cp.Id
+			return cp
 		}
 	}
+	return nil
 }
 
 // HandleSpikeCollisions now returns a boolean indicating if a respawn is needed.
@@ -192,7 +181,9 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 	p.Y += p.Vy
 	p.HandleCollisions(level, AxisY)
 
-	p.HandleCheckpoints(level)
+	if newCheckpoint := p.CheckCheckpointCollisions(level); newCheckpoint != nil {
+		return PlayerActionEvent{Action: CheckpointReachedAction, Payload: newCheckpoint}
+	}
 
 	if p.HandleSpikeCollisions(level) {
 		return PlayerActionEvent{Action: RespawnAction}
