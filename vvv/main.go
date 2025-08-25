@@ -113,7 +113,8 @@ func (g *Game) Respawn() {
 	}
 }
 
-func main() {
+// NewGame creates and initializes a new Game struct.
+func NewGame() *Game {
 	spriteSheet := NewSpriteSheet(TileSet, TileSize, TileSize, 5, 7)
 
 	// Pre-load all levels and their objects using the TilesetData.
@@ -127,6 +128,7 @@ func main() {
 		panic("starting level not found")
 	}
 
+	// Create and initialize the game state
 	g := &Game{
 		player:          NewPlayer(),
 		currentLevelNum: 1,
@@ -135,6 +137,7 @@ func main() {
 		allCheckpoints:  make(map[int]*Checkpoint),
 	}
 
+	// Find all checkpoints and set the initial player position
 	for _, level := range LoadedLevels {
 		for _, cp := range level.checkpoints {
 			g.allCheckpoints[cp.Id] = cp
@@ -146,6 +149,11 @@ func main() {
 		}
 	}
 
+	return g
+}
+
+func main() {
+	g := NewGame()
 	ebiten.SetWindowSize(3*ScreenWidth, 3*ScreenHeight)
 
 	err := ebiten.RunGame(g)
