@@ -100,47 +100,6 @@ func findTilesetTileData(tilesetData TilesetDataJSON, gid int) *TilesetTileJSON 
 	return nil
 }
 
-func getStringProperty(properties []PropertiesJSON, name string) (string, bool) {
-	for _, prop := range properties {
-		if prop.Name == name {
-			if v, ok := prop.Value.(string); ok {
-				return v, true
-			}
-		}
-	}
-	return "", false
-}
-
-func getBoolProperty(properties []PropertiesJSON, name string) (bool, bool) {
-	for _, prop := range properties {
-		if prop.Name == name {
-			if v, ok := prop.BoolValue(); ok {
-				return v, true
-			}
-		}
-	}
-	return false, false
-}
-
-func getHitboxFromTileData(obj ObjectJSON, tilesetTileData *TilesetTileJSON) Rect {
-	if tilesetTileData != nil && len(tilesetTileData.ObjectGroup.Objects) > 0 {
-		rectData := tilesetTileData.ObjectGroup.Objects[0]
-		return Rect{
-			left:   obj.X + rectData.X,
-			top:    obj.Y + rectData.Y,
-			right:  obj.X + rectData.X + rectData.Width,
-			bottom: obj.Y + rectData.Y + rectData.Height,
-		}
-	} else {
-		return Rect{
-			left:   obj.X,
-			top:    obj.Y,
-			right:  obj.X + obj.Width,
-			bottom: obj.Y + obj.Height,
-		}
-	}
-}
-
 func isSolid(tilesetData TilesetDataJSON, id int) bool {
 	tileData := findTilesetTileData(tilesetData, id)
 	if tileData == nil {

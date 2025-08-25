@@ -31,6 +31,28 @@ func (p *PropertiesJSON) BoolValue() (bool, bool) {
 	return false, false
 }
 
+func getStringProperty(properties []PropertiesJSON, name string) (string, bool) {
+	for _, prop := range properties {
+		if prop.Name == name {
+			if v, ok := prop.Value.(string); ok {
+				return v, true
+			}
+		}
+	}
+	return "", false
+}
+
+func getBoolProperty(properties []PropertiesJSON, name string) (bool, bool) {
+	for _, prop := range properties {
+		if prop.Name == name {
+			if v, ok := prop.BoolValue(); ok {
+				return v, true
+			}
+		}
+	}
+	return false, false
+}
+
 type ObjectLayerJSON struct {
 	Draworder string       `json:"draworder"`
 	ID        int          `json:"id"`
