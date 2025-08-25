@@ -94,6 +94,15 @@ type Checkpoint struct {
 	LevelNum int
 }
 
+type Platform struct {
+	BaseSprite
+	hitbox         Rect
+	Vx             float64
+	Vy             float64
+	startX, startY float64
+	endX, endY     float64
+}
+
 type Level struct {
 	tilemapJson LevelJSON
 	spriteSheet *SpriteSheet
@@ -101,6 +110,7 @@ type Level struct {
 	spikes      []Spike
 	exits       []LevelExit
 	checkpoints []*Checkpoint
+	platforms   []*Platform
 	width       float64
 	height      float64
 	startPoint  Location
@@ -145,10 +155,11 @@ func isSolid(tilesetData TilesetDataJSON, id int) bool {
 	return false
 }
 
-func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, Location) {
+func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, []*Platform, Location) {
 	spikes := []Spike{}
 	exits := []LevelExit{}
 	checkpoints := []*Checkpoint{}
+	platforms := []*Platform{}
 	var startPoint Location
 
 	for _, layer := range leveljson.Layers {
@@ -175,11 +186,16 @@ func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteShe
 					if checkpoint.Active {
 						startPoint = checkpoint.Location
 					}
+				case "Platform":
+					platform := processPlatformObject(obj, tilesetData, spriteSheet)
+					if platform != nil {
+						platforms = append(platforms, platform)
+					}
 				}
 			}
 		}
 	}
-	return spikes, exits, checkpoints, startPoint
+	return spikes, exits, checkpoints, platforms, startPoint
 }
 
 // New helper function to process a single Spike object.
@@ -277,6 +293,47 @@ func processCheckpointObject(obj ObjectJSON, tilesetData TilesetDataJSON, sprite
 	}
 }
 
+// New helper function to process a single Platform object.
+func processPlatformObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Platform {
+	adjustedY := obj.Y - obj.Height
+
+	// Read custom properties for movement from the JSON
+	var endX, endY float64
+
+	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
+	if tilesetTileData != nil {
+		// TODO: read in platform data from json files
+		// if val, ok := getStringProperty(tilesetTileData.Properties, "endPoint"); ok {
+		// 	// Assuming "endPoint" is in the format "x,y"
+		// 	// You'll need a helper function to parse this string
+		// 	// For now, let's assume you'll manually set the destination
+		// 	endX = obj.X + obj.Width
+		// 	endY = adjustedY
+		// }
+	}
+
+	return &Platform{
+		BaseSprite: BaseSprite{
+			Location: Location{
+				X: obj.X,
+				Y: adjustedY,
+			},
+			spriteSheet: spriteSheet,
+			srcRect:     spriteSheet.Rect(obj.Gid - 1),
+		},
+		hitbox: Rect{
+			left:   obj.X,
+			top:    adjustedY,
+			right:  obj.X + obj.Width,
+			bottom: adjustedY + obj.Height,
+		},
+		startX: obj.X,
+		startY: adjustedY,
+		endX:   endX,
+		endY:   endY,
+	}
+}
+
 func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) []Tile {
 	tiles := []Tile{}
 	for _, layer := range leveljson.Layers {
@@ -306,7 +363,7 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 }
 
 func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Level {
-	spikes, exits, checkpoints, startPoint := getLevelObjects(leveljson, tilesetData, spriteSheet, levelNum)
+	spikes, exits, checkpoints, platforms, startPoint := getLevelObjects(leveljson, tilesetData, spriteSheet, levelNum)
 
 	levelImage := ebiten.NewImage(leveljson.Width*TileSize, leveljson.Height*TileSize)
 
@@ -323,6 +380,7 @@ func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 		spikes:      spikes,
 		exits:       exits,
 		checkpoints: checkpoints,
+		platforms:   platforms,
 		width:       float64(leveljson.Width * TileSize),
 		height:      float64(leveljson.Height * TileSize),
 		startPoint:  startPoint,
@@ -360,6 +418,12 @@ func (level *Level) Draw(screen *ebiten.Image, debug bool) {
 		cp.Draw(screen)
 		if debug {
 			DrawRectFrame(screen, cp.hitbox, color.RGBA{0, 0, 255, 255})
+		}
+	}
+	for _, platform := range level.platforms {
+		platform.Draw(screen)
+		if debug {
+			DrawRectFrame(screen, platform.hitbox, color.RGBA{0, 128, 255, 255})
 		}
 	}
 }
