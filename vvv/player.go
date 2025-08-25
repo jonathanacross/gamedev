@@ -1,7 +1,17 @@
 package main
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
+)
+
+// CollisionAxis defines the axis of a collision.
+type CollisionAxis int
+
+const (
+	AxisX CollisionAxis = iota
+	AxisY
 )
 
 type Player struct {
@@ -33,85 +43,11 @@ func NewPlayer() *Player {
 	}
 }
 
-func (p *Player) FixPlayerX(tile *Tile) {
-	playerRect := p.HitRect()
-	tileRect := tile.HitRect()
-	if !playerRect.Intersects(&tileRect) {
-		return
-	}
-
-	if p.Vx > 0 { // player moving right
-		if playerRect.right < tileRect.right { // and to the left of the tile
-			overlap := playerRect.right - tileRect.left
-			p.X -= float64(overlap)
-			p.Vx = 0.0
-		}
-	} else if p.Vx < 0 { // player moving left
-		if playerRect.left > tileRect.left { // and to the right of the tilec
-			overlap := tileRect.right - playerRect.left
-			p.X += float64(overlap)
-			p.Vx = 0.0
-		}
-	}
-}
-
-func (p *Player) FixPlayerY(tile *Tile) {
-	playerRect := p.HitRect()
-	tileRect := tile.HitRect()
-	if !playerRect.Intersects(&tileRect) {
-		return
-	}
-
-	if p.Vy > 0 { // player moving down
-		if playerRect.bottom < tileRect.bottom { // and above the tile
-			overlap := playerRect.bottom - tileRect.top
-			p.Y -= overlap
-			p.Vy = 0.0
-			p.onGround = true
-		}
-	} else if p.Vy < 0 { // player moving up
-		if playerRect.top > tileRect.top { // and below the tile
-			overlap := tileRect.bottom - playerRect.top
-			p.Y += overlap
-			p.Vy = 0.0
-			p.onGround = true
-		}
-	}
-}
-
-func (p *Player) HandleCollisions(level *Level, horiz bool) {
-	for _, tile := range level.tiles {
-		if !tile.solid {
-			continue
-		}
-		if horiz {
-			p.FixPlayerX(&tile)
-		} else {
-			p.FixPlayerY(&tile)
-		}
-	}
-}
-
-func clamp(value, min, max float64) float64 {
-	if value < min {
-		return min
-	}
-	if value > max {
-		return max
-	}
-	return value
-}
-
-func (p *Player) HandleGravity(gravity float64) {
-	p.Vy += gravity
-	// enforce a max speed so the player can't fall
-	// so fast they could fall through an entire tile
-	p.Vy = clamp(p.Vy, -5.0, 5.0)
-}
-
+// HandleUserInput is a cleaner version using a switch statement.
 func (p *Player) HandleUserInput() {
 	runSpeed := 100.0 / float64(ebiten.TPS())
 
+	// Check for movement keys
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		p.Vx = -runSpeed
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
@@ -121,18 +57,88 @@ func (p *Player) HandleUserInput() {
 	}
 }
 
-// HandleCheckpoints now accepts the current level.
+func (p *Player) HandleGravity(gravity float64) {
+	p.Vy += gravity
+}
+
+func (p *Player) IsOnGround() bool {
+	return p.onGround
+}
+
+// ResolveCollision handles collision resolution on a specified axis.
+func (p *Player) ResolveCollision(tile Tile, axis CollisionAxis) {
+	playerRect := p.HitRect()
+	tileRect := tile.HitRect()
+
+	if !playerRect.Intersects(&tileRect) {
+		return
+	}
+
+	if axis == AxisX {
+		overlap := 0.0
+		if p.Vx > 0 { // moving right
+			overlap = playerRect.right - tileRect.left
+		} else if p.Vx < 0 { // moving left
+			overlap = playerRect.left - tileRect.right
+		}
+
+		if math.Abs(overlap) > 0 {
+			p.X -= overlap
+			p.Vx = 0.0
+		}
+	} else if axis == AxisY {
+		overlap := 0.0
+		if p.Vy > 0 { // moving down
+			overlap = playerRect.bottom - tileRect.top
+		} else if p.Vy < 0 { // moving up
+			overlap = playerRect.top - tileRect.bottom
+		}
+
+		if math.Abs(overlap) > 0 {
+			p.Y -= overlap
+			p.Vy = 0.0
+			p.onGround = true
+		}
+	}
+}
+
+// HandleCollisions checks for and resolves collisions for the player.
+func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
+	// Only check the tiles near the player to improve performance
+	playerHitRect := p.HitRect()
+	minX := int(math.Floor(playerHitRect.left/TileSize)) - 1
+	maxX := int(math.Floor(playerHitRect.right/TileSize)) + 1
+	minY := int(math.Floor(playerHitRect.top/TileSize)) - 1
+	maxY := int(math.Floor(playerHitRect.bottom/TileSize)) + 1
+
+	for _, tile := range level.tiles {
+		if !tile.solid {
+			continue
+		}
+		// Skip over tiles that are not near the player
+		tileX := int(tile.X / TileSize)
+		tileY := int(tile.Y / TileSize)
+		if tileX < minX || tileX > maxX || tileY < minY || tileY > maxY {
+			continue
+		}
+
+		p.ResolveCollision(tile, axis)
+	}
+}
+
 func (p *Player) HandleCheckpoints(level *Level) {
+	playerHitRect := p.HitRect()
+
 	for _, cp := range level.checkpoints {
-		if p.HitRect().Intersects(&cp.hitbox) {
-			if !cp.Active {
-				if p.activeCheckpoint != nil {
+		if playerHitRect.Intersects(&cp.hitbox) {
+			if p.activeCheckpoint != nil && p.activeCheckpoint.Id != cp.Id {
+				if p.activeCheckpoint.LevelNum == cp.LevelNum {
 					p.activeCheckpoint.SetActive(false)
 				}
-				cp.SetActive(true)
-				p.activeCheckpoint = cp
-				p.checkpointId = cp.Id
 			}
+			cp.SetActive(true)
+			p.activeCheckpoint = cp
+			p.checkpointId = cp.Id
 		}
 	}
 }
@@ -165,11 +171,11 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 	p.HandleGravity(gravity)
 
 	p.X += p.Vx
-	p.HandleCollisions(level, true)
+	p.HandleCollisions(level, AxisX)
 
 	p.onGround = false
 	p.Y += p.Vy
-	p.HandleCollisions(level, false)
+	p.HandleCollisions(level, AxisY)
 
 	p.HandleCheckpoints(level)
 
@@ -177,17 +183,5 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 		return PlayerActionEvent{Action: RespawnAction}
 	}
 
-	if actionEvent := p.checkLevelExits(level); actionEvent.Action != NoAction {
-		return actionEvent
-	}
-
-	return PlayerActionEvent{Action: NoAction}
-}
-
-func (p *Player) Draw(screen *ebiten.Image) {
-	p.BaseSprite.Draw(screen)
-}
-
-func (p *Player) IsOnGround() bool {
-	return p.onGround
+	return p.checkLevelExits(level)
 }
