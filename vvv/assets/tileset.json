@@ -190,12 +190,6 @@
                 }]
         }, 
         {
-         "id":20
-        }, 
-        {
-         "id":21
-        }, 
-        {
          "id":22,
          "type":"Crystal"
         }, 
@@ -220,19 +214,112 @@
          "type":"Checkpoint"
         }, 
         {
-         "id":25
+         "id":25,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":7,
+                     "id":1,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Platform"
         }, 
         {
-         "id":26
+         "id":26,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":7,
+                     "id":2,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Platform"
         }, 
         {
-         "id":27
+         "id":27,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":7,
+                     "id":1,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Platform"
         }, 
         {
-         "id":28
-        }, 
-        {
-         "id":29
+         "id":28,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":7,
+                     "id":2,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"Platform"
         }, 
         {
          "id":30,
@@ -265,7 +352,6 @@
          "objectgroup":
             {
              "draworder":"index",
-             "id":2,
              "name":"",
              "objects":[
                     {
@@ -292,7 +378,6 @@
          "objectgroup":
             {
              "draworder":"index",
-             "id":2,
              "name":"",
              "objects":[
                     {
@@ -319,7 +404,6 @@
          "objectgroup":
             {
              "draworder":"index",
-             "id":2,
              "name":"",
              "objects":[
                     {
@@ -340,24 +424,6 @@
              "y":0
             },
          "type":"Spikes"
-        }, 
-        {
-         "id":34
-        }, 
-        {
-         "id":35
-        }, 
-        {
-         "id":36
-        }, 
-        {
-         "id":37
-        }, 
-        {
-         "id":38
-        }, 
-        {
-         "id":39
         }],
  "tilewidth":16,
  "type":"tileset",

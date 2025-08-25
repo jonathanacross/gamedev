@@ -66,8 +66,19 @@ func (p *Player) HandleUserInput() {
 	p.flipHoriz = p.facingLeft
 }
 
+func clamp(value, min, max float64) float64 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
 func (p *Player) HandleGravity(gravity float64) {
 	p.Vy += gravity
+	p.Vy = clamp(p.Vy, -MaxFallSpeed, MaxFallSpeed)
 	p.flipVert = gravity < 0
 }
 

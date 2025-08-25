@@ -12,8 +12,9 @@ const (
 	ScreenHeight = 240
 	TileSize     = 16
 
-	Gravity  = 0.5
-	RunSpeed = 1.67
+	Gravity      = 0.5
+	RunSpeed     = 1.67
+	MaxFallSpeed = 6
 
 	StartLevelId = 1
 )
