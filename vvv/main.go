@@ -84,7 +84,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.currentLevel.Draw(screen, g.debug)
-	g.player.Draw(screen)
+	g.player.Draw(screen, g.debug)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

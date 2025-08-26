@@ -41,7 +41,7 @@ type FlippableSprite struct {
 }
 
 // Draw method for the flippable sprite. It handles the flipping logic.
-func (f *FlippableSprite) Draw(screen *ebiten.Image) {
+func (f *FlippableSprite) Draw(screen *ebiten.Image, debug bool) {
 	op := &ebiten.DrawImageOptions{}
 
 	// Apply horizontal flip
@@ -63,9 +63,11 @@ func (f *FlippableSprite) Draw(screen *ebiten.Image) {
 	currImage := f.spriteSheet.image.SubImage(f.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 
-	// show hitbox
-	hb := f.FlippedHitbox()
-	DrawRectFrame(screen, hb, color.RGBA{255, 255, 255, 255})
+	if debug {
+		// show hitbox
+		hb := f.FlippedHitbox()
+		DrawRectFrame(screen, hb, color.RGBA{255, 255, 255, 255})
+	}
 }
 
 // FlippedHitbox returns the transformed hitbox based on the current
