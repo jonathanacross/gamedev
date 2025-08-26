@@ -16,11 +16,11 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-var TileSet = loadImage("assets/tileset.png")
-var PlayerSprite = loadImage("assets/player.png")
+var TileSetImage = loadImage("assets/images/tileset.png")
+var PlayerSprite = loadImage("assets/images/player.png")
 var Levels = loadLevels("assets/levels")
-var TilesetData = NewTilesetJSON("assets/tileset.json")
-var Music = loadSound("assets/bach-prelude.mp3")
+var TilesetData = NewTilesetJSON("assets/tilesets/tileset.json")
+var Music = loadSound("assets/sounds/bach-prelude.mp3")
 
 // Store the loaded levels once the game is initialized
 var LoadedLevels = make(map[int]*Level)

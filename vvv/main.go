@@ -136,7 +136,7 @@ func (g *Game) SetActiveCheckpoint(cp *Checkpoint) {
 
 // NewGame creates and initializes a new Game struct.
 func NewGame() *Game {
-	spriteSheet := NewSpriteSheet(TileSet, TileSize, TileSize, 5, 7)
+	spriteSheet := NewGridTileSet(TileSetImage, TileSize, TileSize, 5, 7)
 
 	// Pre-load all levels and their objects using the TilesetData.
 	for levelNum, levelJSON := range Levels {

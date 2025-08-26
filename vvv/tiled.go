@@ -53,6 +53,17 @@ func getBoolProperty(properties []PropertiesJSON, name string) (bool, bool) {
 	return false, false
 }
 
+func getIntProperty(properties []PropertiesJSON, name string) (int, bool) {
+	for _, prop := range properties {
+		if prop.Name == name {
+			if v, ok := prop.IntValue(); ok {
+				return v, true
+			}
+		}
+	}
+	return 0, false
+}
+
 type ObjectLayerJSON struct {
 	Draworder string       `json:"draworder"`
 	ID        int          `json:"id"`
@@ -164,4 +175,26 @@ func NewTilesetJSON(filepath string) TilesetDataJSON {
 	}
 
 	return tilesetjson
+}
+
+func (leveljson LevelJSON) FindTileset(gid int) *TilesetJSON {
+	// Tiled stores tilesets in descending order of firstgid.
+	// So we can iterate backwards to find the correct tileset.
+	for i := len(leveljson.Tilesets) - 1; i >= 0; i-- {
+		ts := leveljson.Tilesets[i]
+		if gid >= ts.Firstgid {
+			return &ts
+		}
+	}
+	return nil
+}
+
+// FindTile takes a local tile ID (not a global GID) and returns the tile.
+func (td TilesetDataJSON) FindTile(id int) *TilesetTileJSON {
+	for _, tile := range td.Tiles {
+		if tile.ID == id {
+			return &tile
+		}
+	}
+	return nil
 }

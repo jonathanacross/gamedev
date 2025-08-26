@@ -6,16 +6,30 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type SpriteSheet struct {
+type TileSet interface {
+	Image(int) *ebiten.Image
+}
+
+type ImageGroupTileSet struct {
+	images []*ebiten.Image
+	gid    int
+}
+
+func (s *ImageGroupTileSet) Image(index int) *ebiten.Image {
+	return s.images[index-s.gid]
+}
+
+type GridTileSet struct {
 	image         *ebiten.Image
 	tileWidth     int
 	tileHeight    int
 	widthInTiles  int
 	heightInTiles int
+	gid           int
 }
 
-func NewSpriteSheet(image *ebiten.Image, tileWidth int, tileHeight int, widthInTiles int, heightInTiles int) *SpriteSheet {
-	return &SpriteSheet{
+func NewGridTileSet(image *ebiten.Image, tileWidth int, tileHeight int, widthInTiles int, heightInTiles int) *GridTileSet {
+	return &GridTileSet{
 		image:         image,
 		tileWidth:     tileWidth,
 		tileHeight:    tileHeight,
@@ -24,8 +38,13 @@ func NewSpriteSheet(image *ebiten.Image, tileWidth int, tileHeight int, widthInT
 	}
 }
 
-func (ss *SpriteSheet) Rect(index int) image.Rectangle {
+func (ss *GridTileSet) Rect(index int) image.Rectangle {
+	index -= ss.gid
 	x := (index % ss.widthInTiles) * ss.tileWidth
 	y := (index / ss.widthInTiles) * ss.tileHeight
 	return image.Rect(x, y, x+ss.tileWidth, y+ss.tileHeight)
+}
+
+func (s *GridTileSet) Image(index int) *ebiten.Image {
+	return s.image.SubImage(s.Rect(index)).(*ebiten.Image)
 }

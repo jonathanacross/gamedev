@@ -32,7 +32,7 @@ type Player struct {
 }
 
 func NewPlayer() *Player {
-	spriteSheet := NewSpriteSheet(PlayerSprite, TileSize, TileSize, 1, 1)
+	spriteSheet := NewGridTileSet(PlayerSprite, TileSize, TileSize, 1, 1)
 	return &Player{
 		FlippableSprite: FlippableSprite{
 			BaseSprite: BaseSprite{

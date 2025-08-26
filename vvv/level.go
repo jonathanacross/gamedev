@@ -18,7 +18,7 @@ type LevelExit struct {
 // It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
 	Location
-	spriteSheet *SpriteSheet
+	spriteSheet *GridTileSet
 	srcRect     image.Rectangle
 	hitbox      Rect
 }
@@ -129,7 +129,7 @@ type Platform struct {
 
 type Level struct {
 	tilemapJson LevelJSON
-	spriteSheet *SpriteSheet
+	spriteSheet *GridTileSet
 	tiles       []Tile
 	spikes      []Spike
 	exits       []LevelExit
@@ -179,7 +179,7 @@ func isSolid(tilesetData TilesetDataJSON, id int) bool {
 	return false
 }
 
-func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, []*Platform, Location) {
+func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, []*Platform, Location) {
 	spikes := []Spike{}
 	exits := []LevelExit{}
 	checkpoints := []*Checkpoint{}
@@ -201,6 +201,7 @@ func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteShe
 					if spike != nil {
 						spikes = append(spikes, *spike)
 					}
+
 				case "LevelExit":
 					exit := processLevelExit(obj)
 					exits = append(exits, exit)
@@ -223,7 +224,7 @@ func getLevelObjects(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteShe
 }
 
 // New helper function to process a single Spike object.
-func processSpikeObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Spike {
+func processSpikeObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *GridTileSet) *Spike {
 	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
 	if tilesetTileData == nil {
 		log.Println("Tileset tile data not found for Spike, Gid:", obj.Gid)
@@ -285,7 +286,7 @@ func processLevelExit(obj ObjectJSON) LevelExit {
 }
 
 // New helper function to process a single Checkpoint object.
-func processCheckpointObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Checkpoint {
+func processCheckpointObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) *Checkpoint {
 	adjustedY := obj.Y - obj.Height
 
 	isActive := false
@@ -318,7 +319,7 @@ func processCheckpointObject(obj ObjectJSON, tilesetData TilesetDataJSON, sprite
 }
 
 // New helper function to process a single Platform object.
-func processPlatformObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) *Platform {
+func processPlatformObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSheet *GridTileSet) *Platform {
 	adjustedY := obj.Y - obj.Height
 
 	// Read custom properties for movement from the JSON
@@ -358,7 +359,7 @@ func processPlatformObject(obj ObjectJSON, tilesetData TilesetDataJSON, spriteSh
 	}
 }
 
-func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet) []Tile {
+func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *GridTileSet) []Tile {
 	tiles := []Tile{}
 	for _, layer := range leveljson.Layers {
 		if layer.Type == "tilelayer" {
@@ -392,7 +393,7 @@ func getTiles(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *Spr
 	return tiles
 }
 
-func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *SpriteSheet, levelNum int) *Level {
+func NewLevel(leveljson LevelJSON, tilesetData TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) *Level {
 	spikes, exits, checkpoints, platforms, startPoint := getLevelObjects(leveljson, tilesetData, spriteSheet, levelNum)
 
 	levelImage := ebiten.NewImage(leveljson.Width*TileSize, leveljson.Height*TileSize)
