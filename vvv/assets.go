@@ -6,6 +6,7 @@ import (
 	"image"
 	"path/filepath"
 	"strconv"
+	"vvv/tiled"
 
 	_ "image/png"
 
@@ -19,7 +20,7 @@ var assets embed.FS
 var TileSetImage = loadImage("assets/images/tileset.png")
 var PlayerSprite = loadImage("assets/images/player.png")
 var Levels = loadLevels("assets/levels")
-var TilesetData = NewTilesetJSON("assets/tilesets/tileset.json")
+var TilesetData = tiled.NewTilesetJSON("assets/tilesets/tileset.json")
 var Music = loadSound("assets/sounds/bach-prelude.mp3")
 
 // Store the loaded levels once the game is initialized
@@ -54,8 +55,8 @@ func loadSound(name string) *mp3.Stream {
 	return soundStream
 }
 
-func loadLevels(dir string) map[int]LevelJSON {
-	levels := make(map[int]LevelJSON)
+func loadLevels(dir string) map[int]tiled.LevelJSON {
+	levels := make(map[int]tiled.LevelJSON)
 	dirEntries, err := assets.ReadDir(dir)
 	if err != nil {
 		panic(err)
@@ -68,7 +69,7 @@ func loadLevels(dir string) map[int]LevelJSON {
 				numStr := name[len("level") : len(name)-len(".json")]
 				if num, err := strconv.Atoi(numStr); err == nil {
 					filePath := filepath.Join(dir, name)
-					levels[num] = NewLevelJSON(filePath)
+					levels[num] = tiled.NewLevelJSON(filePath)
 				}
 			}
 		}

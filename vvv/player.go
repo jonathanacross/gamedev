@@ -133,11 +133,11 @@ func (p *Player) resolveCollision(otherRect Rect, axis CollisionAxis) {
 // HandleCollisions checks for and resolves collisions for the player.
 func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
 	// Only check the tiles near the player to improve performance
-	playerHitRect := p.FlippedHitbox()
-	minX := int(math.Floor(playerHitRect.left/TileSize)) - 1
-	maxX := int(math.Floor(playerHitRect.right/TileSize)) + 1
-	minY := int(math.Floor(playerHitRect.top/TileSize)) - 1
-	maxY := int(math.Floor(playerHitRect.bottom/TileSize)) + 1
+	playerHitBox := p.FlippedHitbox()
+	minX := int(math.Floor(playerHitBox.left/TileSize)) - 1
+	maxX := int(math.Floor(playerHitBox.right/TileSize)) + 1
+	minY := int(math.Floor(playerHitBox.top/TileSize)) - 1
+	maxY := int(math.Floor(playerHitBox.bottom/TileSize)) + 1
 
 	for _, tile := range level.tiles {
 		if !tile.solid {
@@ -150,27 +150,27 @@ func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
 			continue
 		}
 
-		p.resolveCollision(tile.HitRect(), axis)
+		p.resolveCollision(tile.HitBox(), axis)
 	}
 }
 
 func (p *Player) HandlePlatformCollisions(platforms []*Platform, axis CollisionAxis) {
-	playerHitRect := p.FlippedHitbox()
+	playerHitBox := p.FlippedHitbox()
 
 	// Check for collision with each platform
 	for _, platform := range platforms {
 		platformRect := platform.hitbox
-		if playerHitRect.Intersects(&platformRect) {
-			p.resolveCollision(platform.HitRect(), axis)
+		if playerHitBox.Intersects(&platformRect) {
+			p.resolveCollision(platform.HitBox(), axis)
 		}
 	}
 }
 
 func (p *Player) CheckCheckpointCollisions(level *Level) *Checkpoint {
-	playerHitRect := p.FlippedHitbox()
+	playerHitBox := p.FlippedHitbox()
 
 	for _, cp := range level.checkpoints {
-		if playerHitRect.Intersects(&cp.hitbox) {
+		if playerHitBox.Intersects(&cp.hitbox) {
 			return cp
 		}
 	}
@@ -189,10 +189,10 @@ func (p *Player) HandleSpikeCollisions(level *Level) bool {
 }
 
 func (p *Player) checkLevelExits(level *Level) PlayerActionEvent {
-	playerHitRect := p.FlippedHitbox()
+	playerHitBox := p.FlippedHitbox()
 
 	for _, exit := range level.exits {
-		if playerHitRect.Intersects(&exit.Rect) {
+		if playerHitBox.Intersects(&exit.Rect) {
 			return PlayerActionEvent{Action: SwitchLevelAction, Payload: exit}
 		}
 	}

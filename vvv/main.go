@@ -101,11 +101,11 @@ func (g *Game) switchLevel(exit LevelExit) {
 	if exit.right >= float64(ScreenWidth-1) { // Exit on the right side of the screen
 		g.player.X = 10.0 // Start at the left of the new screen
 	} else if exit.left <= 1 { // Exit on the left side of the screen
-		g.player.X = float64(ScreenWidth) - g.player.HitRect().Width() - 10.0 // Start at the right of the new screen
+		g.player.X = float64(ScreenWidth) - g.player.HitBox().Width() - 10.0 // Start at the right of the new screen
 	} else if exit.bottom >= float64(ScreenHeight-1) { // Exit at the bottom of the screen
 		g.player.Y = 10.0 // Start at the top of the new screen
 	} else if exit.top <= 1 { // Exit at the top of the screen
-		g.player.Y = float64(ScreenHeight) - g.player.HitRect().Height() - 10.0 // Start at the bottom of the new screen
+		g.player.Y = float64(ScreenHeight) - g.player.HitBox().Height() - 10.0 // Start at the bottom of the new screen
 	}
 }
 
