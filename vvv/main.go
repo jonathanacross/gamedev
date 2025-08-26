@@ -159,11 +159,13 @@ func NewGame() *Game {
 
 	// Find all checkpoints and set the initial player position
 	for _, level := range LoadedLevels {
-		for _, cp := range level.checkpoints {
-			g.allCheckpoints[cp.Id] = cp
-			if cp.Active {
-				g.activeCheckpoint = cp
-				g.player.X, g.player.Y = cp.X, cp.Y
+		for _, obj := range level.objects {
+			if cp, ok := obj.(*Checkpoint); ok {
+				g.allCheckpoints[cp.Id] = cp
+				if cp.Active {
+					g.activeCheckpoint = cp
+					g.player.X, g.player.Y = cp.X, cp.Y
+				}
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -94,11 +95,10 @@ func (p *Player) IsOnGround() bool {
 }
 
 // resolveCollision handles collision resolution on a specified axis.
-// It now takes a generic Rect, allowing it to work with any object.
 func (p *Player) resolveCollision(otherRect Rect, axis CollisionAxis) {
 	playerRect := p.FlippedHitbox()
 
-	if !playerRect.Intersects(&otherRect) {
+	if !playerRect.Intersects(otherRect) {
 		return
 	}
 
@@ -131,7 +131,7 @@ func (p *Player) resolveCollision(otherRect Rect, axis CollisionAxis) {
 }
 
 // HandleCollisions checks for and resolves collisions for the player.
-func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
+func (p *Player) HandleTileCollisions(level *Level, axis CollisionAxis) {
 	// Only check the tiles near the player to improve performance
 	playerHitBox := p.FlippedHitbox()
 	minX := int(math.Floor(playerHitBox.left/TileSize)) - 1
@@ -154,48 +154,27 @@ func (p *Player) HandleCollisions(level *Level, axis CollisionAxis) {
 	}
 }
 
-func (p *Player) HandlePlatformCollisions(platforms []*Platform, axis CollisionAxis) {
-	playerHitBox := p.FlippedHitbox()
-
-	// Check for collision with each platform
-	for _, platform := range platforms {
-		platformRect := platform.hitbox
-		if playerHitBox.Intersects(&platformRect) {
-			p.resolveCollision(platform.HitBox(), axis)
-		}
-	}
-}
-
-func (p *Player) CheckCheckpointCollisions(level *Level) *Checkpoint {
-	playerHitBox := p.FlippedHitbox()
-
-	for _, cp := range level.checkpoints {
-		if playerHitBox.Intersects(&cp.hitbox) {
-			return cp
-		}
-	}
-	return nil
-}
-
-// HandleSpikeCollisions now returns a boolean indicating if a respawn is needed.
-func (p *Player) HandleSpikeCollisions(level *Level) bool {
+// HandleObjectCollisions checks for collisions with a slice of GameObjects and handles them.
+func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis) PlayerActionEvent {
 	playerRect := p.FlippedHitbox()
-	for _, spike := range level.spikes {
-		if playerRect.Intersects(&spike.hitbox) {
-			return true // Player needs to respawn
+
+	for _, obj := range objects {
+		if playerRect.Intersects(obj.HitBox()) {
+			switch o := obj.(type) {
+			case *Spike:
+				return PlayerActionEvent{Action: RespawnAction}
+			case LevelExit:
+				return PlayerActionEvent{Action: SwitchLevelAction, Payload: o}
+			case *Checkpoint:
+				return PlayerActionEvent{Action: CheckpointReachedAction, Payload: o}
+			case *Platform:
+				p.resolveCollision(o.HitBox(), axis)
+			default:
+				fmt.Printf("hit something unknown %T\n", o)
+			}
 		}
 	}
-	return false // No respawn needed
-}
 
-func (p *Player) checkLevelExits(level *Level) PlayerActionEvent {
-	playerHitBox := p.FlippedHitbox()
-
-	for _, exit := range level.exits {
-		if playerHitBox.Intersects(&exit.Rect) {
-			return PlayerActionEvent{Action: SwitchLevelAction, Payload: exit}
-		}
-	}
 	return PlayerActionEvent{Action: NoAction}
 }
 
@@ -205,21 +184,19 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 	p.HandleGravity(gravity)
 
 	p.X += p.Vx
-	p.HandleCollisions(level, AxisX)
-	p.HandlePlatformCollisions(level.platforms, AxisX)
+	p.HandleTileCollisions(level, AxisX)
+	event := p.HandleObjectCollisions(level.objects, AxisX)
+	if event.Action != NoAction {
+		return event
+	}
 
 	p.onGround = false
 	p.Y += p.Vy
-	p.HandleCollisions(level, AxisY)
-	p.HandlePlatformCollisions(level.platforms, AxisY)
-
-	if newCheckpoint := p.CheckCheckpointCollisions(level); newCheckpoint != nil {
-		return PlayerActionEvent{Action: CheckpointReachedAction, Payload: newCheckpoint}
+	p.HandleTileCollisions(level, AxisY)
+	event = p.HandleObjectCollisions(level.objects, AxisY)
+	if event.Action != NoAction {
+		return event
 	}
 
-	if p.HandleSpikeCollisions(level) {
-		return PlayerActionEvent{Action: RespawnAction}
-	}
-
-	return p.checkLevelExits(level)
+	return PlayerActionEvent{Action: NoAction}
 }

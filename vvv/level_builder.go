@@ -5,20 +5,8 @@ import (
 	"vvv/tiled"
 )
 
-// TODO: use this instead of multiple return values
-type LevelObjects struct {
-	Spikes      []*Spike
-	Exits       []*LevelExit
-	Checkpoints []*Checkpoint
-	StartPoint  Location
-	Platforms   []Rect
-}
-
-func GetLevelObjects(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) ([]Spike, []LevelExit, []*Checkpoint, []*Platform, Location) {
-	spikes := []Spike{}
-	exits := []LevelExit{}
-	checkpoints := []*Checkpoint{}
-	platforms := []*Platform{}
+func GetLevelObjects(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) ([]GameObject, Location) {
+	gameObjects := []GameObject{}
 	var startPoint Location
 
 	for _, layer := range leveljson.Layers {
@@ -34,28 +22,28 @@ func GetLevelObjects(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSO
 				case "Spikes":
 					spike := processSpikeObject(obj, tilesetData, spriteSheet)
 					if spike != nil {
-						spikes = append(spikes, *spike)
+						gameObjects = append(gameObjects, spike)
 					}
 
 				case "LevelExit":
 					exit := processLevelExit(obj)
-					exits = append(exits, exit)
+					gameObjects = append(gameObjects, exit)
 				case "Checkpoint":
 					checkpoint := processCheckpointObject(obj, tilesetData, spriteSheet, levelNum)
-					checkpoints = append(checkpoints, checkpoint)
+					gameObjects = append(gameObjects, checkpoint)
 					if checkpoint.Active {
 						startPoint = checkpoint.Location
 					}
 				case "Platform":
 					platform := processPlatformObject(obj, tilesetData, spriteSheet)
 					if platform != nil {
-						platforms = append(platforms, platform)
+						gameObjects = append(gameObjects, platform)
 					}
 				}
 			}
 		}
 	}
-	return spikes, exits, checkpoints, platforms, startPoint
+	return gameObjects, startPoint
 }
 
 // New helper function to process a single Spike object.

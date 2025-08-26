@@ -1,5 +1,7 @@
 module vvv
 
+replace vvv => /Users/jonathan/tmp/golang/gamelearn/vvv
+
 go 1.23.1
 
 require github.com/hajimehoshi/ebiten/v2 v2.8.8
