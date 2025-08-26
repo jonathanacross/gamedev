@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -155,10 +154,24 @@ func (p *Player) HandleTileCollisions(level *Level, axis CollisionAxis) {
 }
 
 // HandleObjectCollisions checks for collisions with a slice of GameObjects and handles them.
-func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis) PlayerActionEvent {
+func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis) {
 	playerRect := p.FlippedHitbox()
 
 	for _, obj := range objects {
+		// TODO: make a bool or collidable interface
+		if collidable, ok := obj.(*Platform); ok {
+			if playerRect.Intersects(obj.HitBox()) {
+				p.resolveCollision(collidable.HitBox(), axis)
+			}
+		}
+	}
+}
+
+// checkAllEvents checks for collisions with event objects (non-solid) and returns an event action.
+func (p *Player) checkAllEvents(level *Level) PlayerActionEvent {
+	playerRect := p.FlippedHitbox()
+
+	for _, obj := range level.objects {
 		if playerRect.Intersects(obj.HitBox()) {
 			switch o := obj.(type) {
 			case *Spike:
@@ -167,14 +180,9 @@ func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis
 				return PlayerActionEvent{Action: SwitchLevelAction, Payload: o}
 			case *Checkpoint:
 				return PlayerActionEvent{Action: CheckpointReachedAction, Payload: o}
-			case *Platform:
-				p.resolveCollision(o.HitBox(), axis)
-			default:
-				fmt.Printf("hit something unknown %T\n", o)
 			}
 		}
 	}
-
 	return PlayerActionEvent{Action: NoAction}
 }
 
@@ -183,17 +191,17 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 	p.HandleUserInput()
 	p.HandleGravity(gravity)
 
+	p.onGround = false
+
 	p.X += p.Vx
 	p.HandleTileCollisions(level, AxisX)
-	event := p.HandleObjectCollisions(level.objects, AxisX)
-	if event.Action != NoAction {
-		return event
-	}
+	p.HandleObjectCollisions(level.objects, AxisX)
 
-	p.onGround = false
 	p.Y += p.Vy
 	p.HandleTileCollisions(level, AxisY)
-	event = p.HandleObjectCollisions(level.objects, AxisY)
+	p.HandleObjectCollisions(level.objects, AxisX)
+
+	event := p.checkAllEvents(level)
 	if event.Action != NoAction {
 		return event
 	}
