@@ -73,27 +73,24 @@ func (f *FlippableSprite) Draw(screen *ebiten.Image, debug bool) {
 // FlippedHitbox returns the transformed hitbox based on the current
 // flipping state.
 func (f *FlippableSprite) FlippedHitbox() Rect {
-	// TODO: should be using base hitbox
-	// Start with the base hitbox
-	hitbox := Rect{
-		left:   f.X,
-		top:    f.Y,
-		right:  f.X + float64(f.spriteSheet.tileWidth),
-		bottom: f.Y + float64(f.spriteSheet.tileHeight),
+	box := Rect{
+		left:   f.X + f.hitbox.left,
+		top:    f.Y + f.hitbox.top,
+		right:  f.X + f.hitbox.right,
+		bottom: f.Y + f.hitbox.bottom,
 	}
 
-	// TODO: flip around, keeping base hitbox intact
 	// Apply horizontal flip if needed
-	// if f.flipHoriz {
-	// 	hitbox.left = f.X - float64(f.spriteSheet.tileWidth)
-	// 	hitbox.right = f.X
-	// }
+	if f.flipHoriz {
+		box.left = f.X + float64(f.spriteSheet.tileWidth) - f.hitbox.right
+		box.right = f.X + float64(f.spriteSheet.tileWidth) - f.hitbox.left
+	}
 
-	// // Apply vertical flip if needed
-	// if f.flipVert {
-	// 	hitbox.top = f.Y - float64(f.spriteSheet.tileHeight)
-	// 	hitbox.bottom = f.Y
-	// }
+	// Apply vertical flip if needed
+	if f.flipVert {
+		box.top = f.Y + float64(f.spriteSheet.tileHeight) - f.hitbox.bottom
+		box.bottom = f.Y + float64(f.spriteSheet.tileHeight) - f.hitbox.top
+	}
 
-	return hitbox
+	return box
 }

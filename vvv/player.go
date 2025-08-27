@@ -23,38 +23,66 @@ const (
 
 type Player struct {
 	FlippableSprite
+	animations  map[PlayerState]*Animation
+	spriteSheet *GridTileSet
 
 	// Player state
 	Vx         float64
 	Vy         float64
 	onGround   bool
 	facingLeft bool
+	state      PlayerState
 }
 
 func NewPlayer() *Player {
-	spriteSheet := NewGridTileSet(PlayerSprite, TileSize, TileSize, 1, 1)
+	spriteSheet := NewGridTileSet(PlayerSprite, TileSize, TileSize, 4, 1)
+
 	return &Player{
 		FlippableSprite: FlippableSprite{
 			BaseSprite: BaseSprite{
 				Location: Location{
-					X: 100.0,
-					Y: 100.0,
+					X: 0,
+					Y: 0,
 				},
 				spriteSheet: spriteSheet,
 				srcRect:     spriteSheet.Rect(0),
-				hitbox: Rect{ // Initialize the hitbox
-					left:   100.0,
-					top:    100.0,
-					right:  100.0 + TileSize,
-					bottom: 100.0 + TileSize,
+				hitbox: Rect{
+					left:   3,
+					top:    5,
+					right:  13,
+					bottom: 16,
 				},
 			},
 		},
-		Vx:         0.0,
-		Vy:         0.0,
-		onGround:   false,
-		facingLeft: false,
+		animations: map[PlayerState]*Animation{
+			Walking: NewAnimation(0, 3, 10),
+			Idle:    NewAnimation(1, 1, 100),
+		},
+		spriteSheet: spriteSheet,
+		Vx:          0.0,
+		Vy:          0.0,
+		onGround:    false,
+		facingLeft:  false,
+		state:       Idle,
 	}
+}
+
+func (p *Player) Draw(screen *ebiten.Image, debug bool) {
+	currSpriteFrame := p.animations[p.state].Frame()
+	currSpritRect := p.spriteSheet.Rect(currSpriteFrame)
+
+	tempSprite := FlippableSprite{
+		BaseSprite: BaseSprite{
+			Location:    p.Location,
+			spriteSheet: p.spriteSheet,
+			srcRect:     currSpritRect,
+			hitbox:      p.hitbox,
+		},
+		flipHoriz: p.flipHoriz,
+		flipVert:  p.flipVert,
+	}
+	tempSprite.Draw(screen, debug)
+	//p.FlippableSprite.Draw(screen, debug)
 }
 
 // HandleUserInput is a cleaner version using a switch statement.
@@ -63,11 +91,14 @@ func (p *Player) HandleUserInput() {
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		p.Vx = -RunSpeed
 		p.facingLeft = true
+		p.state = Walking
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		p.Vx = RunSpeed
 		p.facingLeft = false
+		p.state = Walking
 	} else {
 		p.Vx = 0.0
+		p.state = Idle
 	}
 
 	p.flipHoriz = p.facingLeft
@@ -188,6 +219,8 @@ func (p *Player) checkAllEvents(level *Level) PlayerActionEvent {
 
 // Update moves the player and handles collisions, returning any requested game actions.
 func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
+	p.animations[p.state].Update()
+
 	p.HandleUserInput()
 	p.HandleGravity(gravity)
 
