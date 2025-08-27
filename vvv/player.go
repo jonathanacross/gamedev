@@ -23,8 +23,7 @@ const (
 
 type Player struct {
 	FlippableSprite
-	animations  map[PlayerState]*Animation
-	spriteSheet *GridTileSet
+	animations map[PlayerState]*Animation
 
 	// Player state
 	Vx         float64
@@ -58,31 +57,19 @@ func NewPlayer() *Player {
 			Walking: NewAnimation(0, 3, 10),
 			Idle:    NewAnimation(1, 1, 100),
 		},
-		spriteSheet: spriteSheet,
-		Vx:          0.0,
-		Vy:          0.0,
-		onGround:    false,
-		facingLeft:  false,
-		state:       Idle,
+		Vx:         0.0,
+		Vy:         0.0,
+		onGround:   false,
+		facingLeft: false,
+		state:      Idle,
 	}
 }
 
 func (p *Player) Draw(screen *ebiten.Image, debug bool) {
 	currSpriteFrame := p.animations[p.state].Frame()
-	currSpritRect := p.spriteSheet.Rect(currSpriteFrame)
-
-	tempSprite := FlippableSprite{
-		BaseSprite: BaseSprite{
-			Location:    p.Location,
-			spriteSheet: p.spriteSheet,
-			srcRect:     currSpritRect,
-			hitbox:      p.hitbox,
-		},
-		flipHoriz: p.flipHoriz,
-		flipVert:  p.flipVert,
-	}
-	tempSprite.Draw(screen, debug)
-	//p.FlippableSprite.Draw(screen, debug)
+	p.srcRect = p.spriteSheet.Rect(currSpriteFrame)
+	p.flipHoriz = p.facingLeft
+	p.FlippableSprite.Draw(screen, debug)
 }
 
 // HandleUserInput is a cleaner version using a switch statement.
