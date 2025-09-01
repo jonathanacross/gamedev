@@ -1,17 +1,14 @@
 package tiled
 
 import (
-	"image"
 	"reflect"
 	"testing"
 )
 
-// A mock image.Image to satisfy the function signature.
-// It's a concrete type that implements the image.Image interface.
-var mockImage = image.NewRGBA(image.Rect(0, 0, 100, 100))
+// Implements the ImageProvider interface for testing.
+type MockImage struct{}
 
-// Make sure the mock image implements the interface
-var _ image.Image = mockImage
+var mockImage = &MockImage{}
 
 func TestConvertTileset(t *testing.T) {
 	// Test case for a sprite sheet tileset.
@@ -29,7 +26,7 @@ func TestConvertTileset(t *testing.T) {
 		}
 
 		firstGID := 10
-		images := map[string]image.Image{"tileset.png": mockImage}
+		images := map[string]ImageProvider{"tileset.png": mockImage}
 		tiles, err := ConvertTileset(tsData, images, firstGID)
 		if err != nil {
 			t.Fatalf("ConvertTileset failed: %v", err)
@@ -91,8 +88,8 @@ func TestConvertTileset(t *testing.T) {
 		}
 
 		firstGID := 41
-		images := map[string]image.Image{
-			"platform-small.png": image.NewRGBA(image.Rect(0, 0, 16, 7)),
+		images := map[string]ImageProvider{
+			"platform-small.png": mockImage,
 		}
 		tiles, err := ConvertTileset(tsData, images, firstGID)
 		if err != nil {

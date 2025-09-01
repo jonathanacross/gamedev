@@ -1,6 +1,8 @@
 package tiled
 
-import "image"
+// ImageProvider represents an image-like type,
+// such as *image.Image or *ebiten.Image.
+type ImageProvider interface{}
 
 type Rect struct {
 	X      float64
@@ -17,7 +19,7 @@ type Property struct {
 type Tile struct {
 	ID         int
 	SrcRect    Rect
-	SrcImage   image.Image
+	SrcImage   ImageProvider
 	HitRect    Rect
 	Properties *PropertySet
 }

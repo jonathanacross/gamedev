@@ -2,13 +2,12 @@ package tiled
 
 import (
 	"fmt"
-	"image"
 )
 
 // ConvertTileset converts an intermediate tiledTileset struct into a slice of
 // game-ready Tile structs. It receives the loaded image(s), so it doesn't have
 // to worry about file I/O.
-func ConvertTileset(tsData *tiledTileset, images map[string]image.Image, firstGID int) ([]Tile, error) {
+func ConvertTileset(tsData *tiledTileset, images map[string]ImageProvider, firstGID int) ([]Tile, error) {
 	// Check if this is a collection tileset (individual images) or a sprite sheet.
 	isCollection := tsData.Image == ""
 
@@ -19,7 +18,7 @@ func ConvertTileset(tsData *tiledTileset, images map[string]image.Image, firstGI
 }
 
 // convertCollectionTileset handles tilesets with individual tile images.
-func convertCollectionTileset(tsData *tiledTileset, images map[string]image.Image, firstGID int) ([]Tile, error) {
+func convertCollectionTileset(tsData *tiledTileset, images map[string]ImageProvider, firstGID int) ([]Tile, error) {
 	tiles := make([]Tile, 0, len(tsData.Tiles))
 	for _, tiledTile := range tsData.Tiles {
 		properties, err := GetProperties(tiledTile.Properties)
@@ -47,7 +46,7 @@ func convertCollectionTileset(tsData *tiledTileset, images map[string]image.Imag
 }
 
 // convertSpriteSheetTileset handles tilesets that use a single sprite sheet image.
-func convertSpriteSheetTileset(tsData *tiledTileset, srcImage image.Image, firstGID int) ([]Tile, error) {
+func convertSpriteSheetTileset(tsData *tiledTileset, srcImage ImageProvider, firstGID int) ([]Tile, error) {
 	tiles := make([]Tile, 0, tsData.TileCount)
 	tileWidth := float64(tsData.TileWidth)
 	tileHeight := float64(tsData.TileHeight)

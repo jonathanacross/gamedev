@@ -19,6 +19,9 @@ type Loader interface {
 	LoadMap(path string) (*Map, error)
 }
 
+// ImageConverter is a function type that converts a standard image.Image to a custom type.
+type ImageConverter func(img image.Image) (ImageProvider, error)
+
 // FsLoader is an implementation of the Loader interface that
 // uses an embedded file system (fs.FS) to read files.
 type FsLoader struct {
@@ -31,17 +34,30 @@ type FsLoader struct {
 	mu    sync.Mutex
 
 	// Cache for loaded images.
-	imageCache map[string]image.Image
+	imageCache map[string]ImageProvider
 	imageMu    sync.Mutex
+
+	converter ImageConverter
 }
 
 // NewFsLoader creates a new FsLoader instance.
-// It initializes the cache and sets up the file system.
+// This uses the default *image.Image type for images.
 func NewFsLoader(fsys fs.FS) *FsLoader {
 	return &FsLoader{
 		fs:         fsys,
 		cache:      make(map[string][]byte),
-		imageCache: make(map[string]image.Image),
+		imageCache: make(map[string]ImageProvider),
+		converter:  func(img image.Image) (ImageProvider, error) { return img, nil },
+	}
+}
+
+// NewFsLoaderWithImageConverter allows users to provide a custom image converter.
+func NewFsLoaderWithImageConverter(fsys fs.FS, converter ImageConverter) *FsLoader {
+	return &FsLoader{
+		fs:         fsys,
+		cache:      make(map[string][]byte),
+		imageCache: make(map[string]ImageProvider),
+		converter:  converter,
 	}
 }
 
@@ -141,8 +157,8 @@ func (l *FsLoader) loadTilesets(tsRefs []tiledTileset, mapDir string) (map[int]T
 }
 
 // loadTilesetImages loads all images associated with a tileset.
-func (l *FsLoader) loadTilesetImages(tsData *tiledTileset, tsPath string) (map[string]image.Image, error) {
-	imageMap := make(map[string]image.Image)
+func (l *FsLoader) loadTilesetImages(tsData *tiledTileset, tsPath string) (map[string]ImageProvider, error) {
+	imageMap := make(map[string]ImageProvider)
 
 	// Get the directory of the tileset file to correctly resolve relative image paths.
 	tsDir := path.Dir(tsPath)
@@ -250,9 +266,8 @@ func (l *FsLoader) loadFile(path string) ([]byte, error) {
 	return data, nil
 }
 
-// loadImage is a helper method that reads an image from the embedded file system.
-// It uses a cache to avoid reading the same image multiple times.
-func (l *FsLoader) loadImage(path string) (image.Image, error) {
+// loadImage is a helper method that reads an image from the embedded file system and uses the converter.
+func (l *FsLoader) loadImage(path string) (ImageProvider, error) {
 	l.imageMu.Lock()
 	defer l.imageMu.Unlock()
 
@@ -274,7 +289,13 @@ func (l *FsLoader) loadImage(path string) (image.Image, error) {
 		return nil, fmt.Errorf("failed to decode image file %s: %w", path, err)
 	}
 
+	// Use the custom converter to process the image
+	convertedImage, err := l.converter(img)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert image '%s': %w", path, err)
+	}
+
 	// Store the decoded image in the cache.
-	l.imageCache[path] = img
-	return img, nil
+	l.imageCache[path] = convertedImage
+	return convertedImage, nil
 }
