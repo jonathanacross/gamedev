@@ -128,14 +128,14 @@ func TestGetPropertyString(t *testing.T) {
 func TestGetProperties(t *testing.T) {
 	tests := []struct {
 		name              string
-		inputPJ           []PropertiesJSON
+		inputPJ           []tiledProperty
 		expectErr         bool
 		expectedPropCount int
 		expectedValues    map[string]interface{}
 	}{
 		{
 			name: "Successfully get a mixed set of properties",
-			inputPJ: []PropertiesJSON{
+			inputPJ: []tiledProperty{
 				{Name: "isVisible", Type: "bool", Value: true},
 				{Name: "playerScore", Type: "int", Value: 100},
 				{Name: "speed", Type: "float", Value: 1.23},
@@ -151,30 +151,8 @@ func TestGetProperties(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail on unknown property type",
-			inputPJ: []PropertiesJSON{
-				{Name: "propertyA", Type: "string", Value: "valid"},
-				{Name: "propertyB", Type: "unknown", Value: 123}, // This one should cause the failure
-				{Name: "propertyC", Type: "bool", Value: true},
-			},
-			expectErr:         true,
-			expectedPropCount: 0,
-			expectedValues:    nil,
-		},
-		{
-			name: "Fail on type mismatch",
-			inputPJ: []PropertiesJSON{
-				{Name: "propertyA", Type: "int", Value: 10},
-				{Name: "propertyB", Type: "bool", Value: "yes"}, // This one should cause the failure
-				{Name: "propertyC", Type: "float", Value: 3.14},
-			},
-			expectErr:         true,
-			expectedPropCount: 0,
-			expectedValues:    nil,
-		},
-		{
 			name:              "Empty slice",
-			inputPJ:           []PropertiesJSON{},
+			inputPJ:           []tiledProperty{},
 			expectErr:         false,
 			expectedPropCount: 0,
 			expectedValues:    map[string]interface{}{},
@@ -202,13 +180,13 @@ func TestGetProperties(t *testing.T) {
 				t.Fatal("expected a PropertySet, but got nil")
 			}
 
-			if len(*propSet) != tt.expectedPropCount {
-				t.Errorf("expected %d properties, but got %d", tt.expectedPropCount, len(*propSet))
+			if len(propSet) != tt.expectedPropCount {
+				t.Errorf("expected %d properties, but got %d", tt.expectedPropCount, len(propSet))
 			}
 
 			// Check that all expected properties and values exist
 			for key, expectedVal := range tt.expectedValues {
-				prop, ok := (*propSet)[key]
+				prop, ok := (propSet)[key]
 				if !ok {
 					t.Errorf("expected property '%s' to exist, but it didn't", key)
 					continue

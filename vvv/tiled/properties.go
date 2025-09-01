@@ -1,17 +1,9 @@
 package tiled
 
-import "fmt"
-
-// --------------- Public interface -----------
-
-type Property struct {
-	Value interface{}
-}
-
-// A property set is just a map of key value pairs.
-// The values are Typed, and must be one of bool, int, float64, string,
-// according to the setup in Tiled.
-type PropertySet map[string]Property
+import (
+	"fmt"
+	"strconv"
+)
 
 // Gets the property with the given name as a bool.
 func (ps PropertySet) GetPropertyBool(name string) (bool, error) {
@@ -33,66 +25,85 @@ func (ps PropertySet) GetPropertyString(name string) (string, error) {
 	return getProp[string](ps, name)
 }
 
-// ----------  Tiled JSON structs --------------
-
-type PropertiesJSON struct {
-	Name  string      `json:"name"`
-	Type  string      `json:"type"`
-	Value interface{} `json:"value"`
+// GetProperties converts a slice of Tiled properties into a PropertySet map.
+func GetProperties(tiledProperties []tiledProperty) (PropertySet, error) {
+	ps := make(PropertySet, len(tiledProperties))
+	for _, p := range tiledProperties {
+		value, err := parseValue(p)
+		if err != nil {
+			return nil, err
+		}
+		ps[p.Name] = Property{Value: value}
+	}
+	return ps, nil
 }
 
-// -----------  Internal conversion functions -----------
-
-// TODO: make these members private once package is refactored
-func (p PropertiesJSON) IntValue() (int, bool) {
-	return p.intValue()
+// parseValue handles type assertion and conversion for a single tiledProperty.
+func parseValue(p tiledProperty) (interface{}, error) {
+	switch p.Type {
+	case "int":
+		return parseInt(p.Value)
+	case "bool":
+		return parseBool(p.Value)
+	case "float":
+		return parseFloat(p.Value)
+	case "string":
+		return parseString(p.Value)
+	default:
+		return p.Value, nil
+	}
 }
 
-func (p PropertiesJSON) BoolValue() (bool, bool) {
-	return p.boolValue()
+// parseInt handles the various types an integer property might be.
+func parseInt(v interface{}) (int, error) {
+	if i, ok := v.(int); ok {
+		return i, nil
+	}
+	if f, ok := v.(float64); ok {
+		return int(f), nil
+	}
+	if s, ok := v.(string); ok {
+		parsed, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return int(parsed), nil
+	}
+	return 0, fmt.Errorf("value is not a number")
 }
 
-// IntValue attempts to convert the property's value to an int.
-func (p PropertiesJSON) intValue() (int, bool) {
-	if v, ok := p.Value.(float64); ok {
-		return int(v), true
+// parseBool handles the various types a boolean property might be.
+func parseBool(v interface{}) (bool, error) {
+	if b, ok := v.(bool); ok {
+		return b, nil
 	}
-	if val, ok := p.Value.(int); ok {
-		return val, true
-	}
-	return 0, false
+	return false, fmt.Errorf("value is not a boolean")
 }
 
-// BoolValue attempts to convert the property's value to a bool.
-func (p PropertiesJSON) boolValue() (bool, bool) {
-	if v, ok := p.Value.(bool); ok {
-		return v, true
+// parseFloat handles the various types a float property might be.
+func parseFloat(v interface{}) (float64, error) {
+	if f, ok := v.(float64); ok {
+		return f, nil
 	}
-	// Tiled can sometimes export booleans as 0 or 1.
-	if v, ok := p.Value.(float64); ok {
-		return v == 1, true
+	if i, ok := v.(int); ok {
+		return float64(i), nil
 	}
-	// Tiled can sometimes export booleans as 0 or 1.
-	if v, ok := p.Value.(int); ok {
-		return v == 1, true
+	if s, ok := v.(string); ok {
+		parsed, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return 0, err
+		}
+		return parsed, nil
 	}
-	return false, false
+	return 0, fmt.Errorf("value is not a number")
 }
 
-// float64Value attempts to convert the property's value to a float64
-func (p PropertiesJSON) float64Value() (float64, bool) {
-	if v, ok := p.Value.(float64); ok {
-		return v, true
+// parseString handles the various types a string property might be.
+func parseString(v interface{}) (string, error) {
+	if s, ok := v.(string); ok {
+		return s, nil
 	}
-	return 0.0, false
-}
-
-// stringValue attempts to convert the property's value to a string
-func (p PropertiesJSON) stringValue() (string, bool) {
-	if v, ok := p.Value.(string); ok {
-		return v, true
-	}
-	return "", false
+	return "", fmt.Errorf("value is not a string")
 }
 
 // getProp is a generic helper function that retrieves a property and asserts its type.
@@ -110,49 +121,4 @@ func getProp[T any](ps PropertySet, name string) (T, error) {
 	}
 
 	return value, nil
-}
-
-func (ps PropertySet) addPropertyHelper(pj *PropertiesJSON, value interface{}, ok bool) error {
-	if !ok {
-		return fmt.Errorf("could not add property '%s'; not of type %s (actual type %T)", pj.Name, pj.Type, value)
-	}
-	ps[pj.Name] = Property{Value: value}
-	return nil
-}
-
-func (ps PropertySet) addProperty(pj *PropertiesJSON) error {
-	var value interface{}
-	var ok bool
-
-	switch pj.Type {
-	case "bool":
-		value, ok = pj.boolValue()
-	case "int":
-		value, ok = pj.intValue()
-	case "float":
-		value, ok = pj.float64Value()
-	case "string":
-		value, ok = pj.stringValue()
-	default:
-		return fmt.Errorf("unknown property type: %s for property %s", pj.Type, pj.Name)
-	}
-
-	if !ok {
-		return fmt.Errorf("could not add property '%s'; not of type %s (actual type %T)", pj.Name, pj.Type, value)
-	}
-	ps[pj.Name] = Property{Value: value}
-
-	return nil
-}
-
-// TODO: add a unit test
-func GetProperties(pj []PropertiesJSON) (*PropertySet, error) {
-	properties := PropertySet{}
-	for _, p := range pj {
-		err := properties.addProperty(&p)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &properties, nil
 }

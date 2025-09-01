@@ -9,23 +9,44 @@ type Rect struct {
 	Height float64
 }
 
-type Object struct {
-	Name    string
-	Type    string
-	HitRect Rect
+type Property struct {
+	Value interface{}
+}
 
-	SrcRect  Rect
-	SrcImage *image.Image
-
+// Tile represents a single tile with its properties and image source.
+type Tile struct {
+	ID         int
+	SrcRect    Rect
+	SrcImage   image.Image
+	HitRect    Rect
 	Properties *PropertySet
 }
 
-type MapLayer struct {
-	Name     string
-	TileData []int
-	Objects  []Object
+// A property set is just a map of key value pairs.
+// The values are Typed, and must be one of bool, int, float64, string,
+// according to the setup in Tiled.
+type PropertySet map[string]Property
+
+// Object represents a single object layer element.
+type Object struct {
+	Name       string
+	Type       string
+	Properties *PropertySet
+	Location   Rect
+	GID        int
 }
 
+// MapLayer represents a single layer in the map.
+type MapLayer struct {
+	Name    string
+	Type    string
+	Width   int
+	Height  int
+	TileIds []int
+	Objects []Object
+}
+
+// Map represents the entire Tiled map file.
 type Map struct {
 	Name          string
 	WidthInTiles  int
@@ -36,7 +57,3 @@ type Map struct {
 	Layers []MapLayer
 	Tiles  []Tile
 }
-
-// func (m *Map) findLayer(name string) (layer, ok) {
-//  ...
-// }

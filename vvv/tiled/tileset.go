@@ -5,169 +5,90 @@ import (
 	"image"
 )
 
-// --------------- Public interface -----------
+// ConvertTileset converts an intermediate tiledTileset struct into a slice of
+// game-ready Tile structs. It receives the loaded image(s), so it doesn't have
+// to worry about file I/O.
+func ConvertTileset(tsData *tiledTileset, images map[string]image.Image, firstGID int) ([]Tile, error) {
+	// Check if this is a collection tileset (individual images) or a sprite sheet.
+	isCollection := tsData.Image == ""
 
-type Tile struct {
-	id         int
-	srcRect    Rect
-	srcImage   *image.Image
-	hitRect    Rect
-	properties *PropertySet
-}
-
-// ----------  Tiled JSON structs --------------
-
-type ObjectJSON struct {
-	Height     float64          `json:"height"`
-	ID         int              `json:"id"`
-	Gid        int              `json:"gid"`
-	Name       string           `json:"name"`
-	Properties []PropertiesJSON `json:"properties"`
-	Type       string           `json:"type"`
-	Width      float64          `json:"width"`
-	X          float64          `json:"x"`
-	Y          float64          `json:"y"`
-}
-
-type ObjectGroupJSON struct {
-	DrawOrder string       `json:"draworder"`
-	Name      string       `json:"name"`
-	Objects   []ObjectJSON `json:"objects"`
-	Opacity   float64      `json:"opacity"`
-	Type      string       `json:"type"`
-	Visible   bool         `json:"visible"`
-	X         float64      `json:"x"`
-	Y         float64      `json:"y"`
-}
-
-type TilesetTileJSON struct {
-	ID          int              `json:"id"`
-	Type        string           `json:"type"`
-	Image       string           `json:"image"`
-	ImageHeight int              `json:"imageheight"`
-	ImageWidth  int              `json:"imagewidth"`
-	Properties  []PropertiesJSON `json:"properties"`
-	ObjectGroup *ObjectGroupJSON `json:"objectgroup,omitempty"`
-}
-
-type TilesetDataJSON struct {
-	Columns     int               `json:"columns"`
-	FirstGid    int               `json:"firstgid"`
-	Image       string            `json:"image"`
-	ImageHeight int               `json:"imageheight"`
-	ImageWidth  int               `json:"imagewidth"`
-	Name        string            `json:"name"`
-	TileCount   int               `json:"tilecount"`
-	TileHeight  int               `json:"tileheight"`
-	Tiles       []TilesetTileJSON `json:"tiles"`
-	TileWidth   int               `json:"tilewidth"`
-	Type        string            `json:"type"`
-}
-
-// -----------  Internal conversion functions -----------
-
-func isCollectionTileSet(tsj TilesetDataJSON) bool {
-	return tsj.Image == ""
-}
-
-func getHitbox(tj *TilesetTileJSON, width float64, height float64) Rect {
-	// See if there is a custom object defining
-	// a hitbox.  (Note: there may be more than one
-	// box defined in tiled, but we just look at the
-	// first one.
-	if tj.ObjectGroup != nil {
-		return Rect{
-			X:      tj.ObjectGroup.Objects[0].X,
-			Y:      tj.ObjectGroup.Objects[0].Y,
-			Width:  tj.ObjectGroup.Objects[0].Width,
-			Height: tj.ObjectGroup.Objects[0].Height,
-		}
-	} else {
-		// Build a default hitbox based on the size of the image
-		return Rect{
-			X:      0,
-			Y:      0,
-			Width:  width,
-			Height: height,
-		}
+	if isCollection {
+		return convertCollectionTileset(tsData, images, firstGID)
 	}
+	return convertSpriteSheetTileset(tsData, images[tsData.Image], firstGID)
 }
 
-func convertCollectionTilesetJSON(tsj TilesetDataJSON, gidStart int, images map[string]*image.Image) ([]Tile, error) {
-	tiles := make([]Tile, tsj.TileCount)
-
-	for i, tj := range tsj.Tiles {
-		properties, err := GetProperties(tj.Properties)
+// convertCollectionTileset handles tilesets with individual tile images.
+func convertCollectionTileset(tsData *tiledTileset, images map[string]image.Image, firstGID int) ([]Tile, error) {
+	tiles := make([]Tile, 0, len(tsData.Tiles))
+	for _, tiledTile := range tsData.Tiles {
+		properties, err := GetProperties(tiledTile.Properties)
 		if err != nil {
 			return nil, err
 		}
+		hitRect := getHitbox(&tiledTile, float64(tiledTile.ImageWidth), float64(tiledTile.ImageHeight))
 
-		srcImage, ok := images[tj.Image]
+		// Get the correct image from the map
+		img, ok := images[tiledTile.Image]
 		if !ok {
-			return nil, fmt.Errorf("image %s not found", tj.Image)
+			return nil, fmt.Errorf("image not found for tile %d: %s", tiledTile.ID, tiledTile.Image)
 		}
 
-		srcRect := Rect{
-			X:      0,
-			Y:      0,
-			Width:  float64(tj.ImageWidth),
-			Height: float64(tj.ImageHeight),
+		tile := Tile{
+			ID:         tiledTile.ID + firstGID,
+			SrcRect:    Rect{X: 0, Y: 0, Width: float64(tiledTile.ImageWidth), Height: float64(tiledTile.ImageHeight)},
+			SrcImage:   img,
+			HitRect:    hitRect,
+			Properties: &properties,
 		}
-
-		t := Tile{
-			id:         tj.ID + gidStart,
-			srcRect:    srcRect,
-			srcImage:   srcImage,
-			hitRect:    getHitbox(&tj, float64(tj.ImageWidth), float64(tj.ImageHeight)),
-			properties: properties,
-		}
-		tiles[i] = t
+		tiles = append(tiles, tile)
 	}
 	return tiles, nil
 }
 
-func convertGridTilesetJSON(tsj *TilesetDataJSON, gidStart int, images map[string]*image.Image) ([]Tile, error) {
-	tiles := make([]Tile, tsj.TileCount)
-	srcImage, ok := images[tsj.Image]
-	if !ok {
-		return nil, fmt.Errorf("image %s not found", tsj.Image)
-	}
-	tileWidth := float64(tsj.TileWidth)
-	tileHeight := float64(tsj.TileHeight)
-	columns := tsj.Columns
+// convertSpriteSheetTileset handles tilesets that use a single sprite sheet image.
+func convertSpriteSheetTileset(tsData *tiledTileset, srcImage image.Image, firstGID int) ([]Tile, error) {
+	tiles := make([]Tile, 0, tsData.TileCount)
+	tileWidth := float64(tsData.TileWidth)
+	tileHeight := float64(tsData.TileHeight)
+	columns := tsData.Columns
 
-	for i, tj := range tsj.Tiles {
-		x := (i % columns) * int(tileWidth)
-		y := (i / columns) * int(tileHeight)
-		srcRect := Rect{
-			X:      float64(x),
-			Y:      float64(y),
-			Width:  tileWidth,
-			Height: tileHeight,
-		}
+	for _, tiledTile := range tsData.Tiles {
+		x := (tiledTile.ID % columns) * int(tileWidth)
+		y := (tiledTile.ID / columns) * int(tileHeight)
+		srcRect := Rect{X: float64(x), Y: float64(y), Width: tileWidth, Height: tileHeight}
 
-		properties, err := GetProperties(tj.Properties)
+		properties, err := GetProperties(tiledTile.Properties)
 		if err != nil {
 			return nil, err
 		}
+		hitRect := getHitbox(&tiledTile, tileWidth, tileHeight)
 
-		t := Tile{
-			id:         tj.ID + gidStart,
-			srcRect:    srcRect,
-			srcImage:   srcImage,
-			hitRect:    getHitbox(&tj, tileWidth, tileHeight),
-			properties: properties,
+		tile := Tile{
+			ID:         tiledTile.ID + firstGID,
+			SrcRect:    srcRect,
+			SrcImage:   srcImage,
+			HitRect:    hitRect,
+			Properties: &properties,
 		}
-		tiles[i] = t
+		tiles = append(tiles, tile)
 	}
 	return tiles, nil
 }
 
-// Main conversion method
-func GetTiles(tsj *TilesetDataJSON, gidStart int, images map[string]*image.Image) ([]Tile, error) {
-	if isCollectionTileSet(*tsj) {
-		return convertCollectionTilesetJSON(*tsj, gidStart, images)
-	} else {
-		return convertGridTilesetJSON(tsj, gidStart, images)
+// getHitbox calculates the hitbox for a tile based on its object group.
+func getHitbox(tiledTile *tiledTile, width float64, height float64) Rect {
+	// Tiled allows a custom hitbox to be defined via a single object in the object group.
+	if tiledTile.ObjectGroup.Objects != nil && len(tiledTile.ObjectGroup.Objects) > 0 {
+		obj := tiledTile.ObjectGroup.Objects[0]
+		return Rect{
+			X:      obj.X,
+			Y:      obj.Y,
+			Width:  obj.Width,
+			Height: obj.Height,
+		}
 	}
+
+	// If no custom hitbox, use the full tile dimensions.
+	return Rect{X: 0, Y: 0, Width: width, Height: height}
 }
