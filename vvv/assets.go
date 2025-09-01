@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"embed"
+
 	"image"
 	"path/filepath"
 	"strconv"
@@ -19,8 +20,8 @@ var assets embed.FS
 
 var TileSetImage = loadImage("assets/images/tileset.png")
 var PlayerSprite = loadImage("assets/images/player.png")
+var CheckpointSprite = loadImage("assets/images/checkpoint.png")
 var Levels = loadLevels("assets/levels")
-var TilesetData = tiled.NewTilesetJSON("assets/tilesets/tileset.json")
 var Music = loadSound("assets/sounds/bach-prelude.mp3")
 
 // Store the loaded levels once the game is initialized
@@ -55,13 +56,18 @@ func loadSound(name string) *mp3.Stream {
 	return soundStream
 }
 
-func loadLevels(dir string) map[int]tiled.LevelJSON {
-	levels := make(map[int]tiled.LevelJSON)
+func loadLevels(dir string) map[int]*tiled.Map {
+	levels := make(map[int]*tiled.Map)
 	dirEntries, err := assets.ReadDir(dir)
 	if err != nil {
 		panic(err)
 	}
 
+	ebitenImageConverter := func(img image.Image) (tiled.ImageProvider, error) {
+		return ebiten.NewImageFromImage(img), nil
+	}
+
+	loader := tiled.NewFsLoaderWithImageConverter(assets, ebitenImageConverter)
 	for _, entry := range dirEntries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
 			name := entry.Name()
@@ -69,7 +75,11 @@ func loadLevels(dir string) map[int]tiled.LevelJSON {
 				numStr := name[len("level") : len(name)-len(".json")]
 				if num, err := strconv.Atoi(numStr); err == nil {
 					filePath := filepath.Join(dir, name)
-					levels[num] = tiled.NewLevelJSON(filePath)
+					level, err := loader.LoadMap(filePath)
+					if err != nil {
+						panic(err)
+					}
+					levels[num] = level
 				}
 			}
 		}

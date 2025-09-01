@@ -22,6 +22,7 @@ type Tile struct {
 	SrcImage   ImageProvider
 	HitRect    Rect
 	Properties *PropertySet
+	Type       string
 }
 
 // A property set is just a map of key value pairs.
@@ -57,5 +58,5 @@ type Map struct {
 	TileHeight    int
 
 	Layers []MapLayer
-	Tiles  []Tile
+	Tiles  map[int]Tile
 }

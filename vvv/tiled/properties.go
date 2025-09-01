@@ -6,6 +6,7 @@ import (
 )
 
 // Gets the property with the given name as a bool.
+// TODO: simplify names to just GetBool, GetInt, etc.
 func (ps PropertySet) GetPropertyBool(name string) (bool, error) {
 	return getProp[bool](ps, name)
 }

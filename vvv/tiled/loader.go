@@ -76,7 +76,7 @@ func (l *FsLoader) LoadMap(filePath string) (*Map, error) {
 	}
 
 	// Step 3: Convert the raw layers to game layers.
-	gameLayers, err := convertLayers(tiledMapData.Layers)
+	gameLayers, err := convertLayers(tiledMapData.Layers, &allTiles)
 	if err != nil {
 		return nil, err
 	}
@@ -89,13 +89,13 @@ func (l *FsLoader) LoadMap(filePath string) (*Map, error) {
 		TileWidth:     tiledMapData.TileWidth,
 		TileHeight:    tiledMapData.TileHeight,
 		Layers:        gameLayers,
-		Tiles:         make([]Tile, 0, len(allTiles)),
+		Tiles:         allTiles,
 	}
 
-	// Populate the Tiles slice from the map for easier access later.
-	for _, tile := range allTiles {
-		gameMap.Tiles = append(gameMap.Tiles, tile)
-	}
+	// // Populate the Tiles slice from the map for easier access later.
+	// for _, tile := range allTiles {
+	// 	gameMap.Tiles = append(gameMap.Tiles, tile)
+	// }
 
 	return gameMap, nil
 }
@@ -188,7 +188,7 @@ func (l *FsLoader) loadTilesetImages(tsData *tiledTileset, tsPath string) (map[s
 }
 
 // convertLayers converts a slice of tiledLayer structs to a slice of MapLayer structs.
-func convertLayers(tiledLayers []tiledLayer) ([]MapLayer, error) {
+func convertLayers(tiledLayers []tiledLayer, tiles *map[int]Tile) ([]MapLayer, error) {
 	gameLayers := make([]MapLayer, len(tiledLayers))
 	for i, layerJSON := range tiledLayers {
 		newLayer := MapLayer{
@@ -202,7 +202,7 @@ func convertLayers(tiledLayers []tiledLayer) ([]MapLayer, error) {
 		case "tilelayer":
 			newLayer.TileIds = layerJSON.Data
 		case "objectgroup":
-			objects, err := convertObjectGroup(layerJSON.Objects)
+			objects, err := convertObjectGroup(layerJSON.Objects, tiles)
 			if err != nil {
 				return nil, err
 			}
@@ -214,20 +214,40 @@ func convertLayers(tiledLayers []tiledLayer) ([]MapLayer, error) {
 }
 
 // convertObjectGroup converts a slice of tiledObjects into a slice of Objects.
-func convertObjectGroup(tiledObjects []tiledObject) ([]Object, error) {
+func convertObjectGroup(tiledObjects []tiledObject, tiles *map[int]Tile) ([]Object, error) {
 	objects := make([]Object, len(tiledObjects))
 	for i, objJSON := range tiledObjects {
-		properties, err := GetProperties(objJSON.Properties)
-		if err != nil {
-			return nil, err
+		objType := ""
+		objProperties := PropertySet{}
+
+		// Look up the tile data if this object has a GID.
+		yOffset := 0.0
+		tileData, ok := (*tiles)[objJSON.GID]
+		if ok {
+			objType = tileData.Type
+			objProperties = *tileData.Properties
+			// For tile objects, adjust the Y position by the tile height.
+			yOffset = objJSON.Height
 		}
+
+		// Merge object-specific properties, which override tile properties.
+		if objJSON.Type != "" {
+			objType = objJSON.Type
+		}
+		properties, err := GetProperties(objJSON.Properties)
+		if err == nil {
+			for k, v := range properties {
+				objProperties[k] = v
+			}
+		}
+
 		objects[i] = Object{
 			Name:       objJSON.Name,
-			Type:       objJSON.Type,
-			Properties: &properties,
+			Type:       objType,
+			Properties: &objProperties,
 			Location: Rect{
 				X:      objJSON.X,
-				Y:      objJSON.Y,
+				Y:      objJSON.Y - yOffset,
 				Width:  objJSON.Width,
 				Height: objJSON.Height,
 			},

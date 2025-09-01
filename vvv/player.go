@@ -23,7 +23,8 @@ const (
 
 type Player struct {
 	FlippableSprite
-	animations map[PlayerState]*Animation
+	spriteSheet *GridTileSet
+	animations  map[PlayerState]*Animation
 
 	// Player state
 	Vx         float64
@@ -34,7 +35,7 @@ type Player struct {
 }
 
 func NewPlayer() *Player {
-	spriteSheet := NewGridTileSet(PlayerSprite, TileSize, TileSize, 4, 1)
+	spriteSheet := NewGridTileSet(TileSize, TileSize, 4, 1)
 
 	return &Player{
 		FlippableSprite: FlippableSprite{
@@ -43,8 +44,8 @@ func NewPlayer() *Player {
 					X: 0,
 					Y: 0,
 				},
-				spriteSheet: spriteSheet,
-				srcRect:     spriteSheet.Rect(0),
+				image:   PlayerSprite,
+				srcRect: spriteSheet.Rect(0),
 				hitbox: Rect{
 					left:   3,
 					top:    5,
@@ -53,6 +54,7 @@ func NewPlayer() *Player {
 				},
 			},
 		},
+		spriteSheet: spriteSheet,
 		animations: map[PlayerState]*Animation{
 			Walking: NewAnimation(0, 3, 10),
 			Idle:    NewAnimation(1, 1, 100),

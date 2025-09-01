@@ -9,34 +9,32 @@ import (
 )
 
 type Level struct {
-	spriteSheet *GridTileSet
-	tiles       []Tile
-	objects     []GameObject
-	width       float64
-	height      float64
-	startPoint  Location
-	levelImage  *ebiten.Image
+	tiles      []Tile
+	objects    []GameObject
+	width      float64
+	height     float64
+	startPoint Location
+	levelImage *ebiten.Image
 }
 
-func NewLevel(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) *Level {
-	objects, startPoint := GetLevelObjects(leveljson, tilesetData, spriteSheet, levelNum)
+func NewLevel(tm *tiled.Map, levelNum int) *Level {
+	objects, startPoint := GetLevelObjects(tm, levelNum)
 
-	levelImage := ebiten.NewImage(leveljson.Width*TileSize, leveljson.Height*TileSize)
+	levelImage := ebiten.NewImage(tm.WidthInTiles*tm.TileWidth, tm.HeightInTiles*tm.TileHeight)
 
 	// Get all tiles and draw them to the offscreen image.
-	tiles := GetTiles(leveljson, tilesetData, spriteSheet)
+	tiles := GetTiles(tm)
 	for _, tile := range tiles {
 		tile.Draw(levelImage)
 	}
 
 	return &Level{
-		spriteSheet: spriteSheet,
-		tiles:       tiles,
-		objects:     objects,
-		width:       float64(leveljson.Width * TileSize),
-		height:      float64(leveljson.Height * TileSize),
-		startPoint:  startPoint,
-		levelImage:  levelImage,
+		tiles:      tiles,
+		objects:    objects,
+		width:      float64(tm.WidthInTiles * tm.TileWidth),
+		height:     float64(tm.HeightInTiles * TileSize),
+		startPoint: startPoint,
+		levelImage: levelImage,
 	}
 }
 

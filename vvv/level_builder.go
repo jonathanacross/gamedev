@@ -1,44 +1,59 @@
 package main
 
 import (
+	"image"
 	"log"
 	"vvv/tiled"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func GetLevelObjects(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) ([]GameObject, Location) {
+func toRect(r tiled.Rect) Rect {
+	return Rect{
+		left:   r.X,
+		top:    r.Y,
+		right:  r.X + r.Width,
+		bottom: r.Y + r.Height,
+	}
+}
+
+func toImageRectangle(r tiled.Rect) image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{X: int(r.X), Y: int(r.Y)},
+		Max: image.Point{X: int(r.X + r.Width), Y: int(r.Y + r.Height)},
+	}
+}
+
+func getLocation(o tiled.Object) Location {
+	return Location{
+		X: o.Location.X,
+		Y: o.Location.Y,
+	}
+}
+
+func GetLevelObjects(tm *tiled.Map, levelNum int) ([]GameObject, Location) {
 	gameObjects := []GameObject{}
 	var startPoint Location
 
-	for _, layer := range leveljson.Layers {
+	for _, layer := range tm.Layers {
 		if layer.Type == "objectgroup" {
 			for _, obj := range layer.Objects {
-				objType := obj.Type
-				if objType == "" && obj.Gid > 0 {
-					tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-					objType = tilesetTileData.Type
-				}
-
-				switch objType {
+				switch obj.Type {
 				case "Spikes":
-					spike := processSpikeObject(obj, tilesetData, spriteSheet)
-					if spike != nil {
-						gameObjects = append(gameObjects, spike)
-					}
-
+					spike := processSpikeObject(obj, tm.Tiles[obj.GID])
+					gameObjects = append(gameObjects, spike)
 				case "LevelExit":
 					exit := processLevelExit(obj)
 					gameObjects = append(gameObjects, exit)
 				case "Checkpoint":
-					checkpoint := processCheckpointObject(obj, tilesetData, spriteSheet, levelNum)
+					checkpoint := processCheckpointObject(obj, tm.Tiles[obj.GID], levelNum)
 					gameObjects = append(gameObjects, checkpoint)
 					if checkpoint.Active {
 						startPoint = checkpoint.Location
 					}
 				case "Platform":
-					platform := processPlatformObject(obj, tilesetData, spriteSheet)
-					if platform != nil {
-						gameObjects = append(gameObjects, platform)
-					}
+					platform := processPlatformObject(obj, tm.Tiles[obj.GID])
+					gameObjects = append(gameObjects, platform)
 				}
 			}
 		}
@@ -47,176 +62,96 @@ func GetLevelObjects(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSO
 }
 
 // New helper function to process a single Spike object.
-func processSpikeObject(obj tiled.ObjectJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet) *Spike {
-	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-	if tilesetTileData == nil {
-		log.Println("Tileset tile data not found for Spike, Gid:", obj.Gid)
-		return nil
-	}
-	adjustedY := obj.Y - obj.Height
-
-	var hitbox Rect
-	if len(tilesetTileData.ObjectGroup.Objects) > 0 {
-		rectData := tilesetTileData.ObjectGroup.Objects[0]
-		hitbox = Rect{
-			left:   obj.X + rectData.X,
-			top:    adjustedY + rectData.Y,
-			right:  obj.X + rectData.X + rectData.Width,
-			bottom: adjustedY + rectData.Y + rectData.Height,
-		}
-	} else {
-		hitbox = Rect{
-			left:   obj.X,
-			top:    adjustedY,
-			right:  obj.X + obj.Width,
-			bottom: adjustedY + obj.Height,
-		}
-	}
+func processSpikeObject(obj tiled.Object, tile tiled.Tile) *Spike {
+	// TODO: see if we need to do adjustedY in the tiled library
+	//adjustedY := obj.Y - obj.Height
+	// TODO: see if have to subtract 1 from GID
 
 	return &Spike{
 		BaseSprite: BaseSprite{
-			Location: Location{
-				X: obj.X,
-				Y: adjustedY,
-			},
-			spriteSheet: spriteSheet,
-			srcRect:     spriteSheet.Rect(obj.Gid - 1),
-			hitbox:      hitbox,
+			Location: getLocation(obj),
+			image:    tile.SrcImage.(*ebiten.Image),
+			srcRect:  toImageRectangle(tile.SrcRect),
+			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
 		},
 	}
 }
 
 // New helper function to process a single LevelExit object.
-func processLevelExit(obj tiled.ObjectJSON) LevelExit {
-	toLevel := 0
-	for _, prop := range obj.Properties {
-		if prop.Name == "ToLevel" {
-			if toLevelVal, ok := prop.IntValue(); ok {
-				toLevel = toLevelVal
-			}
-			break
-		}
+func processLevelExit(obj tiled.Object) LevelExit {
+	toLevel, err := obj.Properties.GetPropertyInt("ToLevel")
+	if err != nil {
+		log.Println("Error reading ToLevel property for LevelExit:", err)
 	}
 	return LevelExit{
-		Rect: Rect{
-			left:   obj.X,
-			top:    obj.Y,
-			right:  obj.X + obj.Width,
-			bottom: obj.Y + obj.Height,
-		},
+		Rect:    toRect(obj.Location),
 		ToLevel: toLevel,
 	}
 }
 
 // New helper function to process a single Checkpoint object.
-func processCheckpointObject(obj tiled.ObjectJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet, levelNum int) *Checkpoint {
-	adjustedY := obj.Y - obj.Height
-
-	isActive := false
-	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-	if tilesetTileData != nil {
-		if activeVal, ok := tiled.GetBoolProperty(tilesetTileData.Properties, "Active"); ok {
-			isActive = activeVal
-		}
+func processCheckpointObject(obj tiled.Object, tile tiled.Tile, levelNum int) *Checkpoint {
+	isActive, err := obj.Properties.GetPropertyBool("Active")
+	if err != nil {
+		log.Println("Error reading Active property for Checkpoint:", err)
 	}
-
-	return &Checkpoint{
+	spriteSheet := NewGridTileSet(16, 16, 2, 1)
+	srcRect2 := spriteSheet.Rect(0)
+	checkpoint := Checkpoint{
 		BaseSprite: BaseSprite{
-			Location: Location{
-				X: obj.X,
-				Y: adjustedY,
-			},
-			spriteSheet: spriteSheet,
-			srcRect:     spriteSheet.Rect(obj.Gid - 1),
-			hitbox: Rect{
-				left:   obj.X,
-				top:    adjustedY,
-				right:  obj.X + obj.Width,
-				bottom: adjustedY + obj.Height,
-			},
+			image:    CheckpointSprite,
+			Location: getLocation(obj),
+			srcRect:  srcRect2,
+			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
 		},
-		Active:   isActive,
-		Id:       obj.ID,
-		LevelNum: levelNum,
+		spriteSheet: spriteSheet,
+		Active:      isActive,
+		Id:          obj.GID,
+		LevelNum:    levelNum,
 	}
+	checkpoint.SetActive(isActive)
+	return &checkpoint
 }
 
 // New helper function to process a single Platform object.
-func processPlatformObject(obj tiled.ObjectJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet) *Platform {
-	adjustedY := obj.Y - obj.Height
-
-	// Read custom properties for movement from the JSON
-	var endX, endY float64
-
-	tilesetTileData := findTilesetTileData(tilesetData, obj.Gid)
-	if tilesetTileData != nil {
-		// TODO: read in platform data from json files
-		// if val, ok := getStringProperty(tilesetTileData.Properties, "endPoint"); ok {
-		// 	// Assuming "endPoint" is in the format "x,y"
-		// 	// You'll need a helper function to parse this string
-		// 	// For now, let's assume you'll manually set the destination
-		// 	endX = obj.X + obj.Width
-		// 	endY = adjustedY
-		// }
+func processPlatformObject(obj tiled.Object, tile tiled.Tile) *Platform {
+	endX, err := obj.Properties.GetPropertyFloat64("endX")
+	if err != nil {
+		log.Println("Error reading endX property for platform:", err)
+	}
+	endY, err := obj.Properties.GetPropertyFloat64("endY")
+	if err != nil {
+		log.Println("Error reading endY property for platform:", err)
 	}
 
 	return &Platform{
 		BaseSprite: BaseSprite{
-			Location: Location{
-				X: obj.X,
-				Y: adjustedY,
-			},
-			spriteSheet: spriteSheet,
-			srcRect:     spriteSheet.Rect(obj.Gid - 1),
-			hitbox: Rect{
-				left:   obj.X,
-				top:    adjustedY,
-				right:  obj.X + obj.Width,
-				bottom: adjustedY + obj.Height,
-			},
+			Location: getLocation(obj),
+			image:    tile.SrcImage.(*ebiten.Image),
+			srcRect:  toImageRectangle(tile.SrcRect),
+			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
 		},
-		startX: obj.X,
-		startY: adjustedY,
+		startX: obj.Location.X,
+		startY: obj.Location.Y,
 		endX:   endX,
 		endY:   endY,
 	}
 }
 
-// findTilesetTileData returns the TilesetTileJSON for a given GID.
-func findTilesetTileData(tilesetData tiled.TilesetDataJSON, gid int) *tiled.TilesetTileJSON {
-	for _, tile := range tilesetData.Tiles {
-		// TODO: gid needs to be computed from JSON filed instead of
-		// assuming the offset is 1.
-		if tile.ID == gid-1 {
-			return &tile
-		}
-	}
-	return nil
+func isSolid(tile tiled.Tile) bool {
+	solid, _ := tile.Properties.GetPropertyBool("solid")
+	return solid
 }
 
-func isSolid(tilesetData tiled.TilesetDataJSON, id int) bool {
-	tileData := findTilesetTileData(tilesetData, id)
-	if tileData == nil {
-		return false
-	}
-	for _, prop := range tileData.Properties {
-		if prop.Name == "solid" {
-			if isSolid, ok := prop.BoolValue(); ok {
-				return isSolid
-			}
-		}
-	}
-	return false
-}
-
-func GetTiles(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spriteSheet *GridTileSet) []Tile {
+func GetTiles(tm *tiled.Map) []Tile {
 	tiles := []Tile{}
-	for _, layer := range leveljson.Layers {
+	for _, layer := range tm.Layers {
 		if layer.Type == "tilelayer" {
-			for idx, id := range layer.Data {
-				if id == 0 {
+			for idx, id := range layer.TileIds {
+				if id <= 0 {
 					continue
 				}
+				t := tm.Tiles[id]
 				x := (idx % layer.Width) * TileSize
 				y := (idx / layer.Width) * TileSize
 				tile := Tile{
@@ -225,8 +160,8 @@ func GetTiles(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spri
 							X: float64(x),
 							Y: float64(y),
 						},
-						spriteSheet: spriteSheet,
-						srcRect:     spriteSheet.Rect(id - 1),
+						image:   t.SrcImage.(*ebiten.Image),
+						srcRect: toImageRectangle(t.SrcRect),
 						hitbox: Rect{
 							left:   float64(x),
 							top:    float64(y),
@@ -234,7 +169,7 @@ func GetTiles(leveljson tiled.LevelJSON, tilesetData tiled.TilesetDataJSON, spri
 							bottom: float64(y + TileSize),
 						},
 					},
-					solid: isSolid(tilesetData, id),
+					solid: isSolid(t),
 				}
 				tiles = append(tiles, tile)
 			}

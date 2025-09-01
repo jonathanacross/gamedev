@@ -14,21 +14,50 @@
  "tiles":[
         {
          "id":0,
-         "image":"platform-small.png",
+         "image":"..\/images\/platform-small.png",
          "imageheight":7,
          "imagewidth":16,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":7,
+                     "id":3,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":8,
+                     "x":2,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "properties":[
+                {
+                 "name":"intproperty",
+                 "type":"int",
+                 "value":8
+                }],
          "type":"Platform"
         }, 
         {
          "id":1,
-         "image":"platform-medium.png",
+         "image":"..\/images\/platform-medium.png",
          "imageheight":7,
          "imagewidth":32,
          "type":"Platform"
         }, 
         {
          "id":2,
-         "image":"platform-large.png",
+         "image":"..\/images\/platform-large.png",
          "imageheight":7,
          "imagewidth":48,
          "type":"Platform"

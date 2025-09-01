@@ -11,9 +11,10 @@ import (
 // It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
 	Location
-	spriteSheet *GridTileSet
-	srcRect     image.Rectangle
-	hitbox      Rect
+	//spriteSheet *GridTileSet
+	image   *ebiten.Image
+	srcRect image.Rectangle
+	hitbox  Rect
 }
 
 // HitBox returns the collision rectangle for the BaseSprite.
@@ -30,7 +31,9 @@ func (bs *BaseSprite) GetY() float64 { return bs.Y }
 func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(bs.X, bs.Y)
-	currImage := bs.spriteSheet.image.SubImage(bs.srcRect).(*ebiten.Image)
+	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
+	//TODO: remove
+	//currImage := bs.spriteSheet.image.SubImage(bs.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
 
@@ -47,20 +50,20 @@ func (f *FlippableSprite) Draw(screen *ebiten.Image, debug bool) {
 	// Apply horizontal flip
 	if f.flipHoriz {
 		op.GeoM.Scale(-1, 1)
-		op.GeoM.Translate(float64(f.spriteSheet.tileWidth), 0)
+		op.GeoM.Translate(float64(f.srcRect.Dx()), 0)
 	}
 
 	// Apply vertical flip
 	if f.flipVert {
 		op.GeoM.Scale(1, -1)
-		op.GeoM.Translate(0, float64(f.spriteSheet.tileHeight))
+		op.GeoM.Translate(0, float64(f.srcRect.Dy()))
 	}
 
 	// Translate to the sprite's position
 	op.GeoM.Translate(f.X, f.Y)
 
 	// Draw the sprite
-	currImage := f.spriteSheet.image.SubImage(f.srcRect).(*ebiten.Image)
+	currImage := f.image.SubImage(f.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 
 	if debug {
@@ -82,14 +85,14 @@ func (f *FlippableSprite) FlippedHitbox() Rect {
 
 	// Apply horizontal flip if needed
 	if f.flipHoriz {
-		box.left = f.X + float64(f.spriteSheet.tileWidth) - f.hitbox.right
-		box.right = f.X + float64(f.spriteSheet.tileWidth) - f.hitbox.left
+		box.left = f.X + float64(f.srcRect.Dx()) - f.hitbox.right
+		box.right = f.X + float64(f.srcRect.Dx()) - f.hitbox.left
 	}
 
 	// Apply vertical flip if needed
 	if f.flipVert {
-		box.top = f.Y + float64(f.spriteSheet.tileHeight) - f.hitbox.bottom
-		box.bottom = f.Y + float64(f.spriteSheet.tileHeight) - f.hitbox.top
+		box.top = f.Y + float64(f.srcRect.Dy()) - f.hitbox.bottom
+		box.bottom = f.Y + float64(f.srcRect.Dy()) - f.hitbox.top
 	}
 
 	return box

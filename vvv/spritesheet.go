@@ -2,25 +2,24 @@ package main
 
 import (
 	"image"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type TileSet interface {
-	Image(int) *ebiten.Image
-}
+// type TileSet interface {
+// 	Image(int) *ebiten.Image
+// }
 
-type ImageGroupTileSet struct {
-	images []*ebiten.Image
-	gid    int
-}
+// type ImageGroupTileSet struct {
+// 	images []*ebiten.Image
+// 	gid    int
+// }
 
-func (s *ImageGroupTileSet) Image(index int) *ebiten.Image {
-	return s.images[index-s.gid]
-}
+// func (s *ImageGroupTileSet) Image(index int) *ebiten.Image {
+// 	return s.images[index-s.gid]
+// }
 
+// TODO: rename
 type GridTileSet struct {
-	image         *ebiten.Image
+	// image         *ebiten.Image
 	tileWidth     int
 	tileHeight    int
 	widthInTiles  int
@@ -28,9 +27,9 @@ type GridTileSet struct {
 	gid           int
 }
 
-func NewGridTileSet(image *ebiten.Image, tileWidth int, tileHeight int, widthInTiles int, heightInTiles int) *GridTileSet {
+func NewGridTileSet(tileWidth int, tileHeight int, widthInTiles int, heightInTiles int) *GridTileSet {
 	return &GridTileSet{
-		image:         image,
+		// image:         image,
 		tileWidth:     tileWidth,
 		tileHeight:    tileHeight,
 		widthInTiles:  widthInTiles,
@@ -45,6 +44,6 @@ func (ss *GridTileSet) Rect(index int) image.Rectangle {
 	return image.Rect(x, y, x+ss.tileWidth, y+ss.tileHeight)
 }
 
-func (s *GridTileSet) Image(index int) *ebiten.Image {
-	return s.image.SubImage(s.Rect(index)).(*ebiten.Image)
-}
+// func (s *GridTileSet) Image(index int) *ebiten.Image {
+// 	return s.image.SubImage(s.Rect(index)).(*ebiten.Image)
+// }

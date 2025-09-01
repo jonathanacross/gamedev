@@ -11,20 +11,18 @@ type Spike struct {
 
 type Checkpoint struct {
 	BaseSprite
-	Active   bool
-	Id       int
-	LevelNum int
+	spriteSheet *GridTileSet
+	Active      bool
+	Id          int
+	LevelNum    int
 }
 
 func (c *Checkpoint) SetActive(active bool) {
-	// TODO: using magic numbers here is flaky.  Maybe
-	// read in separate images/ids when creating a
-	// checkpoint, and then switch between them based on the state?
 	c.Active = active
 	if active {
-		c.srcRect = c.spriteSheet.Rect(23)
+		c.srcRect = c.spriteSheet.Rect(0)
 	} else {
-		c.srcRect = c.spriteSheet.Rect(24)
+		c.srcRect = c.spriteSheet.Rect(1)
 	}
 }
 

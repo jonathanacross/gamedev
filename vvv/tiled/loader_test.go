@@ -103,7 +103,7 @@ func newMockFS() *mockFS {
 					"imageheight": 128,
 					"imagewidth": 80,
 					"name": "tileset",
-					"tilecount": 40,
+					"tilecount": 3,
 					"tileheight": 16,
 					"tilewidth": 16,
 					"tiles": [
@@ -118,10 +118,6 @@ func newMockFS() *mockFS {
 							"properties": [
 								{ "name": "solid", "type": "bool", "value": true }
 							]
-						},
-						{
-							"id": 2,
-							"properties": []
 						}
 					]
 				}
