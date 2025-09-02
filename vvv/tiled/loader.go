@@ -230,7 +230,7 @@ func convertObjectGroup(tiledObjects []tiledObject, tiles *map[int]Tile) ([]Obje
 			yOffset = objJSON.Height
 		}
 
-		// Merge object-specific properties, which override tile properties.
+		// Merge object-specific properties, which override the generic tile properties.
 		if objJSON.Type != "" {
 			objType = objJSON.Type
 		}

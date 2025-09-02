@@ -39,6 +39,7 @@ func convertCollectionTileset(tsData *tiledTileset, images map[string]ImageProvi
 			SrcImage:   img,
 			HitRect:    hitRect,
 			Properties: &properties,
+			Type:       tiledTile.Type,
 		}
 		tiles = append(tiles, tile)
 	}

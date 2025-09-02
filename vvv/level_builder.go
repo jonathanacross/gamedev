@@ -54,6 +54,8 @@ func GetLevelObjects(tm *tiled.Map, levelNum int) ([]GameObject, Location) {
 				case "Platform":
 					platform := processPlatformObject(obj, tm.Tiles[obj.GID])
 					gameObjects = append(gameObjects, platform)
+				default:
+					log.Printf("Unknown object type: %s.  Object = %v\n", obj.Type, obj)
 				}
 			}
 		}
@@ -63,10 +65,6 @@ func GetLevelObjects(tm *tiled.Map, levelNum int) ([]GameObject, Location) {
 
 // New helper function to process a single Spike object.
 func processSpikeObject(obj tiled.Object, tile tiled.Tile) *Spike {
-	// TODO: see if we need to do adjustedY in the tiled library
-	//adjustedY := obj.Y - obj.Height
-	// TODO: see if have to subtract 1 from GID
-
 	return &Spike{
 		BaseSprite: BaseSprite{
 			Location: getLocation(obj),
