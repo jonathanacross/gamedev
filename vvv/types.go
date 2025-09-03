@@ -39,6 +39,7 @@ func (r1 Rect) Intersects(r2 Rect) bool {
 // GameObject is an interface for any interactive entity in the game world.
 type GameObject interface {
 	HitBox() Rect
+	Update()
 }
 
 // Drawable is for any GameObject that needs to be drawn every frame.

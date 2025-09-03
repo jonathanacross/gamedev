@@ -77,4 +77,7 @@ func (level *Level) Draw(screen *ebiten.Image, debug bool) {
 }
 
 func (level *Level) Update() {
+	for _, obj := range level.objects {
+		obj.Update()
+	}
 }

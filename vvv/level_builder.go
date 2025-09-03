@@ -54,6 +54,9 @@ func GetLevelObjects(tm *tiled.Map, levelNum int) ([]GameObject, Location) {
 				case "Platform":
 					platform := processPlatformObject(obj, tm.Tiles[obj.GID])
 					gameObjects = append(gameObjects, platform)
+				case "Crystal":
+					crystal := processCrystalObject(obj, tm.Tiles[obj.GID])
+					gameObjects = append(gameObjects, crystal)
 				default:
 					log.Printf("Unknown object type: %s.  Object = %v\n", obj.Type, obj)
 				}
@@ -113,13 +116,21 @@ func processCheckpointObject(obj tiled.Object, tile tiled.Tile, levelNum int) *C
 
 // New helper function to process a single Platform object.
 func processPlatformObject(obj tiled.Object, tile tiled.Tile) *Platform {
-	endX, err := obj.Properties.GetPropertyFloat64("endX")
+	low, err := obj.Properties.GetPropertyFloat64("low")
 	if err != nil {
-		log.Println("Error reading endX property for platform:", err)
+		log.Println("Error reading 'low' property for platform:", err)
 	}
-	endY, err := obj.Properties.GetPropertyFloat64("endY")
+	high, err := obj.Properties.GetPropertyFloat64("high")
 	if err != nil {
-		log.Println("Error reading endY property for platform:", err)
+		log.Println("Error reading 'high' property for platform:", err)
+	}
+	delta, err := obj.Properties.GetPropertyFloat64("delta")
+	if err != nil {
+		log.Println("Error reading 'delta' property for platform:", err)
+	}
+	horiz, err := obj.Properties.GetPropertyBool("horiz")
+	if err != nil {
+		log.Println("Error reading 'horiz' property for platform:", err)
 	}
 
 	return &Platform{
@@ -129,10 +140,22 @@ func processPlatformObject(obj tiled.Object, tile tiled.Tile) *Platform {
 			srcRect:  toImageRectangle(tile.SrcRect),
 			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
 		},
-		startX: obj.Location.X,
-		startY: obj.Location.Y,
-		endX:   endX,
-		endY:   endY,
+		low:   low,
+		high:  high,
+		delta: delta,
+		horiz: horiz,
+	}
+}
+
+func processCrystalObject(obj tiled.Object, tile tiled.Tile) *Crystal {
+	return &Crystal{
+		BaseSprite: BaseSprite{
+			Location: getLocation(obj),
+			image:    tile.SrcImage.(*ebiten.Image),
+			srcRect:  toImageRectangle(tile.SrcRect),
+			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
+		},
+		Collected: false,
 	}
 }
 

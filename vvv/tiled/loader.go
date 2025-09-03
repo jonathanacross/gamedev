@@ -217,15 +217,20 @@ func convertLayers(tiledLayers []tiledLayer, tiles *map[int]Tile) ([]MapLayer, e
 func convertObjectGroup(tiledObjects []tiledObject, tiles *map[int]Tile) ([]Object, error) {
 	objects := make([]Object, len(tiledObjects))
 	for i, objJSON := range tiledObjects {
-		objType := ""
+		// Declare the properties map inside the loop
 		objProperties := PropertySet{}
+		objType := ""
 
 		// Look up the tile data if this object has a GID.
 		yOffset := 0.0
-		tileData, ok := (*tiles)[objJSON.GID]
-		if ok {
+		if tileData, ok := (*tiles)[objJSON.GID]; ok {
 			objType = tileData.Type
-			objProperties = *tileData.Properties
+			// Copy properties from the tile, if any
+			if tileData.Properties != nil {
+				for k, v := range *tileData.Properties {
+					objProperties[k] = v
+				}
+			}
 			// For tile objects, adjust the Y position by the tile height.
 			yOffset = objJSON.Height
 		}
@@ -234,6 +239,7 @@ func convertObjectGroup(tiledObjects []tiledObject, tiles *map[int]Tile) ([]Obje
 		if objJSON.Type != "" {
 			objType = objJSON.Type
 		}
+
 		properties, err := GetProperties(objJSON.Properties)
 		if err == nil {
 			for k, v := range properties {
@@ -244,7 +250,7 @@ func convertObjectGroup(tiledObjects []tiledObject, tiles *map[int]Tile) ([]Obje
 		objects[i] = Object{
 			Name:       objJSON.Name,
 			Type:       objType,
-			Properties: &objProperties,
+			Properties: &objProperties, // Now a unique pointer for each object
 			Location: Rect{
 				X:      objJSON.X,
 				Y:      objJSON.Y - yOffset,

@@ -32,6 +32,8 @@ type Player struct {
 	onGround   bool
 	facingLeft bool
 	state      PlayerState
+
+	numCrystals int
 }
 
 func NewPlayer() *Player {
@@ -59,11 +61,12 @@ func NewPlayer() *Player {
 			Walking: NewAnimation(0, 3, 10),
 			Idle:    NewAnimation(1, 1, 100),
 		},
-		Vx:         0.0,
-		Vy:         0.0,
-		onGround:   false,
-		facingLeft: false,
-		state:      Idle,
+		Vx:          0.0,
+		Vy:          0.0,
+		onGround:    false,
+		facingLeft:  false,
+		state:       Idle,
+		numCrystals: 0,
 	}
 }
 
@@ -178,10 +181,19 @@ func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis
 	playerRect := p.FlippedHitbox()
 
 	for _, obj := range objects {
-		// TODO: make a bool or collidable interface
-		if collidable, ok := obj.(*Platform); ok {
+		if platform, ok := obj.(*Platform); ok {
 			if playerRect.Intersects(obj.HitBox()) {
-				p.resolveCollision(collidable.HitBox(), axis)
+				p.resolveCollision(platform.HitBox(), axis)
+				// Move the player along with the platform if on ground
+				if axis == AxisY && p.onGround && platform.horiz {
+					p.X += platform.delta
+				}
+				// TODO: Handle vertical platforms
+			}
+		} else if crystal, ok := obj.(*Crystal); ok {
+			if playerRect.Intersects(obj.HitBox()) {
+				crystal.Collected = true
+				p.numCrystals++
 			}
 		}
 	}
@@ -221,7 +233,7 @@ func (p *Player) Update(level *Level, gravity float64) PlayerActionEvent {
 
 	p.Y += p.Vy
 	p.HandleTileCollisions(level, AxisY)
-	p.HandleObjectCollisions(level.objects, AxisX)
+	p.HandleObjectCollisions(level.objects, AxisY)
 
 	event := p.checkAllEvents(level)
 	if event.Action != NoAction {
