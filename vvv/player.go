@@ -212,6 +212,8 @@ func (p *Player) checkAllEvents(level *Level) PlayerActionEvent {
 				return PlayerActionEvent{Action: SwitchLevelAction, Payload: o}
 			case *Checkpoint:
 				return PlayerActionEvent{Action: CheckpointReachedAction, Payload: o}
+			case *HelicopterMonster:
+				return PlayerActionEvent{Action: RespawnAction}
 			}
 		}
 	}

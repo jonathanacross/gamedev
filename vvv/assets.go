@@ -20,6 +20,7 @@ var assets embed.FS
 
 var TileSetImage = loadImage("assets/images/tileset.png")
 var PlayerSprite = loadImage("assets/images/player.png")
+var MonsterSprite = loadImage("assets/images/helicopterguy.png")
 var CheckpointSprite = loadImage("assets/images/checkpoint.png")
 var Levels = loadLevels("assets/levels")
 var Music = loadSound("assets/sounds/bach-prelude.mp3")

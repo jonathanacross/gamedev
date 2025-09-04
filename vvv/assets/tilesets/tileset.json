@@ -355,6 +355,33 @@
              "y":0
             },
          "type":"Spikes"
+        }, 
+        {
+         "id":34,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":12,
+                     "id":1,
+                     "name":"",
+                     "rotation":0,
+                     "type":"HelicopterMonster",
+                     "visible":true,
+                     "width":10,
+                     "x":3,
+                     "y":2
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "type":"HelicopterMonster"
         }],
  "tilewidth":16,
  "type":"tileset",

@@ -54,6 +54,9 @@ func GetLevelObjects(tm *tiled.Map, levelNum int) ([]GameObject, Location) {
 				case "Platform":
 					platform := processPlatformObject(obj, tm.Tiles[obj.GID])
 					gameObjects = append(gameObjects, platform)
+				case "HelicopterMonster":
+					helicopterMonster := processHelicopterMonsterObject(obj, tm.Tiles[obj.GID])
+					gameObjects = append(gameObjects, helicopterMonster)
 				case "Crystal":
 					crystal := processCrystalObject(obj, tm.Tiles[obj.GID])
 					gameObjects = append(gameObjects, crystal)
@@ -114,7 +117,6 @@ func processCheckpointObject(obj tiled.Object, tile tiled.Tile, levelNum int) *C
 	return &checkpoint
 }
 
-// New helper function to process a single Platform object.
 func processPlatformObject(obj tiled.Object, tile tiled.Tile) *Platform {
 	low, err := obj.Properties.GetPropertyFloat64("low")
 	if err != nil {
@@ -144,6 +146,40 @@ func processPlatformObject(obj tiled.Object, tile tiled.Tile) *Platform {
 		high:  high,
 		delta: delta,
 		horiz: horiz,
+	}
+}
+
+func processHelicopterMonsterObject(obj tiled.Object, tile tiled.Tile) *HelicopterMonster {
+	low, err := obj.Properties.GetPropertyFloat64("low")
+	if err != nil {
+		log.Println("Error reading 'low' property for helicoptermonster:", err)
+	}
+	high, err := obj.Properties.GetPropertyFloat64("high")
+	if err != nil {
+		log.Println("Error reading 'high' property for helicoptermonster:", err)
+	}
+	delta, err := obj.Properties.GetPropertyFloat64("delta")
+	if err != nil {
+		log.Println("Error reading 'delta' property for helicoptermonster:", err)
+	}
+	horiz, err := obj.Properties.GetPropertyBool("horiz")
+	if err != nil {
+		log.Println("Error reading 'horiz' property for helicoptermonster:", err)
+	}
+
+	return &HelicopterMonster{
+		BaseSprite: BaseSprite{
+			Location: getLocation(obj),
+			image:    MonsterSprite,
+			srcRect:  toImageRectangle(tile.SrcRect),
+			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
+		},
+		spriteSheet: NewGridTileSet(16, 16, 2, 1),
+		animation:   NewAnimation(0, 1, 20),
+		low:         low,
+		high:        high,
+		delta:       delta,
+		horiz:       horiz,
 	}
 }
 

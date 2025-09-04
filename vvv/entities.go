@@ -1,6 +1,8 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 type Tile struct {
 	BaseSprite
@@ -79,3 +81,37 @@ func (le LevelExit) HitBox() Rect {
 }
 
 func (le LevelExit) Update() {}
+
+type HelicopterMonster struct {
+	BaseSprite
+	spriteSheet *GridTileSet
+	animation   *Animation
+	low         float64
+	high        float64
+	delta       float64
+	horiz       bool
+}
+
+func (m *HelicopterMonster) Update() {
+	m.animation.Update()
+
+	if m.horiz {
+		m.Location.X += m.delta
+		m.hitbox = m.hitbox.Offset(m.delta, 0)
+		if (m.Location.X < m.low && m.delta < 0) || (m.Location.X > m.high && m.delta > 0) {
+			m.delta = -m.delta
+		}
+	} else {
+		m.Location.Y += m.delta
+		m.hitbox = m.hitbox.Offset(0, m.delta)
+		if (m.Location.Y < m.low && m.delta < 0) || (m.Location.Y > m.high && m.delta > 0) {
+			m.delta = -m.delta
+		}
+	}
+}
+
+func (m *HelicopterMonster) Draw(screen *ebiten.Image) {
+	currSpriteFrame := m.animation.Frame()
+	m.srcRect = m.spriteSheet.Rect(currSpriteFrame)
+	m.BaseSprite.Draw(screen)
+}
