@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"log"
+	"time"
 	"vvv/tiled"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -60,6 +61,9 @@ func GetLevelObjects(tm *tiled.Map, levelNum int) ([]GameObject, Location) {
 				case "Crystal":
 					crystal := processCrystalObject(obj, tm.Tiles[obj.GID])
 					gameObjects = append(gameObjects, crystal)
+				case "BreakingFloor":
+					breakingFloor := processBreakingFloorObject(obj, tm.Tiles[obj.GID])
+					gameObjects = append(gameObjects, breakingFloor)
 				default:
 					log.Printf("Unknown object type: %s.  Object = %v\n", obj.Type, obj)
 				}
@@ -192,6 +196,20 @@ func processCrystalObject(obj tiled.Object, tile tiled.Tile) *Crystal {
 			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
 		},
 		Collected: false,
+	}
+}
+
+func processBreakingFloorObject(obj tiled.Object, tile tiled.Tile) *BreakingFloor {
+	return &BreakingFloor{
+		BaseSprite: BaseSprite{
+			Location: getLocation(obj),
+			image:    BreakingFloorSprite,
+			srcRect:  toImageRectangle(tile.SrcRect),
+			hitbox:   toRect(tile.HitRect).Offset(obj.Location.X, obj.Location.Y),
+		},
+		spriteSheet: NewGridTileSet(16, 16, 5, 1),
+		state:       Intact,
+		breakTimer:  NewTimer(500 * time.Millisecond),
 	}
 }
 

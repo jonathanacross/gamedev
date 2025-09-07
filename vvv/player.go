@@ -190,6 +190,15 @@ func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis
 				}
 				// TODO: Handle vertical platforms
 			}
+		} else if breakingFloor, ok := obj.(*BreakingFloor); ok {
+			if playerRect.Intersects(obj.HitBox()) {
+				if breakingFloor.IsSolid() {
+					p.resolveCollision(breakingFloor.HitBox(), axis)
+					breakingFloor.StartBreak()
+				} else {
+					breakingFloor.KeepBroken()
+				}
+			}
 		} else if crystal, ok := obj.(*Crystal); ok {
 			if playerRect.Intersects(obj.HitBox()) {
 				crystal.Collected = true

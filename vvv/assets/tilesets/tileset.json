@@ -190,6 +190,10 @@
                 }]
         }, 
         {
+         "id":21,
+         "type":"BreakingFloor"
+        }, 
+        {
          "id":22,
          "objectgroup":
             {
