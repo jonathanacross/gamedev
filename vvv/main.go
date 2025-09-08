@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"image/color"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
@@ -17,6 +20,7 @@ const (
 	MaxFallSpeed = 6
 
 	StartLevelId = 1
+	NumCrystals  = 3
 )
 
 // PlayerAction defines the type of action the player is requesting.
@@ -27,6 +31,7 @@ const (
 	RespawnAction
 	SwitchLevelAction
 	CheckpointReachedAction
+	WinGameAction
 )
 
 // PlayerActionEvent bundles the action type and any associated data.
@@ -34,6 +39,14 @@ type PlayerActionEvent struct {
 	Action  PlayerAction
 	Payload interface{} // e.g., LevelExit for SwitchLevelAction
 }
+
+type GameState int
+
+const (
+	StateTitleScreen GameState = iota
+	StateInGame
+	StateWinScreen
+)
 
 // Game is the main game struct.
 type Game struct {
@@ -44,9 +57,10 @@ type Game struct {
 	allCheckpoints   map[int]*Checkpoint
 	activeCheckpoint *Checkpoint
 	debug            bool
+	state            GameState
 }
 
-func (g *Game) Update() error {
+func (g *Game) UpdateInGame() {
 	// Toggle debug mode on backtick key press
 	if inpututil.IsKeyJustPressed(ebiten.KeyBackquote) {
 		g.debug = !g.debug
@@ -72,9 +86,28 @@ func (g *Game) Update() error {
 	case CheckpointReachedAction:
 		newCheckpoint := actionEvent.Payload.(*Checkpoint)
 		g.SetActiveCheckpoint(newCheckpoint)
+	case WinGameAction:
+		g.state = StateWinScreen
 
 	case NoAction:
 		// Do nothing
+	}
+}
+
+func (g *Game) UpdateTitleScreen() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		g.StartNewGame()
+	}
+}
+
+func (g *Game) Update() error {
+	switch g.state {
+	case StateTitleScreen:
+		g.UpdateTitleScreen()
+	case StateInGame:
+		g.UpdateInGame()
+	case StateWinScreen:
+		g.UpdateTitleScreen()
 	}
 
 	PlayMusic()
@@ -82,9 +115,31 @@ func (g *Game) Update() error {
 	return nil
 }
 
+// drawTextAt is a helper function to draw text on the screen with alignment.
+func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align) {
+	op := &text.DrawOptions{}
+	fontSize := float64(8)
+	op.GeoM.Translate(x, y)
+	op.ColorScale.ScaleWithColor(color.White)
+	op.LineSpacing = fontSize
+	op.PrimaryAlign = align
+
+	text.Draw(screen, message, &text.GoTextFace{
+		Source: ArcadeFaceSource,
+		Size:   fontSize,
+	}, op)
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.currentLevel.Draw(screen, g.debug)
-	g.player.Draw(screen, g.debug)
+	switch g.state {
+	case StateTitleScreen:
+		g.DrawTitleScreen(screen)
+	case StateInGame:
+		g.currentLevel.Draw(screen, g.debug)
+		g.player.Draw(screen, g.debug)
+	case StateWinScreen:
+		g.DrawWinScreen(screen)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -117,9 +172,11 @@ func (g *Game) Respawn() {
 			g.currentLevel = LoadedLevels[g.currentLevelNum]
 		}
 		g.player.X, g.player.Y = cp.X, cp.Y
+		g.player.numDeaths++
 	} else {
 		// This should only happen at the start of the game
 		g.player.X, g.player.Y = g.currentLevel.startPoint.X, g.currentLevel.startPoint.Y
+		g.player.numDeaths = 0
 	}
 }
 
@@ -134,27 +191,43 @@ func (g *Game) SetActiveCheckpoint(cp *Checkpoint) {
 	g.activeCheckpoint = cp
 }
 
-// NewGame creates and initializes a new Game struct.
-func NewGame() *Game {
+func (g *Game) DrawTitleScreen(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(StartScreen, op)
+
+	drawTextAt(screen, "VVV", ScreenWidth/2, ScreenHeight/6, text.AlignCenter)
+	drawTextAt(screen, "By Jonathan Cross", ScreenWidth/2, ScreenHeight/6+10, text.AlignCenter)
+	drawTextAt(screen, "Collect the crystals.", 40, 74, text.AlignStart)
+	drawTextAt(screen, "Use left/right arrows to move", 40, 90, text.AlignStart)
+	drawTextAt(screen, "Use Space to reverse gravity", 40, 106, text.AlignStart)
+	drawTextAt(screen, "Press Return to start game", 40, 122, text.AlignStart)
+}
+
+func (g *Game) DrawWinScreen(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(WinScreen, op)
+
+	deathMessage := fmt.Sprintf("Number of deaths: %d", g.player.numDeaths)
+	drawTextAt(screen, "You Win!", ScreenWidth/2, ScreenHeight/6+10, text.AlignCenter)
+	drawTextAt(screen, deathMessage, 40, 90, text.AlignStart)
+	drawTextAt(screen, "Press Return to play again", 40, 122, text.AlignStart)
+}
+
+func (g *Game) StartNewGame() {
+	// Reload the levels to restore the initial state
 	for levelNum, tiledMap := range Levels {
 		LoadedLevels[levelNum] = NewLevel(tiledMap, levelNum)
 	}
-
 	startLevel, ok := LoadedLevels[StartLevelId]
 	if !ok {
 		panic("starting level not found")
 	}
 
-	// Create and initialize the game state
-	g := &Game{
-		player:          NewPlayer(),
-		currentLevelNum: 1,
-		currentLevel:    startLevel,
-		gravity:         Gravity,
-		allCheckpoints:  make(map[int]*Checkpoint),
-	}
+	g.player.Reset()
+	g.currentLevel = startLevel
+	g.gravity = Gravity
 
-	// Find all checkpoints and set the initial player position
+	// Set the initial player position
 	for _, level := range LoadedLevels {
 		for _, obj := range level.objects {
 			if cp, ok := obj.(*Checkpoint); ok {
@@ -165,6 +238,22 @@ func NewGame() *Game {
 				}
 			}
 		}
+	}
+
+	g.state = StateInGame
+}
+
+// NewGame creates and initializes a new Game struct.
+func NewGame() *Game {
+	g := &Game{
+		player:           NewPlayer(),
+		currentLevelNum:  1,
+		currentLevel:     nil,
+		gravity:          Gravity,
+		allCheckpoints:   make(map[int]*Checkpoint),
+		debug:            false,
+		state:            StateTitleScreen,
+		activeCheckpoint: nil,
 	}
 
 	return g

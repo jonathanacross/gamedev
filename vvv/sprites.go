@@ -11,7 +11,6 @@ import (
 // It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
 	Location
-	//spriteSheet *GridTileSet
 	image   *ebiten.Image
 	srcRect image.Rectangle
 	hitbox  Rect
@@ -32,8 +31,6 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(bs.X, bs.Y)
 	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
-	//TODO: remove
-	//currImage := bs.spriteSheet.image.SubImage(bs.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
 

@@ -246,7 +246,7 @@
                         {
                          "name":"high",
                          "type":"float",
-                         "value":256
+                         "value":208
                         }, 
                         {
                          "name":"horiz",
@@ -256,13 +256,13 @@
                         {
                          "name":"low",
                          "type":"float",
-                         "value":64
+                         "value":112
                         }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":16,
-                 "x":80,
+                 "x":144,
                  "y":96
                 }, 
                 {

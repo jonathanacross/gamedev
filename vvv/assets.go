@@ -13,6 +13,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 //go:embed assets/*
@@ -23,8 +24,11 @@ var PlayerSprite = loadImage("assets/images/player.png")
 var MonsterSprite = loadImage("assets/images/helicopterguy.png")
 var CheckpointSprite = loadImage("assets/images/checkpoint.png")
 var BreakingFloorSprite = loadImage("assets/images/breakingfloor.png")
+var StartScreen = loadImage("assets/images/titlescreen.png")
+var WinScreen = loadImage("assets/images/winscreen.png")
 var Levels = loadLevels("assets/levels")
 var Music = loadSound("assets/sounds/bach-prelude.mp3")
+var ArcadeFaceSource = loadFaceSource("assets/fonts/pressstart2p.ttf")
 
 // Store the loaded levels once the game is initialized
 var LoadedLevels = make(map[int]*Level)
@@ -56,6 +60,19 @@ func loadSound(name string) *mp3.Stream {
 	}
 
 	return soundStream
+}
+
+func loadFaceSource(name string) *text.GoTextFaceSource {
+	f, err := assets.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	face, err := text.NewGoTextFaceSource(bytes.NewReader(f))
+	if err != nil {
+		panic(err)
+	}
+	return face
 }
 
 func loadLevels(dir string) map[int]*tiled.Map {

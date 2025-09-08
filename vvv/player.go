@@ -34,6 +34,7 @@ type Player struct {
 	state      PlayerState
 
 	numCrystals int
+	numDeaths   int
 }
 
 func NewPlayer() *Player {
@@ -68,6 +69,11 @@ func NewPlayer() *Player {
 		state:       Idle,
 		numCrystals: 0,
 	}
+}
+
+func (p *Player) Reset() {
+	p.numCrystals = 0
+	p.numDeaths = 0
 }
 
 func (p *Player) Draw(screen *ebiten.Image, debug bool) {
@@ -200,7 +206,7 @@ func (p *Player) HandleObjectCollisions(objects []GameObject, axis CollisionAxis
 				}
 			}
 		} else if crystal, ok := obj.(*Crystal); ok {
-			if playerRect.Intersects(obj.HitBox()) {
+			if playerRect.Intersects(obj.HitBox()) && !crystal.Collected {
 				crystal.Collected = true
 				p.numCrystals++
 			}
@@ -225,6 +231,9 @@ func (p *Player) checkAllEvents(level *Level) PlayerActionEvent {
 				return PlayerActionEvent{Action: RespawnAction}
 			}
 		}
+	}
+	if p.numCrystals >= NumCrystals {
+		return PlayerActionEvent{Action: WinGameAction}
 	}
 	return PlayerActionEvent{Action: NoAction}
 }
