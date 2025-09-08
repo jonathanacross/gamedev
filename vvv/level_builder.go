@@ -114,7 +114,7 @@ func processCheckpointObject(obj tiled.Object, tile tiled.Tile, levelNum int) *C
 		},
 		spriteSheet: spriteSheet,
 		Active:      isActive,
-		Id:          obj.GID,
+		Id:          levelNum*1000 + obj.GID,
 		LevelNum:    levelNum,
 	}
 	checkpoint.SetActive(isActive)
