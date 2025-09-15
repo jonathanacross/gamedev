@@ -19,7 +19,7 @@ var assets embed.FS
 var FrogSpriteSheet = loadImage("assets/frog2.png")
 var PlatformSprite = loadImage("assets/platform.png")
 
-// var Music = loadSound("assets/sounds/bach-prelude.mp3")
+var Music = loadSound("assets/8bit-canon.mp3")
 var MainFaceSource = loadFaceSource("assets/ByteBounce.ttf")
 
 func loadImage(name string) *ebiten.Image {

@@ -37,6 +37,8 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	PlayMusic()
+
 	// Update all timers and the frog's animation on every tick
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
