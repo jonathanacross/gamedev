@@ -30,6 +30,8 @@ type Game struct {
 	currentAnswer  string // The characters the player has typed so far
 	currentIndex   int    // The index of the next character to be typed
 	backspaceTimer *Timer
+
+	surprisedTimer *Timer
 }
 
 // toLower converts a rune to its lowercase equivalent.
@@ -38,6 +40,9 @@ func toLower(r rune) rune {
 }
 
 func (g *Game) Update() error {
+	g.Frog.Update()
+	g.surprisedTimer.Update()
+
 	// Update the backspace timer on every tick
 	g.backspaceTimer.Update()
 
@@ -53,6 +58,10 @@ func (g *Game) Update() error {
 				g.currentIndex++
 				// Update frog position
 				g.Frog.X = g.Platforms[g.currentIndex].X
+			} else {
+				// Incorrect character: set the frog to the Surprised state
+				g.Frog.state = Surprised
+				g.surprisedTimer.Reset()
 			}
 		}
 	}
@@ -65,6 +74,11 @@ func (g *Game) Update() error {
 		g.Frog.X = g.Platforms[g.currentIndex].X
 		// Reset the timer to start the cooldown
 		g.backspaceTimer.Reset()
+	}
+
+	// If the surprised timer is ready and the frog is in the surprised state, revert to Idle.
+	if g.Frog.state == Surprised && g.surprisedTimer.IsReady() {
+		g.Frog.state = Idle
 	}
 
 	// Check if the answer is complete
@@ -149,6 +163,7 @@ func NewGame() *Game {
 		Frog:           NewFrog(),
 		Card:           nil,
 		backspaceTimer: NewTimer(100 * time.Millisecond),
+		surprisedTimer: NewTimer(500 * time.Millisecond),
 	}
 	g.StartNewCard()
 	return &g

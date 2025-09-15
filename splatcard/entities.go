@@ -18,6 +18,12 @@ type Frog struct {
 
 func NewFrog() *Frog {
 	spriteSheet := NewSpriteSheet(32, 32, 5, 4)
+	animations := map[FrogState]*Animation{
+		Idle:      NewAnimation(0, 1, 15),
+		Jumping:   NewAnimation(10, 14, 10),
+		Surprised: NewAnimation(5, 6, 10),
+		Dying:     NewAnimation(15, 17, 10),
+	}
 
 	frog := &Frog{
 		BaseSprite: BaseSprite{
@@ -27,11 +33,17 @@ func NewFrog() *Frog {
 			hitbox:   Rect{left: 12, top: 12, right: 24, bottom: 24},
 		},
 		spriteSheet: spriteSheet,
-		animations:  make(map[FrogState]*Animation),
+		animations:  animations,
 		state:       Idle,
 	}
 
 	return frog
+}
+
+func (f *Frog) Update() {
+	animation := f.animations[f.state]
+	animation.Update()
+	f.srcRect = f.spriteSheet.Rect(animation.Frame())
 }
 
 type Platform struct {
