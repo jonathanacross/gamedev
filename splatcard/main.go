@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -24,11 +25,54 @@ type Game struct {
 	Frog    *Frog
 
 	// Entities for current word
-	Platforms []*Platform
+	Platforms      []*Platform
+	currentAnswer  string // The characters the player has typed so far
+	currentIndex   int    // The index of the next character to be typed
+	backspaceCount int    // New field
+}
+
+// toLower converts a rune to its lowercase equivalent.
+func toLower(r rune) rune {
+	return unicode.ToLower(r)
 }
 
 func (g *Game) Update() error {
-	// PlayMusic()
+	// Handle regular character input
+	var chars []rune
+	chars = ebiten.AppendInputChars(chars)
+	for _, r := range chars {
+		if g.currentIndex < len(g.Card.Value) {
+			expectedChar := rune(g.Card.Value[g.currentIndex])
+			if toLower(r) == toLower(expectedChar) {
+				// Correct character typed: update answer and advance
+				g.currentAnswer += string(r)
+				g.currentIndex++
+				// Update frog position
+				g.Frog.X = g.Platforms[g.currentIndex].X
+			}
+		}
+	}
+
+	// Handle backspace input
+	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && len(g.currentAnswer) > 0 {
+		// Prevent rapid backspacing
+		if g.backspaceCount < 1 { // Use a counter to limit rapid fire
+			g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
+			g.currentIndex--
+			g.backspaceCount = 10 // A delay of 10 ticks, adjust as needed
+			// Update frog position
+			g.Frog.X = g.Platforms[g.currentIndex].X
+		}
+		g.backspaceCount--
+	} else {
+		g.backspaceCount = 0
+	}
+
+	// Check if the answer is complete
+	if g.currentIndex == len(g.Card.Value) {
+		// The player has completed the word, start a new card
+		g.StartNewCard()
+	}
 
 	return nil
 }
@@ -68,15 +112,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, platform := range g.Platforms {
 		platform.Draw(screen)
 	}
-	// TODO: update this to draw the frog on the correct platform
-	for i, ch := range g.Card.Value {
+
+	// Draw the letters the player has typed
+	for i, ch := range g.currentAnswer {
 		drawTextAt(screen, string(ch),
 			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY,
 			text.AlignCenter)
 	}
 
 	g.Frog.Draw(screen)
-
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -95,6 +139,9 @@ func (g *Game) StartNewCard() {
 
 	g.Frog.X = TileStartX
 	g.Frog.Y = float64(PlatformY - 32)
+
+	g.currentAnswer = ""
+	g.currentIndex = 0
 }
 
 func NewGame() *Game {
