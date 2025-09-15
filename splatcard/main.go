@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"time"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -28,7 +29,7 @@ type Game struct {
 	Platforms      []*Platform
 	currentAnswer  string // The characters the player has typed so far
 	currentIndex   int    // The index of the next character to be typed
-	backspaceCount int    // New field
+	backspaceTimer *Timer
 }
 
 // toLower converts a rune to its lowercase equivalent.
@@ -37,6 +38,9 @@ func toLower(r rune) rune {
 }
 
 func (g *Game) Update() error {
+	// Update the backspace timer on every tick
+	g.backspaceTimer.Update()
+
 	// Handle regular character input
 	var chars []rune
 	chars = ebiten.AppendInputChars(chars)
@@ -54,18 +58,13 @@ func (g *Game) Update() error {
 	}
 
 	// Handle backspace input
-	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && len(g.currentAnswer) > 0 {
-		// Prevent rapid backspacing
-		if g.backspaceCount < 1 { // Use a counter to limit rapid fire
-			g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
-			g.currentIndex--
-			g.backspaceCount = 10 // A delay of 10 ticks, adjust as needed
-			// Update frog position
-			g.Frog.X = g.Platforms[g.currentIndex].X
-		}
-		g.backspaceCount--
-	} else {
-		g.backspaceCount = 0
+	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 {
+		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
+		g.currentIndex--
+		// Update frog position
+		g.Frog.X = g.Platforms[g.currentIndex].X
+		// Reset the timer to start the cooldown
+		g.backspaceTimer.Reset()
 	}
 
 	// Check if the answer is complete
@@ -146,9 +145,10 @@ func (g *Game) StartNewCard() {
 
 func NewGame() *Game {
 	g := Game{
-		CardSet: NewCardSet(),
-		Frog:    NewFrog(),
-		Card:    nil,
+		CardSet:        NewCardSet(),
+		Frog:           NewFrog(),
+		Card:           nil,
+		backspaceTimer: NewTimer(100 * time.Millisecond),
 	}
 	g.StartNewCard()
 	return &g
