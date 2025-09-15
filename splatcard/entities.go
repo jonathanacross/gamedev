@@ -68,7 +68,7 @@ func (f *Frog) Update(g *Game) {
 
 		jumpDistance := g.jumpTargetX - f.jumpStartX
 		f.X = f.jumpStartX + jumpDistance*progress
-		f.Y = float64(PlatformY-32) - 80*math.Sin(math.Pi*progress)
+		f.Y = float64(PlatformY-32) - 15*math.Sin(math.Pi*progress)
 	} else {
 		f.Y = float64(PlatformY - 32)
 	}

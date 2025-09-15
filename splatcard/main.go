@@ -33,52 +33,62 @@ type Game struct {
 	backspaceTimer *Timer
 	surprisedTimer *Timer
 	jumpTargetX    float64
+	jumpQueue      []rune
 }
 
 func (g *Game) Update() error {
+	// Update all timers and the frog's animation on every tick
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
 	g.Frog.Update(g)
 
-	// Check for state transitions based on timers/animations
+	// Check for state transitions and queued jumps
 	if g.Frog.state == Surprised && g.surprisedTimer.IsReady() {
 		g.Frog.state = Idle
 	}
-	// Simplified jump completion check
+
 	if g.Frog.state == Jumping && g.Frog.animations[Jumping].IsFinished() {
 		g.Frog.state = Idle
 		g.Frog.X = g.jumpTargetX
 		g.Frog.Y = float64(PlatformY - 32)
 	}
 
-	if g.Frog.state == Idle {
-		var chars []rune
-		chars = ebiten.AppendInputChars(chars)
-		for _, r := range chars {
-			if g.currentIndex < len(g.Card.Value) {
-				expectedChar := rune(g.Card.Value[g.currentIndex])
-				if toLower(r) == toLower(expectedChar) {
-					g.currentAnswer += string(r)
-					g.currentIndex++
+	// If the frog has just landed, process the next queued jump
+	if g.Frog.state == Idle && len(g.jumpQueue) > 0 {
+		g.Frog.state = Jumping
+		g.Frog.animations[Jumping].Reset()
+		g.Frog.jumpStartX = g.Frog.X
+		g.jumpTargetX = g.Platforms[g.currentIndex].X
+		g.jumpQueue = g.jumpQueue[1:]
+	}
 
-					if g.currentIndex < len(g.Platforms) {
-						g.jumpTargetX = g.Platforms[g.currentIndex].X
-						g.Frog.state = Jumping
-						g.Frog.animations[Jumping].Reset()
-						g.Frog.jumpStartX = g.Frog.X
-					}
-				} else {
-					g.Frog.state = Surprised
-					g.surprisedTimer.Reset()
+	// Always handle backspace, regardless of frog state
+	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 && g.Frog.state != Jumping {
+		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
+		g.currentIndex--
+		g.Frog.X = g.Platforms[g.currentIndex].X
+		g.backspaceTimer.Reset()
+	}
+
+	// Always process new input
+	var chars []rune
+	chars = ebiten.AppendInputChars(chars)
+	for _, r := range chars {
+		if g.currentIndex < len(g.Card.Value) {
+			expectedChar := rune(g.Card.Value[g.currentIndex])
+			if toLower(r) == toLower(expectedChar) {
+				// Correct character logic: queue the jump and update the answer.
+				g.currentAnswer += string(r)
+				g.currentIndex++
+
+				if g.currentIndex < len(g.Platforms) {
+					g.jumpQueue = append(g.jumpQueue, r)
 				}
+			} else {
+				// Incorrect character logic: still enter surprised state.
+				g.Frog.state = Surprised
+				g.surprisedTimer.Reset()
 			}
-		}
-
-		if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 {
-			g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
-			g.currentIndex--
-			g.Frog.X = g.Platforms[g.currentIndex].X
-			g.backspaceTimer.Reset()
 		}
 	}
 
@@ -154,6 +164,7 @@ func (g *Game) StartNewCard() {
 	g.currentIndex = 0
 	g.Frog.state = Idle
 	g.jumpTargetX = g.Platforms[0].X
+	g.jumpQueue = []rune{}
 }
 
 func NewGame() *Game {
