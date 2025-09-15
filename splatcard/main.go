@@ -26,64 +26,63 @@ type Game struct {
 	Frog    *Frog
 
 	// Entities for current word
-	Platforms      []*Platform
-	currentAnswer  string // The characters the player has typed so far
-	currentIndex   int    // The index of the next character to be typed
+	Platforms []*Platform
+	// Game state fields
+	currentAnswer  string
+	currentIndex   int
 	backspaceTimer *Timer
-
 	surprisedTimer *Timer
-}
-
-// toLower converts a rune to its lowercase equivalent.
-func toLower(r rune) rune {
-	return unicode.ToLower(r)
+	jumpTargetX    float64
 }
 
 func (g *Game) Update() error {
-	g.Frog.Update()
-	g.surprisedTimer.Update()
-
-	// Update the backspace timer on every tick
 	g.backspaceTimer.Update()
+	g.surprisedTimer.Update()
+	g.Frog.Update(g)
 
-	// Handle regular character input
-	var chars []rune
-	chars = ebiten.AppendInputChars(chars)
-	for _, r := range chars {
-		if g.currentIndex < len(g.Card.Value) {
-			expectedChar := rune(g.Card.Value[g.currentIndex])
-			if toLower(r) == toLower(expectedChar) {
-				// Correct character typed: update answer and advance
-				g.currentAnswer += string(r)
-				g.currentIndex++
-				// Update frog position
-				g.Frog.X = g.Platforms[g.currentIndex].X
-			} else {
-				// Incorrect character: set the frog to the Surprised state
-				g.Frog.state = Surprised
-				g.surprisedTimer.Reset()
-			}
-		}
-	}
-
-	// Handle backspace input
-	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 {
-		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
-		g.currentIndex--
-		// Update frog position
-		g.Frog.X = g.Platforms[g.currentIndex].X
-		// Reset the timer to start the cooldown
-		g.backspaceTimer.Reset()
-	}
-
-	// If the surprised timer is ready and the frog is in the surprised state, revert to Idle.
+	// Check for state transitions based on timers/animations
 	if g.Frog.state == Surprised && g.surprisedTimer.IsReady() {
 		g.Frog.state = Idle
 	}
+	// Simplified jump completion check
+	if g.Frog.state == Jumping && g.Frog.animations[Jumping].IsFinished() {
+		g.Frog.state = Idle
+		g.Frog.X = g.jumpTargetX
+		g.Frog.Y = float64(PlatformY - 32)
+	}
 
-	// Check if the answer is complete
+	if g.Frog.state == Idle {
+		var chars []rune
+		chars = ebiten.AppendInputChars(chars)
+		for _, r := range chars {
+			if g.currentIndex < len(g.Card.Value) {
+				expectedChar := rune(g.Card.Value[g.currentIndex])
+				if toLower(r) == toLower(expectedChar) {
+					g.currentAnswer += string(r)
+					g.currentIndex++
+
+					if g.currentIndex < len(g.Platforms) {
+						g.jumpTargetX = g.Platforms[g.currentIndex].X
+						g.Frog.state = Jumping
+						g.Frog.animations[Jumping].Reset()
+						g.Frog.jumpStartX = g.Frog.X
+					}
+				} else {
+					g.Frog.state = Surprised
+					g.surprisedTimer.Reset()
+				}
+			}
+		}
+
+		if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 {
+			g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
+			g.currentIndex--
+			g.Frog.X = g.Platforms[g.currentIndex].X
+			g.backspaceTimer.Reset()
+		}
+	}
+
 	if g.currentIndex == len(g.Card.Value) {
-		// The player has completed the word, start a new card
 		g.StartNewCard()
 	}
 
@@ -126,7 +125,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		platform.Draw(screen)
 	}
 
-	// Draw the letters the player has typed
 	for i, ch := range g.currentAnswer {
 		drawTextAt(screen, string(ch),
 			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY,
@@ -152,9 +150,10 @@ func (g *Game) StartNewCard() {
 
 	g.Frog.X = TileStartX
 	g.Frog.Y = float64(PlatformY - 32)
-
 	g.currentAnswer = ""
 	g.currentIndex = 0
+	g.Frog.state = Idle
+	g.jumpTargetX = g.Platforms[0].X
 }
 
 func NewGame() *Game {
@@ -167,6 +166,10 @@ func NewGame() *Game {
 	}
 	g.StartNewCard()
 	return &g
+}
+
+func toLower(r rune) rune {
+	return unicode.ToLower(r)
 }
 
 func main() {
