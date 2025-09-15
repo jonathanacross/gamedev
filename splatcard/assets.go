@@ -16,7 +16,7 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-var FrogSpriteSheet = loadImage("assets/ToxicFrogGreenBlue_Sheet.png")
+var FrogSpriteSheet = loadImage("assets/frog2.png")
 var PlatformSprite = loadImage("assets/platform.png")
 
 // var Music = loadSound("assets/sounds/bach-prelude.mp3")

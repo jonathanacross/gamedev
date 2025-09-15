@@ -26,6 +26,15 @@ func (r Rect) Height() float64 {
 	return r.bottom - r.top
 }
 
+func NewRect(ir image.Rectangle) Rect {
+	return Rect{
+		left:   float64(ir.Min.X),
+		top:    float64(ir.Min.Y),
+		right:  float64(ir.Max.X),
+		bottom: float64(ir.Max.Y),
+	}
+}
+
 // BaseSprite provides common fields and methods for any visible game entity.
 // It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {

@@ -8,14 +8,23 @@ import (
 )
 
 const (
-	ScreenWidth  = 384
-	ScreenHeight = 240
+	ScreenWidth  = 576
+	ScreenHeight = 360
+
+	// Layout
+	LetterWidth = 28
+	PlatformY   = 250
+	TileStartX  = 40
 )
 
 // Game is the main game struct.
 type Game struct {
 	CardSet *CardSet
 	Card    *Card
+	Frog    *Frog
+
+	// Entities for current word
+	Platforms []*Platform
 }
 
 func (g *Game) Update() error {
@@ -56,9 +65,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	drawTextAt(screen, g.Card.Key, ScreenWidth/2, 50, text.AlignCenter)
 
-	for i, ch := range g.Card.Value {
-		drawTextAt(screen, string(ch), 50+float64(i*16), 150, text.AlignCenter)
+	for _, platform := range g.Platforms {
+		platform.Draw(screen)
 	}
+	// TODO: update this to draw the frog on the correct platform
+	for i, ch := range g.Card.Value {
+		drawTextAt(screen, string(ch),
+			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY,
+			text.AlignCenter)
+	}
+
+	g.Frog.Draw(screen)
 
 }
 
@@ -66,18 +83,33 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ScreenWidth, ScreenHeight
 }
 
+func (g *Game) StartNewCard() {
+	g.Card = g.CardSet.GetCard()
+
+	g.Platforms = []*Platform{}
+	for i := range len(g.Card.Value) + 1 {
+		x := TileStartX + float64(i*LetterWidth)
+		y := float64(PlatformY)
+		g.Platforms = append(g.Platforms, NewPlatform(x, y))
+	}
+
+	g.Frog.X = TileStartX
+	g.Frog.Y = float64(PlatformY - 32)
+}
+
 func NewGame() *Game {
 	g := Game{
 		CardSet: NewCardSet(),
+		Frog:    NewFrog(),
 		Card:    nil,
 	}
-	g.Card = g.CardSet.GetCard()
+	g.StartNewCard()
 	return &g
 }
 
 func main() {
 	g := NewGame()
-	ebiten.SetWindowSize(3*ScreenWidth, 3*ScreenHeight)
+	ebiten.SetWindowSize(2*ScreenWidth, 2*ScreenHeight)
 
 	err := ebiten.RunGame(g)
 	if err != nil {
