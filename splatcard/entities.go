@@ -19,14 +19,13 @@ type Frog struct {
 	animations  map[FrogState]*Animation
 	state       FrogState
 	jumpStartX  float64
+	jumpTargetX float64
 }
 
 func NewFrog() *Frog {
 	spriteSheet := NewSpriteSheet(32, 32, 5, 4)
 	animations := map[FrogState]*Animation{
-		// Idle animation now loops
-		Idle: NewAnimation(0, 1, 15, true),
-		// Jumping and Surprised animations do not loop
+		Idle:      NewAnimation(0, 1, 15, true),
 		Jumping:   NewAnimation(10, 14, 10, false),
 		Surprised: NewAnimation(5, 6, 10, false),
 		Dying:     NewAnimation(15, 17, 10, false),
@@ -47,33 +46,54 @@ func NewFrog() *Frog {
 	return frog
 }
 
-func (f *Frog) Update(g *Game) {
+// Update the frog's animation and position.
+func (f *Frog) Update() {
 	animation := f.animations[f.state]
 	animation.Update()
 	f.srcRect = f.spriteSheet.Rect(animation.Frame())
 
+	// Only update position if in a jumping state
 	if f.state == Jumping {
 		jumpAnimation := f.animations[Jumping]
-
-		// This logic is now in `main.go`, but the position update stays here
-		if jumpAnimation.IsFinished() {
-			// This part is handled by main.go, but we must return here
-			// to avoid re-calculating position on the final frame
-			return
-		}
-
 		totalAnimationFrames := float64(jumpAnimation.last-jumpAnimation.first+1) * float64(jumpAnimation.speed)
 		currentFrameCount := float64(jumpAnimation.frame-jumpAnimation.first)*float64(jumpAnimation.speed) + float64(jumpAnimation.speed-jumpAnimation.frameCounter)
 		progress := currentFrameCount / totalAnimationFrames
 
-		jumpDistance := g.jumpTargetX - f.jumpStartX
+		jumpDistance := f.jumpTargetX - f.jumpStartX
 		f.X = f.jumpStartX + jumpDistance*progress
 		f.Y = float64(PlatformY-32) - 15*math.Sin(math.Pi*progress)
-	} else {
-		f.Y = float64(PlatformY - 32)
 	}
 }
 
+// Jump initiates a jump to a target X coordinate.
+func (f *Frog) Jump(targetX float64) {
+	if f.state != Idle {
+		return // Can only jump from an idle state
+	}
+	f.state = Jumping
+	f.animations[Jumping].Reset()
+	f.jumpStartX = f.X
+	f.jumpTargetX = targetX
+}
+
+// IsJumping checks if the frog is in the middle of a jump.
+func (f *Frog) IsJumping() bool {
+	return f.state == Jumping
+}
+
+// IsJumpFinished checks if the jump animation has completed.
+func (f *Frog) IsJumpFinished() bool {
+	return f.animations[Jumping].IsFinished()
+}
+
+// Land is called when the jump is complete to reset the state and position.
+func (f *Frog) Land() {
+	f.state = Idle
+	f.Y = float64(PlatformY - 32)
+	f.X = f.jumpTargetX
+}
+
+// Rock and Platform structs are unchanged
 type Platform struct {
 	BaseSprite
 }

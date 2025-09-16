@@ -32,39 +32,47 @@ type Game struct {
 	currentIndex   int
 	backspaceTimer *Timer
 	surprisedTimer *Timer
-	jumpTargetX    float64
 	jumpQueue      []rune
 }
 
 func (g *Game) Update() error {
 	PlayMusic()
 
-	// Update all timers and the frog's animation on every tick
+	// Update all components
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
-	g.Frog.Update(g)
+	g.Frog.Update()
 
-	// Check for state transitions and queued jumps
+	// Handle game state transitions
+	g.handleFrogState()
+
+	g.handleInput()
+
+	// Check for card completion
+	g.checkCompletion()
+
+	return nil
+}
+
+func (g *Game) handleFrogState() {
 	if g.Frog.state == Surprised && g.surprisedTimer.IsReady() {
 		g.Frog.state = Idle
 	}
 
-	if g.Frog.state == Jumping && g.Frog.animations[Jumping].IsFinished() {
-		g.Frog.state = Idle
-		g.Frog.X = g.jumpTargetX
-		g.Frog.Y = float64(PlatformY - 32)
+	if g.Frog.IsJumping() && g.Frog.IsJumpFinished() {
+		g.Frog.Land()
 	}
 
 	// If the frog has just landed, process the next queued jump
 	if g.Frog.state == Idle && len(g.jumpQueue) > 0 {
-		g.Frog.state = Jumping
-		g.Frog.animations[Jumping].Reset()
-		g.Frog.jumpStartX = g.Frog.X
-		g.jumpTargetX = g.Platforms[g.currentIndex].X
+		nextJumpTargetX := g.Platforms[g.currentIndex].X
+		g.Frog.Jump(nextJumpTargetX)
 		g.jumpQueue = g.jumpQueue[1:]
 	}
+}
 
-	// Always handle backspace, regardless of frog state
+func (g *Game) handleInput() {
+	// Handle backspace input
 	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 && g.Frog.state != Jumping {
 		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
 		g.currentIndex--
@@ -72,14 +80,13 @@ func (g *Game) Update() error {
 		g.backspaceTimer.Reset()
 	}
 
-	// Always process new input
+	// Handle new character input
 	var chars []rune
 	chars = ebiten.AppendInputChars(chars)
 	for _, r := range chars {
 		if g.currentIndex < len(g.Card.Value) {
 			expectedChar := rune(g.Card.Value[g.currentIndex])
 			if toLower(r) == toLower(expectedChar) {
-				// Correct character logic: queue the jump and update the answer.
 				g.currentAnswer += string(r)
 				g.currentIndex++
 
@@ -87,20 +94,19 @@ func (g *Game) Update() error {
 					g.jumpQueue = append(g.jumpQueue, r)
 				}
 			} else {
-				// Incorrect character logic: still enter surprised state.
 				g.Frog.state = Surprised
 				g.surprisedTimer.Reset()
 				PlaySound(ErrorSoundBytes)
 			}
 		}
 	}
+}
 
+func (g *Game) checkCompletion() {
 	if g.currentIndex == len(g.Card.Value) {
 		g.StartNewCard()
 		PlaySound(ClearSoundBytes)
 	}
-
-	return nil
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
@@ -167,7 +173,6 @@ func (g *Game) StartNewCard() {
 	g.currentAnswer = ""
 	g.currentIndex = 0
 	g.Frog.state = Idle
-	g.jumpTargetX = g.Platforms[0].X
 	g.jumpQueue = []rune{}
 }
 
