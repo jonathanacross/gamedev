@@ -90,12 +90,14 @@ func (g *Game) Update() error {
 				// Incorrect character logic: still enter surprised state.
 				g.Frog.state = Surprised
 				g.surprisedTimer.Reset()
+				PlaySound(ErrorSoundBytes)
 			}
 		}
 	}
 
 	if g.currentIndex == len(g.Card.Value) {
 		g.StartNewCard()
+		PlaySound(ClearSoundBytes)
 	}
 
 	return nil

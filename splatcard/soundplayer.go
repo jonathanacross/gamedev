@@ -1,28 +1,51 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2/audio"
+import (
+	"bytes"
+
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
+)
 
 var (
 	audioContext *audio.Context
-	soundPlayer  *audio.Player
+	musicPlayer  *audio.Player // Dedicated player for music
 )
 
-func PlayMusic() {
+func init() {
 	const sampleRate = 44100
+	audioContext = audio.NewContext(sampleRate)
 
-	if audioContext == nil {
-		audioContext = audio.NewContext(sampleRate)
-	}
-	if soundPlayer == nil {
-		var err error
-		soundPlayer, err = audioContext.NewPlayer(Music)
-		if err != nil {
-			return
-		}
+	// Create a dedicated player for music from the byte slice
+	musicStream, err := mp3.DecodeWithoutResampling(bytes.NewReader(MusicBytes))
+	if err != nil {
+		panic(err)
 	}
 
-	if soundPlayer != nil && !soundPlayer.IsPlaying() {
-		soundPlayer.Rewind()
-		soundPlayer.Play()
+	musicPlayer, err = audioContext.NewPlayer(musicStream)
+	if err != nil {
+		panic(err)
 	}
+}
+
+// PlayMusic starts playing the background music
+func PlayMusic() {
+	if !musicPlayer.IsPlaying() {
+		musicPlayer.Rewind()
+		musicPlayer.Play()
+	}
+}
+
+// PlaySound creates and plays a new player for the given sound stream
+func PlaySound(s []byte) {
+	stream, err := mp3.DecodeWithoutResampling(bytes.NewReader(s))
+	if err != nil {
+		return
+	}
+	player, err := audioContext.NewPlayer(stream)
+	if err != nil {
+		return
+	}
+	//	player.SetVolume(0.25)
+	player.Play()
 }

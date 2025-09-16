@@ -9,7 +9,6 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -19,7 +18,10 @@ var assets embed.FS
 var FrogSpriteSheet = loadImage("assets/frog2.png")
 var PlatformSprite = loadImage("assets/platform.png")
 
-var Music = loadSound("assets/8bit-canon.mp3")
+// Load sound files as byte slices so they can be reused
+var MusicBytes = loadSoundBytes("assets/8bit-canon.mp3")
+var ClearSoundBytes = loadSoundBytes("assets/clear-sound.mp3")
+var ErrorSoundBytes = loadSoundBytes("assets/error-sound.mp3")
 var MainFaceSource = loadFaceSource("assets/ByteBounce.ttf")
 
 func loadImage(name string) *ebiten.Image {
@@ -37,18 +39,12 @@ func loadImage(name string) *ebiten.Image {
 	return ebiten.NewImageFromImage(img)
 }
 
-func loadSound(name string) *mp3.Stream {
+func loadSoundBytes(name string) []byte {
 	content, err := assets.ReadFile(name)
 	if err != nil {
 		panic(err)
 	}
-
-	soundStream, err := mp3.DecodeWithoutResampling(bytes.NewReader(content))
-	if err != nil {
-		panic(err)
-	}
-
-	return soundStream
+	return content
 }
 
 func loadFaceSource(name string) *text.GoTextFaceSource {
