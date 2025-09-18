@@ -17,6 +17,7 @@ var assets embed.FS
 
 var FrogSpriteSheet = loadImage("assets/frog2.png")
 var PlatformSprite = loadImage("assets/platform.png")
+var BootSprite = loadImage("assets/boot.png")
 
 // Load sound files as byte slices so they can be reused
 var MusicBytes = loadSoundBytes("assets/8bit-canon.mp3")

@@ -93,6 +93,12 @@ func (f *Frog) Land() {
 	f.X = f.jumpTargetX
 }
 
+// Hit changes the frog's state to Dying.
+func (f *Frog) Hit() {
+	f.state = Dying
+	f.animations[Dying].Reset()
+}
+
 // Rock and Platform structs are unchanged
 type Platform struct {
 	BaseSprite
@@ -110,6 +116,39 @@ func NewPlatform(x, y float64) *Platform {
 	}
 }
 
-type Rock struct {
+// Boot struct to represent the falling obstacle
+type Boot struct {
 	BaseSprite
+	velocityY float64
+	minY      float64
+	maxY      float64
+}
+
+// NewBoot creates a new boot instance
+func NewBoot(x, y float64) *Boot {
+	return &Boot{
+		BaseSprite: BaseSprite{
+			Location: Location{X: x, Y: y},
+			image:    BootSprite,
+			srcRect:  BootSprite.Bounds(),
+			hitbox:   NewRect(BootSprite.Bounds()),
+		},
+		velocityY: FallDownVelocity,
+		minY:      FallingItemTopY,
+		maxY:      PlatformY,
+	}
+}
+
+// Update handles the boot's vertical movement
+func (b *Boot) Update() {
+	b.Y += b.velocityY
+
+	// If the boot falls off-screen, reset its position and direction
+	if b.Y > b.maxY {
+		b.Y = b.maxY
+		b.velocityY = FallUpVelocity
+	} else if b.Y < b.minY {
+		b.Y = b.minY
+		b.velocityY = FallDownVelocity
+	}
 }

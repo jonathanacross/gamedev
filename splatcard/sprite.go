@@ -35,6 +35,11 @@ func NewRect(ir image.Rectangle) Rect {
 	}
 }
 
+// Intersects checks if two rectangles overlap.
+func (r Rect) Intersects(other Rect) bool {
+	return r.right > other.left && r.left < other.right && r.bottom > other.top && r.top < other.bottom
+}
+
 // BaseSprite provides common fields and methods for any visible game entity.
 // It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
@@ -44,9 +49,13 @@ type BaseSprite struct {
 	hitbox  Rect
 }
 
-// HitBox returns the collision rectangle for the BaseSprite.
 func (bs *BaseSprite) HitBox() Rect {
-	return bs.hitbox
+	return Rect{
+		left:   bs.X + bs.hitbox.left,
+		top:    bs.Y + bs.hitbox.top,
+		right:  bs.X + bs.hitbox.right,
+		bottom: bs.Y + bs.hitbox.bottom,
+	}
 }
 
 func (bs *BaseSprite) Draw(screen *ebiten.Image) {
@@ -54,4 +63,9 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(bs.X, bs.Y)
 	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
+}
+
+// HasCollided checks for collision with another BaseSprite
+func (bs *BaseSprite) HasCollided(other *BaseSprite) bool {
+	return bs.HitBox().Intersects(other.HitBox())
 }

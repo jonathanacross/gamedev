@@ -2,7 +2,9 @@ package main
 
 import (
 	"image/color"
+	"math/rand"
 	"time"
+
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -14,9 +16,14 @@ const (
 	ScreenHeight = 360
 
 	// Layout
-	LetterWidth = 28
-	PlatformY   = 250
-	TileStartX  = 40
+	LetterWidth     = 28
+	FallingItemTopY = 40
+	PlatformY       = 250
+	TileStartX      = 40
+
+	// Game mechanics
+	FallUpVelocity   = -0.5
+	FallDownVelocity = 1.0
 )
 
 // Game is the main game struct.
@@ -27,6 +34,8 @@ type Game struct {
 
 	// Entities for current word
 	Platforms []*Platform
+	Boots     []*Boot
+
 	// Game state fields
 	currentAnswer  string
 	currentIndex   int
@@ -42,9 +51,13 @@ func (g *Game) Update() error {
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
 	g.Frog.Update()
+	for _, boot := range g.Boots {
+		boot.Update()
+	}
 
 	// Handle game state transitions
 	g.handleFrogState()
+	g.checkCollisions()
 
 	g.handleInput()
 
@@ -102,6 +115,27 @@ func (g *Game) handleInput() {
 	}
 }
 
+func (g *Game) checkCollisions() {
+	if g.Frog.state == Dying {
+		return // Do not check for collisions if the frog is already dying
+	}
+
+	for _, boot := range g.Boots {
+		if g.Frog.HasCollided(&boot.BaseSprite) {
+			PlaySound(ErrorSoundBytes)
+			g.resetCurrentWord()
+			return
+		}
+	}
+}
+
+func (g *Game) resetCurrentWord() {
+	g.Frog.Hit()
+	g.currentAnswer = ""
+	g.currentIndex = 0
+	g.jumpQueue = []rune{}
+}
+
 func (g *Game) checkCompletion() {
 	if g.currentIndex == len(g.Card.Value) {
 		g.StartNewCard()
@@ -145,6 +179,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		platform.Draw(screen)
 	}
 
+	for _, boot := range g.Boots {
+		boot.Draw(screen)
+	}
+
 	for i, ch := range g.currentAnswer {
 		drawTextAt(screen, string(ch),
 			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY,
@@ -174,6 +212,16 @@ func (g *Game) StartNewCard() {
 	g.currentIndex = 0
 	g.Frog.state = Idle
 	g.jumpQueue = []rune{}
+
+	// Create random boots
+	g.Boots = []*Boot{}
+	numBoots := rand.Intn(2) + 1 // 1 or 2 boots
+	indices := rand.Perm(len(g.Card.Value) - 1)[0:numBoots]
+	for _, i := range indices {
+		x := TileStartX + float64((i+1)*LetterWidth)
+		y := float64(rand.Intn(10) - 100)
+		g.Boots = append(g.Boots, NewBoot(x, y))
+	}
 }
 
 func NewGame() *Game {
