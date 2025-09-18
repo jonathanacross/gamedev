@@ -23,21 +23,13 @@ func NewAnimation(first int, last int, speed int, looping bool) *Animation {
 }
 
 func (a *Animation) Update() {
-	if a.isFinished {
-		return
-	}
-
 	a.frameCounter--
 	if a.frameCounter <= 0 {
 		a.frameCounter = a.speed
-		a.frame++
-		if a.frame > a.last {
-			if a.looping {
-				a.frame = a.first
-			} else {
-				a.frame = a.last
-				a.isFinished = true
-			}
+		if a.frame < a.last {
+			a.frame++
+		} else {
+			a.frame = a.first
 		}
 	}
 }
@@ -53,5 +45,5 @@ func (a *Animation) Reset() {
 }
 
 func (a *Animation) IsFinished() bool {
-	return a.isFinished
+	return a.frame == a.last && a.frameCounter == a.speed
 }

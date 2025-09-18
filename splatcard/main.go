@@ -82,6 +82,10 @@ func (g *Game) handleFrogState() {
 		g.Frog.Jump(nextJumpTargetX)
 		g.jumpQueue = g.jumpQueue[1:]
 	}
+
+	if g.Frog.state == Dying && g.Frog.IsDyingFinished() {
+		g.resetCurrentWord()
+	}
 }
 
 func (g *Game) handleInput() {
@@ -123,14 +127,15 @@ func (g *Game) checkCollisions() {
 	for _, boot := range g.Boots {
 		if g.Frog.HasCollided(&boot.BaseSprite) {
 			PlaySound(ErrorSoundBytes)
-			g.resetCurrentWord()
+			g.Frog.Hit()
 			return
 		}
 	}
 }
 
 func (g *Game) resetCurrentWord() {
-	g.Frog.Hit()
+	g.Frog.state = Idle
+	g.Frog.X = g.Platforms[0].X // move frog to first platform
 	g.currentAnswer = ""
 	g.currentIndex = 0
 	g.jumpQueue = []rune{}

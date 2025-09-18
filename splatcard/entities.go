@@ -28,7 +28,7 @@ func NewFrog() *Frog {
 		Idle:      NewAnimation(0, 1, 15, true),
 		Jumping:   NewAnimation(10, 14, 10, false),
 		Surprised: NewAnimation(5, 6, 10, false),
-		Dying:     NewAnimation(15, 17, 10, false),
+		Dying:     NewAnimation(15, 19, 10, false),
 	}
 
 	frog := &Frog{
@@ -97,6 +97,11 @@ func (f *Frog) Land() {
 func (f *Frog) Hit() {
 	f.state = Dying
 	f.animations[Dying].Reset()
+}
+
+// IsDyingFinished returns true if the dying animation has completed.
+func (f *Frog) IsDyingFinished() bool {
+	return f.animations[Dying].IsFinished()
 }
 
 // Rock and Platform structs are unchanged
