@@ -16,8 +16,10 @@ import (
 var assets embed.FS
 
 var FrogSpriteSheet = loadImage("assets/frog2.png")
-var PlatformSprite = loadImage("assets/platform.png")
+var PlatformSprite = loadImage("assets/lilypad.png")
+var EndPlatformSprite = loadImage("assets/lilypad_big.png")
 var BootSprite = loadImage("assets/boot.png")
+var PondSprite = loadImage("assets/pond2.png")
 
 // Load sound files as byte slices so they can be reused
 var MusicBytes = loadSoundBytes("assets/8bit-canon.mp3")

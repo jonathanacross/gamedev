@@ -18,8 +18,9 @@ const (
 	// Layout
 	LetterWidth     = 28
 	FallingItemTopY = 40
-	PlatformY       = 250
+	PlatformY       = 300
 	TileStartX      = 40
+	FrogOffsetY     = 20
 
 	// Game mechanics
 	FallUpVelocity   = -0.5
@@ -176,7 +177,8 @@ func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, alig
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{0x00, 0x00, 0x00, 0xff})
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(PondSprite, op)
 
 	drawTextAt(screen, g.Card.Key, ScreenWidth/2, 50, text.AlignCenter)
 
@@ -206,13 +208,14 @@ func (g *Game) StartNewCard() {
 
 	g.Platforms = []*Platform{}
 	for i := range len(g.Card.Value) + 1 {
+		endPlatform := i == len(g.Card.Value)
 		x := TileStartX + float64(i*LetterWidth)
 		y := float64(PlatformY)
-		g.Platforms = append(g.Platforms, NewPlatform(x, y))
+		g.Platforms = append(g.Platforms, NewPlatform(x, y, endPlatform))
 	}
 
 	g.Frog.X = TileStartX
-	g.Frog.Y = float64(PlatformY - 32)
+	g.Frog.Y = float64(PlatformY - FrogOffsetY)
 	g.currentAnswer = ""
 	g.currentIndex = 0
 	g.Frog.state = Idle

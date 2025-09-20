@@ -61,7 +61,7 @@ func (f *Frog) Update() {
 
 		jumpDistance := f.jumpTargetX - f.jumpStartX
 		f.X = f.jumpStartX + jumpDistance*progress
-		f.Y = float64(PlatformY-32) - 15*math.Sin(math.Pi*progress)
+		f.Y = float64(PlatformY-FrogOffsetY) - 15*math.Sin(math.Pi*progress)
 	}
 }
 
@@ -89,7 +89,7 @@ func (f *Frog) IsJumpFinished() bool {
 // Land is called when the jump is complete to reset the state and position.
 func (f *Frog) Land() {
 	f.state = Idle
-	f.Y = float64(PlatformY - 32)
+	f.Y = float64(PlatformY - FrogOffsetY)
 	f.X = f.jumpTargetX
 }
 
@@ -109,15 +109,25 @@ type Platform struct {
 	BaseSprite
 }
 
-func NewPlatform(x, y float64) *Platform {
-	PlatformSprite.Bounds()
-	return &Platform{
-		BaseSprite: BaseSprite{
-			Location: Location{X: x, Y: y},
-			image:    PlatformSprite,
-			srcRect:  PlatformSprite.Bounds(),
-			hitbox:   NewRect(PlatformSprite.Bounds()),
-		},
+func NewPlatform(x, y float64, end bool) *Platform {
+	if end {
+		return &Platform{
+			BaseSprite: BaseSprite{
+				Location: Location{X: x, Y: y},
+				image:    EndPlatformSprite,
+				srcRect:  EndPlatformSprite.Bounds(),
+				hitbox:   NewRect(EndPlatformSprite.Bounds()),
+			},
+		}
+	} else {
+		return &Platform{
+			BaseSprite: BaseSprite{
+				Location: Location{X: x, Y: y},
+				image:    PlatformSprite,
+				srcRect:  PlatformSprite.Bounds(),
+				hitbox:   NewRect(PlatformSprite.Bounds()),
+			},
+		}
 	}
 }
 
