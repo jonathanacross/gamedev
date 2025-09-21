@@ -48,6 +48,7 @@ type Game struct {
 	// Entities for current word
 	Platforms []*Platform
 	Boots     []*Boot
+	Herons    []*Heron
 	Crocodile *Crocodile
 
 	// Game state fields
@@ -72,6 +73,9 @@ func (g *Game) Update() error {
 		g.Frog.Update()
 		for _, boot := range g.Boots {
 			boot.Update()
+		}
+		for _, heron := range g.Herons {
+			heron.Update()
 		}
 		g.Crocodile.Update()
 
@@ -166,6 +170,14 @@ func (g *Game) checkCollisions() {
 		}
 	}
 
+	for _, heron := range g.Herons {
+		if g.Frog.HasCollided(&heron.BaseSprite) {
+			PlaySound(SplatSoundBytes)
+			g.Frog.Hit()
+			return
+		}
+	}
+
 	if g.Crocodile.state == Biting && g.Frog.HasCollided(&g.Crocodile.BaseSprite) {
 		PlaySound(MunchSoundBytes)
 		g.gameState = FlashAnswer
@@ -232,6 +244,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		boot.Draw(screen)
 	}
 
+	for _, heron := range g.Herons {
+		heron.Draw(screen)
+	}
+
 	g.Frog.Draw(screen)
 	g.Crocodile.Draw(screen)
 
@@ -289,12 +305,21 @@ func (g *Game) StartNewCard() {
 
 	// Create random boots
 	g.Boots = []*Boot{}
+	// numBoots := rand.Intn(2) + 1 // 1 or 2 boots
+	// indices := rand.Perm(len(g.Card.Value) - 1)[0:numBoots]
+	// for _, i := range indices {
+	// 	x := TileStartX + float64((i+1)*LetterWidth)
+	// 	y := float64(rand.Intn(10) - 100)
+	// 	g.Boots = append(g.Boots, NewBoot(x, y))
+	// }
+
+	g.Herons = []*Heron{}
 	numBoots := rand.Intn(2) + 1 // 1 or 2 boots
 	indices := rand.Perm(len(g.Card.Value) - 1)[0:numBoots]
 	for _, i := range indices {
 		x := TileStartX + float64((i+1)*LetterWidth)
 		y := float64(rand.Intn(10) - 100)
-		g.Boots = append(g.Boots, NewBoot(x, y))
+		g.Herons = append(g.Herons, NewHeron(x, y))
 	}
 }
 

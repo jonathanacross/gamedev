@@ -19,6 +19,7 @@ var FrogSpriteSheet = loadImage("assets/frog2.png")
 var PlatformSprite = loadImage("assets/lilypad.png")
 var EndPlatformSprite = loadImage("assets/lilypad_big.png")
 var BootSprite = loadImage("assets/boot.png")
+var HeronSpriteSheet = loadImage("assets/heron_ss_small_quantized.png")
 var CrocodileSpriteSheet = loadImage("assets/crocodile.png")
 var PondSprite = loadImage("assets/pond2.png")
 
