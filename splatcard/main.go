@@ -160,13 +160,14 @@ func (g *Game) checkCollisions() {
 
 	for _, boot := range g.Boots {
 		if g.Frog.HasCollided(&boot.BaseSprite) {
-			PlaySound(ErrorSoundBytes)
+			PlaySound(SplatSoundBytes)
 			g.Frog.Hit()
 			return
 		}
 	}
 
 	if g.Crocodile.state == Biting && g.Frog.HasCollided(&g.Crocodile.BaseSprite) {
+		PlaySound(MunchSoundBytes)
 		g.gameState = FlashAnswer
 		g.flashAnswerTimer.Reset()
 		g.reinsertCard(g.Card, true)

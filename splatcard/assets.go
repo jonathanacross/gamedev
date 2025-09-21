@@ -26,6 +26,9 @@ var PondSprite = loadImage("assets/pond2.png")
 var MusicBytes = loadSoundBytes("assets/8bit-canon.mp3")
 var ClearSoundBytes = loadSoundBytes("assets/clear-sound.mp3")
 var ErrorSoundBytes = loadSoundBytes("assets/error-sound.mp3")
+var SplatSoundBytes = loadSoundBytes("assets/splat.mp3")
+var MunchSoundBytes = loadSoundBytes("assets/munch.mp3")
+
 var MainFaceSource = loadFaceSource("assets/ByteBounce.ttf")
 
 func loadImage(name string) *ebiten.Image {
