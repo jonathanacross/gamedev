@@ -186,8 +186,8 @@ type Crocodile struct {
 func NewCrocodile() *Crocodile {
 	spriteSheet := NewSpriteSheet(154, 42, 2, 8)
 	animations := map[CrocodileState]*Animation{
-		Floating: NewAnimation([]int{1, 3, 5, 7, 9, 11, 13, 15}, 15, true),
-		Biting:   NewAnimation([]int{0, 2, 4, 6, 8, 10, 12, 14}, 5, false),
+		Biting:   NewAnimation([]int{1, 3, 5, 7, 9, 11, 13, 15}, 15, true),
+		Floating: NewAnimation([]int{0, 2, 4, 6, 8, 10, 12, 14}, 5, false),
 	}
 
 	croc := &Crocodile{
@@ -212,6 +212,11 @@ func (c *Crocodile) Update() {
 
 	if c.state == Biting && c.animations[Biting].IsFinished() {
 		c.state = Floating
+	}
+
+	c.X -= CrocodileSpeed
+	if c.X < float64(-c.srcRect.Dx()) {
+		c.X = ScreenWidth
 	}
 }
 

@@ -23,8 +23,12 @@ const (
 	FrogOffsetY     = 20
 
 	// Game mechanics
-	FallUpVelocity   = -0.5
-	FallDownVelocity = 1.0
+	FallUpVelocity          = -0.5
+	FallDownVelocity        = 1.0
+	CrocodileSpeed          = 1.0
+	CrocodileUp             = 9
+	CrocodileOffsetY        = 33
+	NumMistakesForCrocodile = 10
 )
 
 // Game is the main game struct.
@@ -41,6 +45,7 @@ type Game struct {
 	// Game state fields
 	currentAnswer  string
 	currentIndex   int
+	numMistakes    int
 	backspaceTimer *Timer
 	surprisedTimer *Timer
 }
@@ -116,7 +121,12 @@ func (g *Game) handleInput() {
 				g.Frog.state = Surprised
 				g.surprisedTimer.Reset()
 				PlaySound(ErrorSoundBytes)
-				// TODO: update crocodile position
+				g.numMistakes++
+				if g.numMistakes > NumMistakesForCrocodile {
+					g.Crocodile.Bite()
+				} else {
+					g.Crocodile.Y -= CrocodileUp
+				}
 			}
 		}
 	}
@@ -133,6 +143,13 @@ func (g *Game) checkCollisions() {
 			g.Frog.Hit()
 			return
 		}
+	}
+
+	if g.Crocodile.state == Biting && g.Frog.HasCollided(&g.Crocodile.BaseSprite) {
+		PlaySound(ErrorSoundBytes)
+		// TODO: show the word
+		g.StartNewCard()
+		return
 	}
 }
 
@@ -184,6 +201,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		boot.Draw(screen)
 	}
 
+	g.Frog.Draw(screen)
+
 	g.Crocodile.Draw(screen)
 
 	for i, ch := range g.currentAnswer {
@@ -192,7 +211,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			text.AlignCenter, color.White)
 	}
 
-	g.Frog.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -210,11 +228,15 @@ func (g *Game) StartNewCard() {
 		g.Platforms = append(g.Platforms, NewPlatform(x, y, endPlatform))
 	}
 
+	g.Frog.state = Idle
 	g.Frog.X = TileStartX
 	g.Frog.Y = float64(PlatformY - FrogOffsetY)
+	g.Crocodile.state = Floating
+	g.Crocodile.X = ScreenWidth
+	g.Crocodile.Y = PlatformY - CrocodileOffsetY + CrocodileUp*NumMistakesForCrocodile
+	g.numMistakes = 0
 	g.currentAnswer = ""
 	g.currentIndex = 0
-	g.Frog.state = Idle
 
 	// Create random boots
 	g.Boots = []*Boot{}
@@ -233,6 +255,9 @@ func NewGame() *Game {
 		Frog:           NewFrog(),
 		Crocodile:      NewCrocodile(),
 		Card:           nil,
+		numMistakes:    0,
+		currentAnswer:  "",
+		currentIndex:   0,
 		backspaceTimer: NewTimer(100 * time.Millisecond),
 		surprisedTimer: NewTimer(500 * time.Millisecond),
 	}
