@@ -2,8 +2,10 @@ package main
 
 import (
 	"image"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Location struct {
@@ -58,11 +60,21 @@ func (bs *BaseSprite) HitBox() Rect {
 	}
 }
 
+func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
+	lineWidth := float32(1)
+
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.right), float32(rect.top), lineWidth, clr, false)
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.bottom), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
+	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.left), float32(rect.bottom), lineWidth, clr, false)
+	vector.StrokeLine(screen, float32(rect.right), float32(rect.top), float32(rect.right), float32(rect.bottom), lineWidth, clr, false)
+}
+
 func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(bs.X, bs.Y)
 	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
+	DrawRectFrame(screen, bs.HitBox(), color.RGBA{255, 255, 255, 255})
 }
 
 // HasCollided checks for collision with another BaseSprite

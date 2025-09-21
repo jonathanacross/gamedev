@@ -46,10 +46,9 @@ type Game struct {
 	Frog    *Frog
 
 	// Entities for current word
-	Platforms   []*Platform
-	Boots       []*Boot
-	ThreatHeron *Heron
-	Crocodile   *Crocodile
+	Platforms []*Platform
+	Heron     *Heron
+	Crocodile *Crocodile
 
 	// Game state fields
 	gameState        GameState
@@ -73,12 +72,8 @@ func (g *Game) Update() error {
 	switch g.gameState {
 	case Playing:
 		g.Frog.Update()
-		for _, boot := range g.Boots {
-			boot.Update()
-		}
-		// Update the flying heron threat
-		if g.ThreatHeron != nil {
-			g.ThreatHeron.Update()
+		if g.Heron != nil {
+			g.Heron.Update()
 		}
 
 		g.Crocodile.Update()
@@ -117,10 +112,10 @@ func (g *Game) handleFrogState() {
 }
 
 func (g *Game) handleInput() {
-	// Check for inactivity to spawn the heron threat
-	if g.typingTimer.IsReady() && g.ThreatHeron == nil {
+	// Check for inactivity to spawn the heron
+	if g.typingTimer.IsReady() && g.Heron == nil {
 		PlaySound(ErrorSoundBytes) // Play a warning sound
-		g.ThreatHeron = NewHeron(g.Frog.X, g.Frog.Y)
+		g.Heron = NewHeron(g.Frog.X, g.Frog.Y)
 		g.typingTimer.Reset()
 	}
 
@@ -176,16 +171,8 @@ func (g *Game) checkCollisions() {
 		return // Do not check for collisions if the frog is already dying
 	}
 
-	for _, boot := range g.Boots {
-		if g.Frog.HasCollided(&boot.BaseSprite) {
-			PlaySound(SplatSoundBytes)
-			g.Frog.Hit()
-			return
-		}
-	}
-
-	// Check for collision with the timed heron threat
-	if g.ThreatHeron != nil && g.Frog.HasCollided(&g.ThreatHeron.BaseSprite) {
+	// Check for collision with the timed heron
+	if g.Heron != nil && g.Frog.HasCollided(&g.Heron.BaseSprite) {
 		PlaySound(SplatSoundBytes)
 		g.Frog.Hit()
 		return
@@ -216,7 +203,7 @@ func (g *Game) resetCurrentWord() {
 	g.Frog.X = g.Platforms[0].X // move frog to first platform
 	g.currentAnswer = ""
 	g.currentIndex = 0
-	g.ThreatHeron = nil // Reset the heron threat
+	g.Heron = nil // Reset the heron
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
@@ -254,13 +241,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		platform.Draw(screen)
 	}
 
-	for _, boot := range g.Boots {
-		boot.Draw(screen)
-	}
-
-	// Draw the timed heron threat if it exists
-	if g.ThreatHeron != nil {
-		g.ThreatHeron.Draw(screen)
+	if g.Heron != nil {
+		g.Heron.Draw(screen)
 	}
 
 	g.Frog.Draw(screen)
@@ -314,23 +296,11 @@ func (g *Game) StartNewCard() {
 	g.Crocodile.state = Floating
 	g.Crocodile.X = ScreenWidth
 	g.Crocodile.Y = PlatformY - CrocodileOffsetY + CrocodileUp*NumMistakesForCrocodile
+	g.Heron = nil
+	g.typingTimer.Reset()
 	g.numMistakes = 0
 	g.currentAnswer = ""
 	g.currentIndex = 0
-
-	// Reset heron threat
-	g.ThreatHeron = nil
-	g.typingTimer.Reset()
-
-	// Create random boots
-	g.Boots = []*Boot{}
-	// numBoots := rand.Intn(2) + 1 // 1 or 2 boots
-	// indices := rand.Perm(len(g.Card.Value) - 1)[0:numBoots]
-	// for _, i := range indices {
-	// 	x := TileStartX + float64((i+1)*LetterWidth)
-	// 	y := float64(rand.Intn(10) - 100)
-	// 	g.Boots = append(g.Boots, NewBoot(x, y))
-	// }
 }
 
 func NewGame() *Game {
