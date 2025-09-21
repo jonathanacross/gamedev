@@ -167,3 +167,59 @@ func (b *Boot) Update() {
 		b.velocityY = FallDownVelocity
 	}
 }
+
+// New Crocodile entity
+type CrocodileState int
+
+const (
+	Floating = iota
+	Biting
+)
+
+type Crocodile struct {
+	BaseSprite
+	spriteSheet *SpriteSheet
+	animations  map[CrocodileState]*Animation
+	state       CrocodileState
+}
+
+func NewCrocodile() *Crocodile {
+	spriteSheet := NewSpriteSheet(154, 42, 2, 8)
+	animations := map[CrocodileState]*Animation{
+		Floating: NewAnimation([]int{1, 3, 5, 7, 9, 11, 13, 15}, 15, true),
+		Biting:   NewAnimation([]int{0, 2, 4, 6, 8, 10, 12, 14}, 5, false),
+	}
+
+	croc := &Crocodile{
+		BaseSprite: BaseSprite{
+			Location: Location{X: 0, Y: 0},
+			image:    CrocodileSpriteSheet,
+			srcRect:  spriteSheet.Rect(0),
+			hitbox:   Rect{left: 0, top: 20, right: 105, bottom: 77},
+		},
+		spriteSheet: spriteSheet,
+		animations:  animations,
+		state:       Floating,
+	}
+
+	return croc
+}
+
+func (c *Crocodile) Update() {
+	animation := c.animations[c.state]
+	animation.Update()
+	c.srcRect = c.spriteSheet.Rect(animation.Frame())
+
+	if c.state == Biting && c.animations[Biting].IsFinished() {
+		c.state = Floating
+	}
+}
+
+func (c *Crocodile) Bite() {
+	c.state = Biting
+	c.animations[Biting].Reset()
+}
+
+func (c *Crocodile) IsBiting() bool {
+	return c.state == Biting
+}

@@ -36,6 +36,7 @@ type Game struct {
 	// Entities for current word
 	Platforms []*Platform
 	Boots     []*Boot
+	Crocodile *Crocodile
 
 	// Game state fields
 	currentAnswer  string
@@ -54,6 +55,7 @@ func (g *Game) Update() error {
 	for _, boot := range g.Boots {
 		boot.Update()
 	}
+	g.Crocodile.Update()
 
 	// Handle game state transitions
 	g.handleFrogState()
@@ -114,6 +116,7 @@ func (g *Game) handleInput() {
 				g.Frog.state = Surprised
 				g.surprisedTimer.Reset()
 				PlaySound(ErrorSoundBytes)
+				// TODO: update crocodile position
 			}
 		}
 	}
@@ -181,6 +184,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		boot.Draw(screen)
 	}
 
+	g.Crocodile.Draw(screen)
+
 	for i, ch := range g.currentAnswer {
 		drawTextAt(screen, string(ch),
 			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY-10,
@@ -226,6 +231,7 @@ func NewGame() *Game {
 	g := Game{
 		CardSet:        NewCardSet(),
 		Frog:           NewFrog(),
+		Crocodile:      NewCrocodile(),
 		Card:           nil,
 		backspaceTimer: NewTimer(100 * time.Millisecond),
 		surprisedTimer: NewTimer(500 * time.Millisecond),
