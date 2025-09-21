@@ -18,7 +18,7 @@ const (
 	// Layout
 	LetterWidth     = 28
 	FallingItemTopY = 40
-	PlatformY       = 300
+	PlatformY       = 270
 	TileStartX      = 40
 	FrogOffsetY     = 20
 
@@ -141,7 +141,7 @@ func (g *Game) resetCurrentWord() {
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
-func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align) {
+func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, color color.Color) {
 	fontSize := float64(16)
 	fontFace := &text.GoTextFace{
 		Source: MainFaceSource,
@@ -160,7 +160,7 @@ func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, alig
 
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(x, y)
-	op.ColorScale.ScaleWithColor(color.White)
+	op.ColorScale.ScaleWithColor(color)
 	op.LineSpacing = fontSize
 	op.PrimaryAlign = text.AlignStart
 
@@ -171,7 +171,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	screen.DrawImage(PondSprite, op)
 
-	drawTextAt(screen, g.Card.Key, ScreenWidth/2, 50, text.AlignCenter)
+	drawTextAt(screen, g.Card.Key, ScreenWidth/2, 40, text.AlignCenter, color.Black)
 
 	for _, platform := range g.Platforms {
 		platform.Draw(screen)
@@ -183,8 +183,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for i, ch := range g.currentAnswer {
 		drawTextAt(screen, string(ch),
-			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY,
-			text.AlignCenter)
+			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY-10,
+			text.AlignCenter, color.White)
 	}
 
 	g.Frog.Draw(screen)

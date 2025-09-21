@@ -25,10 +25,10 @@ type Frog struct {
 func NewFrog() *Frog {
 	spriteSheet := NewSpriteSheet(32, 32, 5, 4)
 	animations := map[FrogState]*Animation{
-		Idle:      NewAnimation(0, 1, 15, true),
-		Jumping:   NewAnimation(10, 14, 10, false),
-		Surprised: NewAnimation(5, 6, 10, false),
-		Dying:     NewAnimation(15, 19, 10, false),
+		Idle:      NewAnimation([]int{0, 1}, 15, true),
+		Jumping:   NewAnimation([]int{10, 11, 12, 13, 14}, 10, false),
+		Surprised: NewAnimation([]int{5, 6}, 10, false),
+		Dying:     NewAnimation([]int{15, 16, 17, 18, 19}, 10, false),
 	}
 
 	frog := &Frog{
@@ -55,8 +55,8 @@ func (f *Frog) Update() {
 	// Only update position if in a jumping state
 	if f.state == Jumping {
 		jumpAnimation := f.animations[Jumping]
-		totalAnimationFrames := float64(jumpAnimation.last-jumpAnimation.first+1) * float64(jumpAnimation.speed)
-		currentFrameCount := float64(jumpAnimation.frame-jumpAnimation.first)*float64(jumpAnimation.speed) + float64(jumpAnimation.speed-jumpAnimation.frameCounter)
+		totalAnimationFrames := float64(len(jumpAnimation.frames) * jumpAnimation.speed)
+		currentFrameCount := float64(jumpAnimation.frameIndex*jumpAnimation.speed) + float64(jumpAnimation.speed-jumpAnimation.frameCounter)
 		progress := currentFrameCount / totalAnimationFrames
 
 		jumpDistance := f.jumpTargetX - f.jumpStartX
