@@ -46,10 +46,10 @@ type Game struct {
 	Frog    *Frog
 
 	// Entities for current word
-	Platforms []*Platform
-	Boots     []*Boot
-	Herons    []*Heron
-	Crocodile *Crocodile
+	Platforms   []*Platform
+	Boots       []*Boot
+	ThreatHeron *Heron
+	Crocodile   *Crocodile
 
 	// Game state fields
 	gameState        GameState
@@ -59,6 +59,7 @@ type Game struct {
 	backspaceTimer   *Timer
 	surprisedTimer   *Timer
 	flashAnswerTimer *Timer
+	typingTimer      *Timer // New timer for typing inactivity
 }
 
 func (g *Game) Update() error {
@@ -67,6 +68,7 @@ func (g *Game) Update() error {
 	// Update all components
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
+	g.typingTimer.Update() // Update the new timer
 
 	switch g.gameState {
 	case Playing:
@@ -74,9 +76,11 @@ func (g *Game) Update() error {
 		for _, boot := range g.Boots {
 			boot.Update()
 		}
-		for _, heron := range g.Herons {
-			heron.Update()
+		// Update the flying heron threat
+		if g.ThreatHeron != nil {
+			g.ThreatHeron.Update()
 		}
+
 		g.Crocodile.Update()
 
 		g.handleFrogState()
@@ -113,6 +117,13 @@ func (g *Game) handleFrogState() {
 }
 
 func (g *Game) handleInput() {
+	// Check for inactivity to spawn the heron threat
+	if g.typingTimer.IsReady() && g.ThreatHeron == nil {
+		PlaySound(ErrorSoundBytes) // Play a warning sound
+		g.ThreatHeron = NewHeron(g.Frog.X, g.Frog.Y)
+		g.typingTimer.Reset()
+	}
+
 	// Handle backspace input
 	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 && g.Frog.state != Jumping {
 		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
@@ -120,6 +131,7 @@ func (g *Game) handleInput() {
 		// Instantly move the frog back
 		g.Frog.X = g.Platforms[g.currentIndex].X
 		g.backspaceTimer.Reset()
+		g.typingTimer.Reset() // Reset timer on backspace
 	}
 
 	// Handle new character input
@@ -131,6 +143,7 @@ func (g *Game) handleInput() {
 			if toLower(r) == toLower(expectedChar) {
 				g.currentAnswer += string(r)
 				g.currentIndex++
+				g.typingTimer.Reset() // Reset timer on correct key press
 
 				// Check if this is the final character
 				if g.currentIndex == len(g.Card.Value) {
@@ -152,6 +165,7 @@ func (g *Game) handleInput() {
 				} else {
 					g.Crocodile.Y -= CrocodileUp
 				}
+				g.typingTimer.Reset() // Reset timer on incorrect key press
 			}
 		}
 	}
@@ -170,12 +184,11 @@ func (g *Game) checkCollisions() {
 		}
 	}
 
-	for _, heron := range g.Herons {
-		if g.Frog.HasCollided(&heron.BaseSprite) {
-			PlaySound(SplatSoundBytes)
-			g.Frog.Hit()
-			return
-		}
+	// Check for collision with the timed heron threat
+	if g.ThreatHeron != nil && g.Frog.HasCollided(&g.ThreatHeron.BaseSprite) {
+		PlaySound(SplatSoundBytes)
+		g.Frog.Hit()
+		return
 	}
 
 	if g.Crocodile.state == Biting && g.Frog.HasCollided(&g.Crocodile.BaseSprite) {
@@ -203,6 +216,7 @@ func (g *Game) resetCurrentWord() {
 	g.Frog.X = g.Platforms[0].X // move frog to first platform
 	g.currentAnswer = ""
 	g.currentIndex = 0
+	g.ThreatHeron = nil // Reset the heron threat
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
@@ -244,8 +258,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		boot.Draw(screen)
 	}
 
-	for _, heron := range g.Herons {
-		heron.Draw(screen)
+	// Draw the timed heron threat if it exists
+	if g.ThreatHeron != nil {
+		g.ThreatHeron.Draw(screen)
 	}
 
 	g.Frog.Draw(screen)
@@ -303,6 +318,10 @@ func (g *Game) StartNewCard() {
 	g.currentAnswer = ""
 	g.currentIndex = 0
 
+	// Reset heron threat
+	g.ThreatHeron = nil
+	g.typingTimer.Reset()
+
 	// Create random boots
 	g.Boots = []*Boot{}
 	// numBoots := rand.Intn(2) + 1 // 1 or 2 boots
@@ -312,15 +331,6 @@ func (g *Game) StartNewCard() {
 	// 	y := float64(rand.Intn(10) - 100)
 	// 	g.Boots = append(g.Boots, NewBoot(x, y))
 	// }
-
-	g.Herons = []*Heron{}
-	numBoots := rand.Intn(2) + 1 // 1 or 2 boots
-	indices := rand.Perm(len(g.Card.Value) - 1)[0:numBoots]
-	for _, i := range indices {
-		x := TileStartX + float64((i+1)*LetterWidth)
-		y := float64(rand.Intn(10) - 100)
-		g.Herons = append(g.Herons, NewHeron(x, y))
-	}
 }
 
 func NewGame() *Game {
@@ -335,6 +345,7 @@ func NewGame() *Game {
 		backspaceTimer:   NewTimer(100 * time.Millisecond),
 		surprisedTimer:   NewTimer(500 * time.Millisecond),
 		flashAnswerTimer: NewTimer(2 * time.Second),
+		typingTimer:      NewTimer(4 * time.Second), // Initialize new timer
 	}
 	g.StartNewCard()
 	return &g

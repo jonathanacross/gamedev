@@ -172,41 +172,56 @@ type Heron struct {
 	BaseSprite
 	spriteSheet *SpriteSheet
 	animation   *Animation
+	velocityX   float64
 	velocityY   float64
 	minY        float64
 	maxY        float64
+	targetX     float64
+	targetY     float64
 }
 
-func NewHeron(x, y float64) *Heron {
+// NewHeron creates a new heron instance
+func NewHeron(targetX, targetY float64) *Heron {
 	spriteSheet := NewSpriteSheet(48, 32, 1, 4)
+
+	startPos := Location{X: ScreenWidth, Y: -100} // Start off-screen
 
 	heron := &Heron{
 		BaseSprite: BaseSprite{
-			Location: Location{X: x, Y: y},
+			Location: startPos,
 			image:    HeronSpriteSheet,
 			srcRect:  spriteSheet.Rect(0),
 			hitbox:   Rect{left: 20, top: 20, right: 105, bottom: 77},
 		},
 		spriteSheet: spriteSheet,
 		animation:   NewAnimation([]int{0, 1, 2, 3}, 10, true),
+		targetX:     targetX,
+		targetY:     targetY,
 	}
+
+	// Calculate velocity to reach target
+	speed := 2.0 // Adjust speed as needed
+	dx := targetX - heron.X
+	dy := targetY - heron.Y
+	distance := math.Sqrt(dx*dx + dy*dy)
+	heron.velocityX = (dx / distance) * speed
+	heron.velocityY = (dy / distance) * speed
 
 	return heron
 }
 
+// Update handles the heron's movement and animation.
 func (c *Heron) Update() {
 	c.animation.Update()
-
-	c.Y += c.velocityY
-
-	if c.Y > c.maxY {
-		c.Y = c.maxY
-		c.velocityY = FallUpVelocity
-	} else if c.Y < c.minY {
-		c.Y = c.minY
-		c.velocityY = FallDownVelocity
-	}
 	c.srcRect = c.spriteSheet.Rect(c.animation.Frame())
+
+	if math.Abs(c.X-c.targetX) < math.Abs(c.velocityX) &&
+		math.Abs(c.Y-c.targetY) < math.Abs(c.velocityY) {
+		// Reached target, now fly away
+		c.velocityY = -c.velocityY
+	}
+	c.X += c.velocityX
+	c.Y += c.velocityY
 }
 
 type CrocodileState int
