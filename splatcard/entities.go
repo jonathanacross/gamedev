@@ -211,17 +211,22 @@ func NewHeron(targetX, targetY float64) *Heron {
 }
 
 // Update handles the heron's movement and animation.
-func (c *Heron) Update() {
-	c.animation.Update()
-	c.srcRect = c.spriteSheet.Rect(c.animation.Frame())
+func (h *Heron) Update() {
+	h.animation.Update()
+	h.srcRect = h.spriteSheet.Rect(h.animation.Frame())
 
-	if math.Abs(c.X-c.targetX) < math.Abs(c.velocityX) &&
-		math.Abs(c.Y-c.targetY) < math.Abs(c.velocityY) {
+	if math.Abs(h.X-h.targetX) < math.Abs(h.velocityX) &&
+		math.Abs(h.Y-h.targetY) < math.Abs(h.velocityY) {
 		// Reached target, now fly away
-		c.velocityY = -c.velocityY
+		h.velocityY = -h.velocityY
 	}
-	c.X += c.velocityX
-	c.Y += c.velocityY
+	h.X += h.velocityX
+	h.Y += h.velocityY
+}
+
+func (h *Heron) IsOffscreen() bool {
+	// A generous check to ensure the heron is completely gone
+	return h.X < -50 || h.Y > ScreenHeight+50
 }
 
 type CrocodileState int

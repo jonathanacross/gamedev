@@ -74,7 +74,8 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(bs.X, bs.Y)
 	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
-	DrawRectFrame(screen, bs.HitBox(), color.RGBA{255, 255, 255, 255})
+	// Draw hitbox for debugging
+	//DrawRectFrame(screen, bs.HitBox(), color.RGBA{255, 255, 255, 255})
 }
 
 // HasCollided checks for collision with another BaseSprite

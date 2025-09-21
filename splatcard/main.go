@@ -74,6 +74,10 @@ func (g *Game) Update() error {
 		g.Frog.Update()
 		if g.Heron != nil {
 			g.Heron.Update()
+			// Check if the heron has flown offscreen and reset the reference
+			if g.Heron.IsOffscreen() {
+				g.Heron = nil
+			}
 		}
 
 		g.Crocodile.Update()
@@ -140,14 +144,17 @@ func (g *Game) handleInput() {
 				g.currentIndex++
 				g.typingTimer.Reset() // Reset timer on correct key press
 
-				// Check if this is the final character
+				// Fix: Reset the frog's state to Idle to allow the jump
+				g.Frog.state = Idle
+
+				// Move the frog to the next platform.
+				// This handles both intermediate and final letters.
+				targetX := g.Platforms[g.currentIndex].X
+				g.Frog.X = targetX
+
+				// Now, check if the word is complete and trigger the jump
 				if g.currentIndex == len(g.Card.Value) {
-					// Initiate the final jump animation
-					targetX := g.Platforms[g.currentIndex].X
 					g.Frog.Jump(targetX)
-				} else {
-					// Instantly move the frog to the next platform
-					g.Frog.X = g.Platforms[g.currentIndex].X
 				}
 			} else {
 				g.Frog.state = Surprised
