@@ -42,7 +42,6 @@ type Game struct {
 	currentIndex   int
 	backspaceTimer *Timer
 	surprisedTimer *Timer
-	jumpQueue      []rune
 }
 
 func (g *Game) Update() error {
@@ -62,9 +61,6 @@ func (g *Game) Update() error {
 
 	g.handleInput()
 
-	// Check for card completion
-	g.checkCompletion()
-
 	return nil
 }
 
@@ -73,15 +69,11 @@ func (g *Game) handleFrogState() {
 		g.Frog.state = Idle
 	}
 
+	// If the frog has just completed the final jump, start a new card
 	if g.Frog.IsJumping() && g.Frog.IsJumpFinished() {
 		g.Frog.Land()
-	}
-
-	// If the frog has just landed, process the next queued jump
-	if g.Frog.state == Idle && len(g.jumpQueue) > 0 {
-		nextJumpTargetX := g.Platforms[g.currentIndex].X
-		g.Frog.Jump(nextJumpTargetX)
-		g.jumpQueue = g.jumpQueue[1:]
+		g.StartNewCard()
+		PlaySound(ClearSoundBytes)
 	}
 
 	if g.Frog.state == Dying && g.Frog.IsDyingFinished() {
@@ -94,6 +86,7 @@ func (g *Game) handleInput() {
 	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 && g.Frog.state != Jumping {
 		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
 		g.currentIndex--
+		// Instantly move the frog back
 		g.Frog.X = g.Platforms[g.currentIndex].X
 		g.backspaceTimer.Reset()
 	}
@@ -108,8 +101,14 @@ func (g *Game) handleInput() {
 				g.currentAnswer += string(r)
 				g.currentIndex++
 
-				if g.currentIndex < len(g.Platforms) {
-					g.jumpQueue = append(g.jumpQueue, r)
+				// Check if this is the final character
+				if g.currentIndex == len(g.Card.Value) {
+					// Initiate the final jump animation
+					targetX := g.Platforms[g.currentIndex].X
+					g.Frog.Jump(targetX)
+				} else {
+					// Instantly move the frog to the next platform
+					g.Frog.X = g.Platforms[g.currentIndex].X
 				}
 			} else {
 				g.Frog.state = Surprised
@@ -139,14 +138,6 @@ func (g *Game) resetCurrentWord() {
 	g.Frog.X = g.Platforms[0].X // move frog to first platform
 	g.currentAnswer = ""
 	g.currentIndex = 0
-	g.jumpQueue = []rune{}
-}
-
-func (g *Game) checkCompletion() {
-	if g.currentIndex == len(g.Card.Value) {
-		g.StartNewCard()
-		PlaySound(ClearSoundBytes)
-	}
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
@@ -219,7 +210,6 @@ func (g *Game) StartNewCard() {
 	g.currentAnswer = ""
 	g.currentIndex = 0
 	g.Frog.state = Idle
-	g.jumpQueue = []rune{}
 
 	// Create random boots
 	g.Boots = []*Boot{}
