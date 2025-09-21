@@ -31,6 +31,14 @@ const (
 	NumMistakesForCrocodile = 10
 )
 
+// GameState represents the current state of the game.
+type GameState int
+
+const (
+	Playing GameState = iota
+	FlashAnswer
+)
+
 // Game is the main game struct.
 type Game struct {
 	CardSet *CardSet
@@ -43,11 +51,13 @@ type Game struct {
 	Crocodile *Crocodile
 
 	// Game state fields
-	currentAnswer  string
-	currentIndex   int
-	numMistakes    int
-	backspaceTimer *Timer
-	surprisedTimer *Timer
+	gameState        GameState
+	currentAnswer    string
+	currentIndex     int
+	numMistakes      int
+	backspaceTimer   *Timer
+	surprisedTimer   *Timer
+	flashAnswerTimer *Timer
 }
 
 func (g *Game) Update() error {
@@ -56,17 +66,25 @@ func (g *Game) Update() error {
 	// Update all components
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
-	g.Frog.Update()
-	for _, boot := range g.Boots {
-		boot.Update()
+
+	switch g.gameState {
+	case Playing:
+		g.Frog.Update()
+		for _, boot := range g.Boots {
+			boot.Update()
+		}
+		g.Crocodile.Update()
+
+		g.handleFrogState()
+		g.checkCollisions()
+		g.handleInput()
+
+	case FlashAnswer:
+		g.flashAnswerTimer.Update()
+		if g.flashAnswerTimer.IsReady() {
+			g.StartNewCard()
+		}
 	}
-	g.Crocodile.Update()
-
-	// Handle game state transitions
-	g.handleFrogState()
-	g.checkCollisions()
-
-	g.handleInput()
 
 	return nil
 }
@@ -79,8 +97,10 @@ func (g *Game) handleFrogState() {
 	// If the frog has just completed the final jump, start a new card
 	if g.Frog.IsJumping() && g.Frog.IsJumpFinished() {
 		g.Frog.Land()
-		g.StartNewCard()
+		g.Card.ConsecutiveCorrect++
+		g.reinsertCard(g.Card, false)
 		PlaySound(ClearSoundBytes)
+		g.StartNewCard()
 	}
 
 	if g.Frog.state == Dying && g.Frog.IsDyingFinished() {
@@ -122,6 +142,7 @@ func (g *Game) handleInput() {
 				g.surprisedTimer.Reset()
 				PlaySound(ErrorSoundBytes)
 				g.numMistakes++
+				g.Card.ConsecutiveCorrect = 0
 				if g.numMistakes > NumMistakesForCrocodile {
 					g.Crocodile.Bite()
 				} else {
@@ -146,10 +167,21 @@ func (g *Game) checkCollisions() {
 	}
 
 	if g.Crocodile.state == Biting && g.Frog.HasCollided(&g.Crocodile.BaseSprite) {
-		PlaySound(ErrorSoundBytes)
-		// TODO: show the word
-		g.StartNewCard()
+		g.gameState = FlashAnswer
+		g.flashAnswerTimer.Reset()
+		g.reinsertCard(g.Card, true)
 		return
+	}
+}
+
+func (g *Game) reinsertCard(card *Card, wasBitten bool) {
+	if wasBitten {
+		g.Card.ConsecutiveCorrect = 0
+		g.CardSet.ReinsertCard(card, rand.Intn(2)+1)
+	} else if g.numMistakes > 2 {
+		g.CardSet.ReinsertCard(card, 4)
+	} else {
+		g.CardSet.ReinsertCard(card, 8*g.Card.ConsecutiveCorrect)
 	}
 }
 
@@ -161,7 +193,7 @@ func (g *Game) resetCurrentWord() {
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
-func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, color color.Color) {
+func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, c color.Color) {
 	fontSize := float64(16)
 	fontFace := &text.GoTextFace{
 		Source: MainFaceSource,
@@ -180,7 +212,7 @@ func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, alig
 
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(x, y)
-	op.ColorScale.ScaleWithColor(color)
+	op.ColorScale.ScaleWithColor(c)
 	op.LineSpacing = fontSize
 	op.PrimaryAlign = text.AlignStart
 
@@ -191,8 +223,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	screen.DrawImage(PondSprite, op)
 
-	drawTextAt(screen, g.Card.Key, ScreenWidth/2, 40, text.AlignCenter, color.Black)
-
 	for _, platform := range g.Platforms {
 		platform.Draw(screen)
 	}
@@ -202,15 +232,28 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	g.Frog.Draw(screen)
-
 	g.Crocodile.Draw(screen)
 
-	for i, ch := range g.currentAnswer {
-		drawTextAt(screen, string(ch),
-			TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY-10,
-			text.AlignCenter, color.White)
+	switch g.gameState {
+	case Playing:
+		drawTextAt(screen, g.Card.Key, ScreenWidth/2, 40, text.AlignCenter, color.Black)
+		for i, ch := range g.currentAnswer {
+			drawTextAt(screen, string(ch),
+				TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY-10,
+				text.AlignCenter, color.White)
+		}
+	case FlashAnswer:
+		// Flash the correct answer
+		c := color.Color(color.White)
+		if (g.flashAnswerTimer.currentTicks/10)%2 == 0 {
+			c = color.Color(color.RGBA{255, 0, 0, 255})
+		}
+		for i, ch := range g.Card.Value {
+			drawTextAt(screen, string(ch),
+				TileStartX+float64((float64(i)+0.5)*LetterWidth), PlatformY-10,
+				text.AlignCenter, c)
+		}
 	}
-
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -219,6 +262,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func (g *Game) StartNewCard() {
 	g.Card = g.CardSet.GetCard()
+	if g.Card == nil {
+		// No more cards, you can handle this as a game end state
+		return
+	}
 
 	g.Platforms = []*Platform{}
 	for i := range len(g.Card.Value) + 1 {
@@ -228,6 +275,7 @@ func (g *Game) StartNewCard() {
 		g.Platforms = append(g.Platforms, NewPlatform(x, y, endPlatform))
 	}
 
+	g.gameState = Playing
 	g.Frog.state = Idle
 	g.Frog.X = TileStartX
 	g.Frog.Y = float64(PlatformY - FrogOffsetY)
@@ -251,15 +299,16 @@ func (g *Game) StartNewCard() {
 
 func NewGame() *Game {
 	g := Game{
-		CardSet:        NewCardSet(),
-		Frog:           NewFrog(),
-		Crocodile:      NewCrocodile(),
-		Card:           nil,
-		numMistakes:    0,
-		currentAnswer:  "",
-		currentIndex:   0,
-		backspaceTimer: NewTimer(100 * time.Millisecond),
-		surprisedTimer: NewTimer(500 * time.Millisecond),
+		CardSet:          NewCardSet(),
+		Frog:             NewFrog(),
+		Crocodile:        NewCrocodile(),
+		Card:             nil,
+		numMistakes:      0,
+		currentAnswer:    "",
+		currentIndex:     0,
+		backspaceTimer:   NewTimer(100 * time.Millisecond),
+		surprisedTimer:   NewTimer(500 * time.Millisecond),
+		flashAnswerTimer: NewTimer(2 * time.Second),
 	}
 	g.StartNewCard()
 	return &g

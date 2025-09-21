@@ -195,7 +195,7 @@ func NewCrocodile() *Crocodile {
 			Location: Location{X: 0, Y: 0},
 			image:    CrocodileSpriteSheet,
 			srcRect:  spriteSheet.Rect(0),
-			hitbox:   Rect{left: 0, top: 20, right: 105, bottom: 77},
+			hitbox:   Rect{left: 20, top: 20, right: 105, bottom: 77},
 		},
 		spriteSheet: spriteSheet,
 		animations:  animations,
