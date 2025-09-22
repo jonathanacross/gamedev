@@ -2,6 +2,8 @@ package main
 
 import (
 	"math"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type FrogState int
@@ -104,7 +106,6 @@ func (f *Frog) IsDyingFinished() bool {
 	return f.animations[Dying].IsFinished()
 }
 
-// Rock and Platform structs are unchanged
 type Platform struct {
 	BaseSprite
 }
@@ -129,6 +130,47 @@ func NewPlatform(x, y float64, end bool) *Platform {
 			},
 		}
 	}
+}
+
+type BootState int
+
+const (
+	Carried = iota
+	Falling
+)
+
+// Boot represents the boot entity that can fall and hit the frog.
+type Boot struct {
+	BaseSprite
+	state BootState
+}
+
+// NewBoot creates a new Boot instance.
+func NewBoot(x, y float64) *Boot {
+	boot := &Boot{
+		BaseSprite: BaseSprite{
+			Location: Location{X: x, Y: y},
+			image:    BootSprite,
+			srcRect:  BootSprite.Bounds(),
+			hitbox:   Rect{left: 0, top: 0, right: 30, bottom: 30},
+		},
+		state: Carried, // Initially carried by the heron
+	}
+	return boot
+}
+
+// Update updates the boot's position.
+func (b *Boot) Update() {
+	if b.state == Falling {
+		b.Y += 5 // Adjust speed as needed
+	}
+}
+
+// Draw draws the boot to the screen.
+func (b *Boot) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(b.X, b.Y)
+	screen.DrawImage(b.image, op)
 }
 
 type Heron struct {
