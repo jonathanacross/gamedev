@@ -183,10 +183,10 @@ type Heron struct {
 }
 
 // NewHeron creates a new heron instance that carries a boot to a target location.
-func NewHeron(dropX float64) *Heron {
+func NewHeron(x, y float64, dropX float64) *Heron {
 	spriteSheet := NewSpriteSheet(48, 32, 1, 4)
 
-	startPos := Location{X: ScreenWidth, Y: FallingItemTopY} // Start off-screen
+	startPos := Location{X: x, Y: y}
 
 	heron := &Heron{
 		BaseSprite: BaseSprite{
@@ -196,7 +196,7 @@ func NewHeron(dropX float64) *Heron {
 			hitbox:   Rect{left: 0, top: 10, right: 15, bottom: 20},
 		},
 		spriteSheet: spriteSheet,
-		animation:   NewAnimation([]int{0, 1, 2, 3}, 10, true),
+		animation:   NewAnimation([]int{0, 1, 2, 3}, 30, true),
 		dropX:       dropX,
 		velocityX:   -HeronSpeed,
 		boot:        NewBoot(ScreenWidth, FallingItemTopY),
@@ -211,7 +211,7 @@ func (h *Heron) Update() {
 	h.srcRect = h.spriteSheet.Rect(h.animation.Frame())
 
 	// If Heron has reached the drop location, release the boot
-	if h.X <= h.dropX && h.boot.state == Carried {
+	if h.boot.state == Carried && h.boot.X <= h.dropX {
 		h.boot.state = Falling
 	}
 
@@ -220,8 +220,8 @@ func (h *Heron) Update() {
 
 	// Update the boot's position to follow the heron until dropped
 	if h.boot.state == Carried {
-		h.boot.X = h.X
-		h.boot.Y = h.Y
+		h.boot.X = h.X + BootOffsetX
+		h.boot.Y = h.Y + BootOffsetY
 	}
 }
 

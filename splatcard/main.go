@@ -21,6 +21,8 @@ const (
 	PlatformY       = 270
 	TileStartX      = 40
 	FrogOffsetY     = 20
+	BootOffsetX     = 20
+	BootOffsetY     = 20
 
 	// Game mechanics
 	HeronSpeed              = 1.2
@@ -76,7 +78,8 @@ func (g *Game) updateHerons() {
 	if g.heronSpawnTimer.IsReady() {
 		// pick a random platform, but not the ending spot
 		platform := rand.Intn(len(g.Platforms) - 1)
-		heron := NewHeron(g.Platforms[platform].X)
+		heightOffset := rand.Float64() * 60
+		heron := NewHeron(ScreenWidth, FallingItemTopY+heightOffset, g.Platforms[platform].X)
 		g.Herons = append(g.Herons, heron)
 		g.Boots = append(g.Boots, heron.GetBoot())
 		// Reset the timer with a new random duration between 0.5 and 1.5 seconds.
