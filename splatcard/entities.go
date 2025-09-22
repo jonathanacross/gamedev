@@ -162,7 +162,7 @@ func NewBoot(x, y float64) *Boot {
 // Update updates the boot's position.
 func (b *Boot) Update() {
 	if b.state == Falling {
-		b.Y += 5 // Adjust speed as needed
+		b.Y += BootFallSpeed
 	}
 }
 
@@ -198,7 +198,7 @@ func NewHeron(dropX float64) *Heron {
 		spriteSheet: spriteSheet,
 		animation:   NewAnimation([]int{0, 1, 2, 3}, 10, true),
 		dropX:       dropX,
-		velocityX:   -2.0, // Fly left
+		velocityX:   -HeronSpeed,
 		boot:        NewBoot(ScreenWidth, FallingItemTopY),
 	}
 
@@ -222,14 +222,15 @@ func (h *Heron) Update() {
 	if h.boot.state == Carried {
 		h.boot.X = h.X
 		h.boot.Y = h.Y
-	} else {
-		// Update the boot independently if it's falling
-		h.boot.Update()
 	}
 }
 
 func (h *Heron) IsOffscreen() bool {
 	return h.X < -50
+}
+
+func (h *Heron) GetBoot() *Boot {
+	return h.boot
 }
 
 type CrocodileState int

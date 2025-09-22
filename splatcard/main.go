@@ -23,7 +23,8 @@ const (
 	FrogOffsetY     = 20
 
 	// Game mechanics
-	HeronSpeed              = 2.0
+	HeronSpeed              = 1.2
+	BootFallSpeed           = 1.0
 	CrocodileSpeed          = 1.0
 	CrocodileUp             = 9
 	CrocodileOffsetY        = 33
@@ -61,12 +62,58 @@ type Game struct {
 	heronSpawnTimer  *Timer
 }
 
+func (g *Game) updateHerons() {
+	// Remove herons that have gone offscreen
+	var remainingHerons []*Heron
+	for _, h := range g.Herons {
+		if !h.IsOffscreen() {
+			remainingHerons = append(remainingHerons, h)
+		}
+	}
+	g.Herons = remainingHerons
+
+	// Spawn new herons if needed
+	if g.heronSpawnTimer.IsReady() {
+		// pick a random platform, but not the ending spot
+		platform := rand.Intn(len(g.Platforms) - 1)
+		heron := NewHeron(g.Platforms[platform].X)
+		g.Herons = append(g.Herons, heron)
+		g.Boots = append(g.Boots, heron.GetBoot())
+		// Reset the timer with a new random duration between 0.5 and 1.5 seconds.
+		g.heronSpawnTimer = NewTimer(time.Duration(rand.Intn(1000)+500) * time.Millisecond)
+	}
+
+	// process the current list of herons
+	for _, h := range g.Herons {
+		h.Update()
+	}
+}
+
+func (g *Game) updateBoots() {
+	for _, b := range g.Boots {
+		b.Update()
+	}
+	g.removeFallenBoots()
+}
+
+func (g *Game) removeFallenBoots() {
+	var remainingBoots []*Boot
+	for _, b := range g.Boots {
+		b.Update()
+		if b.Y < PlatformY {
+			remainingBoots = append(remainingBoots, b)
+		}
+	}
+	g.Boots = remainingBoots
+}
+
 func (g *Game) Update() error {
 	PlayMusic()
 
 	// Update all components
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
+	g.heronSpawnTimer.Update()
 
 	switch g.gameState {
 	case Playing:
@@ -74,15 +121,9 @@ func (g *Game) Update() error {
 		for _, h := range g.Herons {
 			h.Update()
 		}
-		// TODO: add logic to remove herons from the slice if they are offscreen.
 
-		for _, b := range g.Boots {
-			b.Update()
-		}
-		// TODO: add logic to remove boots from the slice if they have fallen past the platforms
-
-		// TODO: add logic to spawn new herons based on heronSpawnTimer
-
+		g.updateHerons()
+		g.updateBoots()
 		g.Crocodile.Update()
 
 		g.handleFrogState()
@@ -206,7 +247,8 @@ func (g *Game) resetCurrentWord() {
 	g.Frog.X = g.Platforms[0].X // move frog to first platform
 	g.currentAnswer = ""
 	g.currentIndex = 0
-	// TODO: clear the herons and boots.
+	g.Herons = []*Heron{}
+	g.Boots = []*Boot{}
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
@@ -244,11 +286,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		platform.Draw(screen)
 	}
 
-	for _, h := g.Herons {
+	for _, h := range g.Herons {
 		h.Draw(screen)
 	}
 
-	for _, b := g.Boots {
+	for _, b := range g.Boots {
 		b.Draw(screen)
 	}
 
@@ -306,7 +348,8 @@ func (g *Game) StartNewCard() {
 	g.numMistakes = 0
 	g.currentAnswer = ""
 	g.currentIndex = 0
-	// TODO: clear out herons and boots
+	g.Herons = []*Heron{}
+	g.Boots = []*Boot{}
 }
 
 func NewGame() *Game {
@@ -321,7 +364,7 @@ func NewGame() *Game {
 		backspaceTimer:   NewTimer(100 * time.Millisecond),
 		surprisedTimer:   NewTimer(500 * time.Millisecond),
 		flashAnswerTimer: NewTimer(2 * time.Second),
-		heronSpawnTimer:  NewTimer(2 * time.Secod),
+		heronSpawnTimer:  NewTimer(2 * time.Second),
 	}
 	g.StartNewCard()
 	return &g
