@@ -46,7 +46,8 @@ type Game struct {
 
 	// Entities for current word
 	Platforms []*Platform
-	Heron     *Heron
+	Herons    []*Heron
+	Boots     []*Boot
 	Crocodile *Crocodile
 
 	// Game state fields
@@ -57,7 +58,7 @@ type Game struct {
 	backspaceTimer   *Timer
 	surprisedTimer   *Timer
 	flashAnswerTimer *Timer
-	typingTimer      *Timer // New timer for typing inactivity
+	heronSpawnTimer  *Timer
 }
 
 func (g *Game) Update() error {
@@ -66,18 +67,21 @@ func (g *Game) Update() error {
 	// Update all components
 	g.backspaceTimer.Update()
 	g.surprisedTimer.Update()
-	g.typingTimer.Update() // Update the new timer
 
 	switch g.gameState {
 	case Playing:
 		g.Frog.Update()
-		if g.Heron != nil {
-			g.Heron.Update()
-			// Check if the heron has flown offscreen and reset the reference
-			if g.Heron.IsOffscreen() {
-				g.Heron = nil
-			}
+		for _, h := range g.Herons {
+			h.Update()
 		}
+		// TODO: add logic to remove herons from the slice if they are offscreen.
+
+		for _, b := range g.Boots {
+			b.Update()
+		}
+		// TODO: add logic to remove boots from the slice if they have fallen past the platforms
+
+		// TODO: add logic to spawn new herons based on heronSpawnTimer
 
 		g.Crocodile.Update()
 
@@ -114,13 +118,6 @@ func (g *Game) handleFrogState() {
 }
 
 func (g *Game) handleInput() {
-	// Check for inactivity to spawn the heron
-	if g.typingTimer.IsReady() && g.Heron == nil {
-		PlaySound(HeronSoundBytes)
-		g.Heron = NewHeron(g.Frog.X, g.Frog.Y)
-		g.typingTimer.Reset()
-	}
-
 	// Handle backspace input
 	if ebiten.IsKeyPressed(ebiten.KeyBackspace) && g.backspaceTimer.IsReady() && len(g.currentAnswer) > 0 && g.Frog.state != Jumping {
 		g.currentAnswer = g.currentAnswer[:len(g.currentAnswer)-1]
@@ -128,7 +125,6 @@ func (g *Game) handleInput() {
 		// Instantly move the frog back
 		g.Frog.X = g.Platforms[g.currentIndex].X
 		g.backspaceTimer.Reset()
-		g.typingTimer.Reset()
 	}
 
 	// Handle new character input
@@ -140,7 +136,6 @@ func (g *Game) handleInput() {
 			if toLower(r) == toLower(expectedChar) {
 				g.currentAnswer += string(r)
 				g.currentIndex++
-				g.typingTimer.Reset() // Reset timer on correct key press
 
 				// Reset the frog's state to Idle to allow the jump
 				g.Frog.state = Idle
@@ -177,11 +172,13 @@ func (g *Game) checkCollisions() {
 		return // Do not check for collisions if the frog is already dying
 	}
 
-	// Check for collision with the timed heron
-	if g.Heron != nil && g.Frog.HasCollided(&g.Heron.BaseSprite) {
-		PlaySound(SplatSoundBytes)
-		g.Frog.Hit()
-		return
+	// Check for collisions with boots
+	for _, b := range g.Boots {
+		if g.Frog.HasCollided(&b.BaseSprite) {
+			PlaySound(SplatSoundBytes)
+			g.Frog.Hit()
+			return
+		}
 	}
 
 	if g.Crocodile.state == Biting && g.Frog.HasCollided(&g.Crocodile.BaseSprite) {
@@ -209,7 +206,7 @@ func (g *Game) resetCurrentWord() {
 	g.Frog.X = g.Platforms[0].X // move frog to first platform
 	g.currentAnswer = ""
 	g.currentIndex = 0
-	g.Heron = nil // Reset the heron
+	// TODO: clear the herons and boots.
 }
 
 // drawTextAt is a helper function to draw text on the screen with alignment.
@@ -247,8 +244,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		platform.Draw(screen)
 	}
 
-	if g.Heron != nil {
-		g.Heron.Draw(screen)
+	for _, h := g.Herons {
+		h.Draw(screen)
+	}
+
+	for _, b := g.Boots {
+		b.Draw(screen)
 	}
 
 	g.Frog.Draw(screen)
@@ -302,11 +303,10 @@ func (g *Game) StartNewCard() {
 	g.Crocodile.state = Floating
 	g.Crocodile.X = ScreenWidth
 	g.Crocodile.Y = PlatformY - CrocodileOffsetY + CrocodileUp*NumMistakesForCrocodile
-	g.Heron = nil
-	g.typingTimer.Reset()
 	g.numMistakes = 0
 	g.currentAnswer = ""
 	g.currentIndex = 0
+	// TODO: clear out herons and boots
 }
 
 func NewGame() *Game {
@@ -321,7 +321,7 @@ func NewGame() *Game {
 		backspaceTimer:   NewTimer(100 * time.Millisecond),
 		surprisedTimer:   NewTimer(500 * time.Millisecond),
 		flashAnswerTimer: NewTimer(2 * time.Second),
-		typingTimer:      NewTimer(4 * time.Second), // Initialize new timer
+		heronSpawnTimer:  NewTimer(2 * time.Secod),
 	}
 	g.StartNewCard()
 	return &g

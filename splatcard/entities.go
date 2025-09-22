@@ -178,16 +178,15 @@ type Heron struct {
 	spriteSheet *SpriteSheet
 	animation   *Animation
 	velocityX   float64
-	velocityY   float64
-	targetX     float64
-	targetY     float64
+	dropX       float64
+	boot        *Boot
 }
 
-// NewHeron creates a new heron instance
-func NewHeron(targetX, targetY float64) *Heron {
+// NewHeron creates a new heron instance that carries a boot to a target location.
+func NewHeron(dropX float64) *Heron {
 	spriteSheet := NewSpriteSheet(48, 32, 1, 4)
 
-	startPos := Location{X: ScreenWidth, Y: -100} // Start off-screen
+	startPos := Location{X: ScreenWidth, Y: FallingItemTopY} // Start off-screen
 
 	heron := &Heron{
 		BaseSprite: BaseSprite{
@@ -198,17 +197,10 @@ func NewHeron(targetX, targetY float64) *Heron {
 		},
 		spriteSheet: spriteSheet,
 		animation:   NewAnimation([]int{0, 1, 2, 3}, 10, true),
-		targetX:     targetX,
-		targetY:     targetY,
+		dropX:       dropX,
+		velocityX:   -2.0, // Fly left
+		boot:        NewBoot(ScreenWidth, FallingItemTopY),
 	}
-
-	// Calculate velocity to reach target
-	speed := 2.0 // Adjust speed as needed
-	dx := targetX - heron.X
-	dy := targetY - heron.Y
-	distance := math.Sqrt(dx*dx + dy*dy)
-	heron.velocityX = (dx / distance) * speed
-	heron.velocityY = (dy / distance) * speed
 
 	return heron
 }
@@ -218,13 +210,22 @@ func (h *Heron) Update() {
 	h.animation.Update()
 	h.srcRect = h.spriteSheet.Rect(h.animation.Frame())
 
-	if math.Abs(h.X-h.targetX) < math.Abs(h.velocityX) &&
-		math.Abs(h.Y-h.targetY) < math.Abs(h.velocityY) {
-		// Reached target, fly back up
-		h.velocityY = -h.velocityY
+	// If Heron has reached the drop location, release the boot
+	if h.X <= h.dropX && h.boot.state == Carried {
+		h.boot.state = Falling
 	}
+
+	// Continue moving left until off-screen
 	h.X += h.velocityX
-	h.Y += h.velocityY
+
+	// Update the boot's position to follow the heron until dropped
+	if h.boot.state == Carried {
+		h.boot.X = h.X
+		h.boot.Y = h.Y
+	} else {
+		// Update the boot independently if it's falling
+		h.boot.Update()
+	}
 }
 
 func (h *Heron) IsOffscreen() bool {
