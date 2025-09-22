@@ -131,51 +131,12 @@ func NewPlatform(x, y float64, end bool) *Platform {
 	}
 }
 
-// Boot struct to represent the falling obstacle
-type Boot struct {
-	BaseSprite
-	velocityY float64
-	minY      float64
-	maxY      float64
-}
-
-// NewBoot creates a new boot instance
-func NewBoot(x, y float64) *Boot {
-	return &Boot{
-		BaseSprite: BaseSprite{
-			Location: Location{X: x, Y: y},
-			image:    BootSprite,
-			srcRect:  BootSprite.Bounds(),
-			hitbox:   NewRect(BootSprite.Bounds()),
-		},
-		velocityY: FallDownVelocity,
-		minY:      FallingItemTopY,
-		maxY:      PlatformY,
-	}
-}
-
-// Update handles the boot's vertical movement
-func (b *Boot) Update() {
-	b.Y += b.velocityY
-
-	// If the boot falls off-screen, reset its position and direction
-	if b.Y > b.maxY {
-		b.Y = b.maxY
-		b.velocityY = FallUpVelocity
-	} else if b.Y < b.minY {
-		b.Y = b.minY
-		b.velocityY = FallDownVelocity
-	}
-}
-
 type Heron struct {
 	BaseSprite
 	spriteSheet *SpriteSheet
 	animation   *Animation
 	velocityX   float64
 	velocityY   float64
-	minY        float64
-	maxY        float64
 	targetX     float64
 	targetY     float64
 }
@@ -217,7 +178,7 @@ func (h *Heron) Update() {
 
 	if math.Abs(h.X-h.targetX) < math.Abs(h.velocityX) &&
 		math.Abs(h.Y-h.targetY) < math.Abs(h.velocityY) {
-		// Reached target, now fly away
+		// Reached target, fly back up
 		h.velocityY = -h.velocityY
 	}
 	h.X += h.velocityX
@@ -225,8 +186,7 @@ func (h *Heron) Update() {
 }
 
 func (h *Heron) IsOffscreen() bool {
-	// A generous check to ensure the heron is completely gone
-	return h.X < -50 || h.Y > ScreenHeight+50
+	return h.X < -50
 }
 
 type CrocodileState int

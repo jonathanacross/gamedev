@@ -29,6 +29,7 @@ var ClearSoundBytes = loadSoundBytes("assets/clear-sound.mp3")
 var ErrorSoundBytes = loadSoundBytes("assets/error-sound.mp3")
 var SplatSoundBytes = loadSoundBytes("assets/splat.mp3")
 var MunchSoundBytes = loadSoundBytes("assets/munch.mp3")
+var HeronSoundBytes = loadSoundBytes("assets/heron.mp3")
 
 var MainFaceSource = loadFaceSource("assets/ByteBounce.ttf")
 

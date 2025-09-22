@@ -23,8 +23,7 @@ const (
 	FrogOffsetY     = 20
 
 	// Game mechanics
-	FallUpVelocity          = -0.5
-	FallDownVelocity        = 1.0
+	HeronSpeed              = 2.0
 	CrocodileSpeed          = 1.0
 	CrocodileUp             = 9
 	CrocodileOffsetY        = 33
@@ -106,7 +105,6 @@ func (g *Game) handleFrogState() {
 		g.Frog.Land()
 		g.Card.ConsecutiveCorrect++
 		g.reinsertCard(g.Card, false)
-		PlaySound(ClearSoundBytes)
 		g.StartNewCard()
 	}
 
@@ -118,7 +116,7 @@ func (g *Game) handleFrogState() {
 func (g *Game) handleInput() {
 	// Check for inactivity to spawn the heron
 	if g.typingTimer.IsReady() && g.Heron == nil {
-		PlaySound(ErrorSoundBytes) // Play a warning sound
+		PlaySound(HeronSoundBytes)
 		g.Heron = NewHeron(g.Frog.X, g.Frog.Y)
 		g.typingTimer.Reset()
 	}
@@ -130,7 +128,7 @@ func (g *Game) handleInput() {
 		// Instantly move the frog back
 		g.Frog.X = g.Platforms[g.currentIndex].X
 		g.backspaceTimer.Reset()
-		g.typingTimer.Reset() // Reset timer on backspace
+		g.typingTimer.Reset()
 	}
 
 	// Handle new character input
@@ -144,7 +142,7 @@ func (g *Game) handleInput() {
 				g.currentIndex++
 				g.typingTimer.Reset() // Reset timer on correct key press
 
-				// Fix: Reset the frog's state to Idle to allow the jump
+				// Reset the frog's state to Idle to allow the jump
 				g.Frog.state = Idle
 
 				// Move the frog to the next platform.
@@ -152,9 +150,10 @@ func (g *Game) handleInput() {
 				targetX := g.Platforms[g.currentIndex].X
 				g.Frog.X = targetX
 
-				// Now, check if the word is complete and trigger the jump
+				// Check if the word is complete and trigger the jump
 				if g.currentIndex == len(g.Card.Value) {
 					g.Frog.Jump(targetX)
+					PlaySound(ClearSoundBytes)
 				}
 			} else {
 				g.Frog.state = Surprised
@@ -162,12 +161,12 @@ func (g *Game) handleInput() {
 				PlaySound(ErrorSoundBytes)
 				g.numMistakes++
 				g.Card.ConsecutiveCorrect = 0
-				if g.numMistakes > NumMistakesForCrocodile {
-					g.Crocodile.Bite()
-				} else {
+				if g.numMistakes <= NumMistakesForCrocodile {
 					g.Crocodile.Y -= CrocodileUp
 				}
-				g.typingTimer.Reset() // Reset timer on incorrect key press
+				if g.numMistakes >= NumMistakesForCrocodile {
+					g.Crocodile.Bite()
+				}
 			}
 		}
 	}
