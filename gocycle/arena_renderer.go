@@ -28,7 +28,7 @@ var PlayerColorMap = []struct {
 	},
 	// Player 3
 	{
-		Head: color.RGBA{R: 255, G: 163, B: 113, A: 255},
+		Head: color.RGBA{R: 195, G: 178, B: 255, A: 255},
 		Path: color.RGBA{R: 146, G: 65, B: 243, A: 255},
 	},
 	// Player 4

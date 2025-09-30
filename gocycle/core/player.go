@@ -31,6 +31,7 @@ func NewPlayer(id int, position Vector, direction Vector, controller PlayerContr
 
 type RandomController struct{}
 
+// Picks a completely random direction
 func (rc *RandomController) GetDirection(arena *Arena, playerID int) Vector {
 	dirs := []Vector{Up, Down, Left, Right}
 	for {
@@ -40,4 +41,27 @@ func (rc *RandomController) GetDirection(arena *Arena, playerID int) Vector {
 			return dir
 		}
 	}
+}
+
+type RandomAvoidingController struct{}
+
+// Picks a random direction, but tries to avoid a collision on the next step
+func (rc *RandomAvoidingController) GetDirection(arena *Arena, playerID int) Vector {
+	dirs := []Vector{Up, Down, Left, Right}
+
+	safeDirs := []Vector{}
+	for _, dir := range dirs {
+		nextPos := arena.Players[playerID-1].Position.Add(dir)
+		if !arena.isCollision(nextPos) {
+			safeDirs = append(safeDirs, dir)
+		}
+	}
+
+	if len(safeDirs) == 0 {
+		// Going to die, just pick anything
+		return dirs[rand.Intn(len(dirs))]
+	}
+
+	// Pick a safe direction
+	return safeDirs[rand.Intn(len(safeDirs))]
 }
