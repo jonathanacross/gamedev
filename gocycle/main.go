@@ -11,6 +11,8 @@ const (
 	ArenaHeight = 50
 	SquareSize  = 4
 
+	GameUpdateSpeedMillis = 100
+
 	ScreenWidth  = 384
 	ScreenHeight = 240
 	TileSize     = 16

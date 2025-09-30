@@ -39,6 +39,6 @@ func (v Vector) Equals(other Vector) bool {
 }
 
 // isOpposite checks if two directions are directly opposite (180-degree turn).
-func isOpposite(d1, d2 Vector) bool {
+func IsOpposite(d1, d2 Vector) bool {
 	return d1.X == -d2.X && d1.Y == -d2.Y
 }
