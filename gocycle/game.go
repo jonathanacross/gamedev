@@ -18,9 +18,9 @@ func NewGame() *Game {
 	turnProb := 0.1
 
 	player1 := core.NewPlayer(1, core.Vector{X: 10, Y: 10}, core.Right, humanController)
-	player2 := core.NewPlayer(2, core.Vector{X: 30, Y: 30}, core.Left, &core.RandomTurnerController{TurnProb: turnProb})
+	player2 := core.NewPlayer(2, core.Vector{X: 30, Y: 30}, core.Left, &core.RandomTurnerController{TurnProb: 0.01})
 	player3 := core.NewPlayer(3, core.Vector{X: 10, Y: 30}, core.Down, &core.RandomTurnerController{TurnProb: turnProb})
-	player4 := core.NewPlayer(4, core.Vector{X: 30, Y: 10}, core.Up, &core.RandomTurnerController{TurnProb: turnProb})
+	player4 := core.NewPlayer(4, core.Vector{X: 30, Y: 10}, core.Up, &core.AreaController{})
 	return &Game{
 		Arena:           *core.NewArena(ArenaWidth, ArenaHeight, []*core.Player{player1, player2, player3, player4}),
 		ArenaTimer:      NewTimer(GameUpdateSpeedMillis * time.Millisecond),

@@ -80,9 +80,14 @@ func (rc *RandomAvoidingController) GetDirection(arena *Arena, playerID int) Vec
 	safeDirs := []Vector{}
 	for _, dir := range dirs {
 		nextPos := arena.Players[playerID-1].Position.Add(dir)
-		if !arena.isCollision(nextPos) {
-			safeDirs = append(safeDirs, dir)
+		if arena.isCollision(nextPos) {
+			continue
 		}
+		if isImmediateFatalCollision(arena, playerID, dir) {
+			continue
+		}
+
+		safeDirs = append(safeDirs, dir)
 	}
 
 	if len(safeDirs) == 0 {
@@ -92,6 +97,30 @@ func (rc *RandomAvoidingController) GetDirection(arena *Arena, playerID int) Vec
 
 	// Pick a safe direction
 	return safeDirs[rand.Intn(len(safeDirs))]
+}
+
+func isImmediateFatalCollision(arena *Arena, playerID int, nextDir Vector) bool {
+	player := arena.Players[playerID-1]
+
+	// Calculate the current player's proposed next position
+	nextPosA := player.Position.Add(nextDir)
+
+	// Check against all other alive players
+	for _, otherPlayer := range arena.Players {
+		// Skip self and dead players
+		if !otherPlayer.IsAlive || otherPlayer.ID == playerID {
+			continue
+		}
+
+		// Calculate the other player's expected next position (based on their current direction)
+		nextPosB := otherPlayer.Position.Add(otherPlayer.Direction)
+
+		// Check for a simultaneous head-on collision (same next square)
+		if nextPosA.Equals(nextPosB) {
+			return true
+		}
+	}
+	return false
 }
 
 type RandomTurnerController struct {
@@ -105,9 +134,14 @@ func (rt *RandomTurnerController) GetDirection(arena *Arena, playerID int) Vecto
 	safeDirs := []Vector{}
 	for _, dir := range dirs {
 		nextPos := player.Position.Add(dir)
-		if !arena.isCollision(nextPos) {
-			safeDirs = append(safeDirs, dir)
+		if arena.isCollision(nextPos) {
+			continue
 		}
+		if isImmediateFatalCollision(arena, playerID, dir) {
+			continue
+		}
+
+		safeDirs = append(safeDirs, dir)
 	}
 
 	// Going to die; pick anything
@@ -128,4 +162,66 @@ func (rt *RandomTurnerController) GetDirection(arena *Arena, playerID int) Vecto
 		return safeDirs[rand.Intn(len(safeDirs))]
 	}
 	return player.Direction
+}
+
+// AreaController is a computer player that chooses the direction
+// that maximizes its controlled area (Voronoi score).
+type AreaController struct{}
+
+func (ac *AreaController) GetDirection(arena *Arena, playerID int) Vector {
+	player := arena.Players[playerID-1]
+	bestDir := player.Direction
+	maxScore := -1
+
+	// Check four directions: Up, Down, Left, Right
+	for _, dir := range []Vector{Up, Down, Left, Right} {
+		// 1. Do not allow 180-degree turn
+		if IsOpposite(player.Direction, dir) {
+			continue
+		}
+
+		nextPos := player.Position.Add(dir)
+
+		// 2. Check for immediate collision with walls/paths
+		if arena.isCollision(nextPos) {
+			continue
+		}
+		if isImmediateFatalCollision(arena, playerID, dir) {
+			continue
+		}
+
+		// --- Core AI Logic: Simulate the move and check the score ---
+
+		// Create a temporary "sandbox" arena for score calculation (shallow copy)
+		sandboxArena := *arena // Copy the Arena struct itself
+
+		// Create a temporary player slice for the sandbox arena (deep copy of players)
+		sandboxArena.Players = make([]*Player, len(arena.Players))
+		for i, p := range arena.Players {
+			newP := *p // Shallow copy of player struct
+			sandboxArena.Players[i] = &newP
+		}
+
+		// Find the player in the sandbox and update its state for the simulation
+		sandboxPlayer := sandboxArena.Players[playerID-1]
+		sandboxPlayer.Position = nextPos
+
+		// Calculate the new controlled area score *after* the simulated move
+		scores := sandboxArena.ComputePlayerScores()
+		currentScore := scores[playerID]
+
+		// Check if this move is better than the current best
+		if currentScore > maxScore {
+			maxScore = currentScore
+			bestDir = dir
+		}
+	}
+
+	// Fallback: If all directions lead to death/low score, or if maxScore remains -1,
+	// we return the current direction (or the best direction found).
+	if maxScore == -1 {
+		return player.Direction
+	}
+
+	return bestDir
 }

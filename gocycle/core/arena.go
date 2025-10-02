@@ -1,5 +1,7 @@
 package core
 
+import "math"
+
 const (
 	ArenaWidth  = 50
 	ArenaHeight = 50
@@ -144,4 +146,101 @@ func (a *Arena) Update() {
 		// Add the new head position to the Path history.
 		p.Path = append(p.Path, p.Position)
 	}
+}
+
+// bfsQueueItem is a helper struct for the multi-source BFS.
+type bfsQueueItem struct {
+	ID   int
+	Pos  Vector
+	Dist int
+}
+
+// ComputePlayerScores performs a multi-source BFS to calculate the controlled
+// area for each player (Voronoi partitioning).
+func (a *Arena) ComputePlayerScores() map[int]int {
+	// Initialize grids for BFS:
+	// DistanceGrid: Stores minimum distance from any player to the square.
+	// AssignmentGrid: Stores the ID of the player who can reach the square first.
+	distanceGrid := make([][]int, a.Height)
+	assignmentGrid := make([][]int, a.Height)
+	queue := []bfsQueueItem{}
+
+	// Initialize grids and seed the queue with all alive players.
+	for y := range a.Height {
+		distanceGrid[y] = make([]int, a.Width)
+		assignmentGrid[y] = make([]int, a.Width)
+		for x := range a.Width {
+			distanceGrid[y][x] = math.MaxInt
+		}
+	}
+
+	for _, p := range a.Players {
+		if !p.IsAlive {
+			continue
+		}
+
+		pos := p.Position
+		// Only start the BFS from an open, uncollided position.
+		// The head is always on an open square in the grid due to the fix.
+		if a.Grid[pos.Y][pos.X] == Open {
+			distanceGrid[pos.Y][pos.X] = 0
+			assignmentGrid[pos.Y][pos.X] = p.ID
+			queue = append(queue, bfsQueueItem{ID: p.ID, Pos: pos, Dist: 0})
+		}
+	}
+
+	// Multi-Source BFS
+	head := 0
+	for head < len(queue) {
+		current := queue[head]
+		head++
+
+		// Iterate over possible directions
+		for _, dir := range []Vector{Up, Down, Left, Right} {
+			nextPos := current.Pos.Add(dir)
+			nextDist := current.Dist + 1
+
+			// 1. Check for collisions (Walls or existing Player Paths)
+			if a.isCollision(nextPos) {
+				continue
+			}
+
+			x, y := nextPos.X, nextPos.Y
+
+			// 2. Check for boundaries (should be redundant if isCollision is used, but safe)
+			if y < 0 || y >= a.Height || x < 0 || x >= a.Width {
+				continue
+			}
+
+			// 3. Distance Comparison (Voronoi Logic)
+			if nextDist < distanceGrid[y][x] {
+				// Case 1: Found a shorter path (new controlling player)
+				distanceGrid[y][x] = nextDist
+				assignmentGrid[y][x] = current.ID
+				queue = append(queue, bfsQueueItem{ID: current.ID, Pos: nextPos, Dist: nextDist})
+			} else if nextDist == distanceGrid[y][x] {
+				// Case 2: Found an equally short path (Neutral zone)
+				assignmentGrid[y][x] = 0 // 0 means neutral/unassigned
+			}
+			// Case 3: nextDist > distanceGrid[y][x] (already reached by someone else faster), so skip.
+		}
+	}
+
+	// Calculate Scores
+	playerScores := make(map[int]int)
+	for _, p := range a.Players {
+		playerScores[p.ID] = 0 // Initialize scores for all players
+	}
+
+	// Iterate over the AssignmentGrid and tally the scores.
+	for y := range a.Height {
+		for x := range a.Width {
+			playerID := assignmentGrid[y][x]
+			if playerID > 0 { // Only count squares assigned to a player (ID > 0)
+				playerScores[playerID]++
+			}
+		}
+	}
+
+	return playerScores
 }
