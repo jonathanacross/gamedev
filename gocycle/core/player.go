@@ -31,30 +31,41 @@ func NewPlayer(id int, position Vector, direction Vector, controller PlayerContr
 
 // HumanController implements PlayerController for human input.
 type HumanController struct {
-	RequestedDirection Vector
+	InputQueue []Vector
+}
+
+func (hc *HumanController) EnqueueDirection(dir Vector) {
+	hc.InputQueue = append(hc.InputQueue, dir)
 }
 
 // GetDirection returns the direction stored in the controller.
 // It also performs the check to prevent a 180-degree turn.
 func (hc *HumanController) GetDirection(arena *Arena, playerID int) Vector {
 	player := arena.Players[playerID-1]
+	currentDir := player.Direction
 
-	// If the requested direction is NOT a 180-degree turn from the current direction,
-	// use the requested direction.
-	if !IsOpposite(player.Direction, hc.RequestedDirection) {
-		return hc.RequestedDirection
+	if len(hc.InputQueue) == 0 {
+		// If empty, continue in the current direction.
+		return currentDir
 	}
 
-	// If the keypress was an attempt to turn 180 degrees, ignore it
-	// and continue moving in the current direction.
-	return player.Direction
+	// Dequeue the first requested direction
+	requestedDir := hc.InputQueue[0]
+
+	// Update the queue: Remove the consumed request
+	hc.InputQueue = hc.InputQueue[1:]
+
+	// Continue in the same direction if the player tries to do a 180 degree turn
+	if IsOpposite(currentDir, requestedDir) {
+		return currentDir
+	}
+
+	return requestedDir
 }
 
 // NewHumanController initializes the controller
-func NewHumanController(startDir Vector) *HumanController {
-	return &HumanController{
-		RequestedDirection: startDir,
-	}
+func NewHumanController() *HumanController {
+	return &HumanController{}
 }
 
 type RandomController struct{}
