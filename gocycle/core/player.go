@@ -99,25 +99,48 @@ func (rc *RandomAvoidingController) GetDirection(arena *Arena, playerID int) Vec
 	return safeDirs[rand.Intn(len(safeDirs))]
 }
 
+// isImmediateFatalCollision checks if moving in the proposed direction (nextDir)
+// will result in a simultaneous head-on collision with any other player.
+// It predicts the other player's move using their Path history for direction.
 func isImmediateFatalCollision(arena *Arena, playerID int, nextDir Vector) bool {
 	player := arena.Players[playerID-1]
 
-	// Calculate the current player's proposed next position
+	// 1. Calculate the current player's proposed next position
 	nextPosA := player.Position.Add(nextDir)
 
-	// Check against all other alive players
+	// 2. Check against all other alive players
 	for _, otherPlayer := range arena.Players {
 		// Skip self and dead players
 		if !otherPlayer.IsAlive || otherPlayer.ID == playerID {
 			continue
 		}
 
-		// Calculate the other player's expected next position (based on their current direction)
-		nextPosB := otherPlayer.Position.Add(otherPlayer.Direction)
+		// A player's path starts with their initial position, so a player always
+		// has at least one position in their Path slice.
+		// If Path.Length == 1, they haven't moved yet, so we can't reliably predict
+		// a direction based on history, and the collision check would rely on the
+		// simultaneous collision logic in Arena.Update() later. We skip the prediction.
+		if len(otherPlayer.Path) < 2 {
+			continue
+		}
 
-		// Check for a simultaneous head-on collision (same next square)
+		// Calculate the other player's predicted direction based on their last two positions.
+		// Last element is current position (head). Second to last is the previous position.
+		currentPosB := otherPlayer.Path[len(otherPlayer.Path)-1] // Head position
+		prevPosB := otherPlayer.Path[len(otherPlayer.Path)-2]    // Previous position
+
+		// The direction is (Current X - Previous X, Current Y - Previous Y)
+		predictedDirB := Vector{
+			X: currentPosB.X - prevPosB.X,
+			Y: currentPosB.Y - prevPosB.Y,
+		}
+
+		// Calculate the other player's predicted next position
+		nextPosB := currentPosB.Add(predictedDirB)
+
+		// 3. Check for a simultaneous head-on collision (same next square)
 		if nextPosA.Equals(nextPosB) {
-			return true
+			return true // Fatal collision detected
 		}
 	}
 	return false
