@@ -20,7 +20,7 @@ var SquareImage = loadImage("assets/square.png")
 
 // Characters
 var BiffCharImage = loadImage("assets/biff.png")
-var DrQCharImage = loadImage("assets/drq.png")
+var DrQCharImage = loadImage("assets/drq_teal.png")
 var ElaraCharImage = loadImage("assets/elara.png")
 var EricaCharImage = loadImage("assets/erica.png")
 var HeatherGCharImage = loadImage("assets/heather_green.png")

@@ -34,7 +34,7 @@ func NewGame() *Game {
 	players := []*core.Player{player1, player2, player3, player4}
 
 	selector := NewCharacterSelector(
-		16, 30, 74, 90, 2, 5, 4, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+		16, 30, 74, 90, 2, 5, 10, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
 	return &Game{
 		Arena:           *core.NewArena(ArenaWidth, ArenaHeight, players),

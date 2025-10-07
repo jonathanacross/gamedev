@@ -74,7 +74,12 @@ func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(cf.X, cf.Y)
 
+	// Get the source rcdt from the spritesheet, but
+	// update based on the hitbox in case we're showing small
+	// portraits.
 	srcRect := cf.SpriteSheet.Rect(int(cf.Mood))
+	srcRect.Max.Y = srcRect.Min.Y + int(cf.hitbox.Height())
+
 	currImage := cf.image.SubImage(srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 
@@ -85,8 +90,13 @@ func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
 		1, frameColor, false)
 }
 
-func NewCharacterFrame(CharacterIdx int, x, y float64, mood CharacterMood) *CharacterFrame {
+func NewCharacterFrame(CharacterIdx int, x, y float64, mood CharacterMood, smallPortrait bool) *CharacterFrame {
 	charData := Characters[CharacterIdx]
+	width := CharPortraitWidth
+	height := CharPortraitBigHeight
+	if smallPortrait {
+		height = CharPortraitSmallHeight
+	}
 
 	frame := &CharacterFrame{
 		BaseSprite: BaseSprite{
@@ -96,9 +106,9 @@ func NewCharacterFrame(CharacterIdx int, x, y float64, mood CharacterMood) *Char
 			},
 			image:   charData.Image,
 			srcRect: charData.Image.Bounds(),
-			hitbox:  Rect{left: 0, top: 0, right: 64, bottom: 80},
+			hitbox:  Rect{left: 0, top: 0, right: float64(width), bottom: float64(height)},
 		},
-		SpriteSheet:     NewSpriteSheet(64, 80, 3, 1),
+		SpriteSheet:     NewSpriteSheet(width, CharPortraitBigHeight, 3, 1),
 		Mood:            mood,
 		State:           StateUnselected,
 		UnselectedColor: color.RGBA{0, 0, 0, 255},
@@ -126,8 +136,8 @@ func loadCharData() []CharData {
 		{
 			Name:          "Dr. Q",
 			Image:         DrQCharImage,
-			SelectedColor: color.RGBA{92, 92, 92, 255},
-			FrameColor:    color.RGBA{220, 220, 220, 255},
+			SelectedColor: color.RGBA{20, 75, 78, 255},
+			FrameColor:    color.RGBA{74, 199, 198, 255},
 		},
 		{
 			Name:          "Erica",

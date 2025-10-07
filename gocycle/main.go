@@ -17,6 +17,10 @@ const (
 	ScreenHeight = 240
 	TileSize     = 16
 	ScoreOffset  = 3
+
+	CharPortraitWidth       = 64
+	CharPortraitBigHeight   = 80
+	CharPortraitSmallHeight = 64
 )
 
 func main() {

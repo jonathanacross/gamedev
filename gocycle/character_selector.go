@@ -50,7 +50,7 @@ func NewCharacterSelector(
 	for i, charIdx := range characterIndices {
 		x := float64(i%cols)*spaceX + x
 		y := float64(i/cols)*spaceY + y
-		char := NewCharacterFrame(charIdx, x, y, CharacterNeutral)
+		char := NewCharacterFrame(charIdx, x, y, CharacterNeutral, true)
 		char.State = StateUnselected
 		chars = append(chars, char)
 	}
