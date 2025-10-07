@@ -42,6 +42,10 @@ func (r Rect) Intersects(other Rect) bool {
 	return r.right > other.left && r.left < other.right && r.bottom > other.top && r.top < other.bottom
 }
 
+func (r Rect) Contains(x, y float64) bool {
+	return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+}
+
 // BaseSprite provides common fields and methods for any visible game entity.
 // It handles drawing a single sprite or the current frame of an animation.
 type BaseSprite struct {
@@ -60,7 +64,7 @@ func (bs *BaseSprite) HitBox() Rect {
 	}
 }
 
-func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.RGBA) {
+func DrawRectFrame(screen *ebiten.Image, rect Rect, clr color.Color) {
 	lineWidth := float32(1)
 
 	vector.StrokeLine(screen, float32(rect.left), float32(rect.top), float32(rect.right), float32(rect.top), lineWidth, clr, false)

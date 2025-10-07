@@ -18,6 +18,18 @@ var assets embed.FS
 // var TitlePageImage = loadImage("assets/title.png")
 var SquareImage = loadImage("assets/square.png")
 
+// Characters
+var BiffCharImage = loadImage("assets/biff.png")
+var DrQCharImage = loadImage("assets/drq.png")
+var ElaraCharImage = loadImage("assets/elara.png")
+var EricaCharImage = loadImage("assets/erica.png")
+var HeatherGCharImage = loadImage("assets/heather_green.png")
+var HeatherVCharImage = loadImage("assets/heather_violet.png")
+var MikeGCharImage = loadImage("assets/mike_green.png")
+var MikeVCharImage = loadImage("assets/mike_violet.png")
+var MiloCharImage = loadImage("assets/milo.png")
+var SaraCharImage = loadImage("assets/sara.png")
+
 var MusicBytes = loadSoundBytes("assets/8bit-canon.mp3")
 
 //var MainFaceSource = loadFaceSource("assets/ByteBounce.ttf")

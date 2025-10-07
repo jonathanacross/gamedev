@@ -4,9 +4,7 @@ import (
 	"image"
 )
 
-// TODO: rename
 type SpriteSheet struct {
-	// image         *ebiten.Image
 	tileWidth     int
 	tileHeight    int
 	widthInTiles  int
@@ -16,7 +14,6 @@ type SpriteSheet struct {
 
 func NewSpriteSheet(tileWidth int, tileHeight int, widthInTiles int, heightInTiles int) *SpriteSheet {
 	return &SpriteSheet{
-		// image:         image,
 		tileWidth:     tileWidth,
 		tileHeight:    tileHeight,
 		widthInTiles:  widthInTiles,
