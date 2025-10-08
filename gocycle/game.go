@@ -104,7 +104,7 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 			selectedChars[i], selectedChars[j] = selectedChars[j], selectedChars[i]
 		})
 
-		g.State = NewGamePlayState(selectedChars)
+		g.State = NewGamePlayState(selectedChars, 0)
 	}
 
 	return nil
@@ -122,9 +122,11 @@ type GamePlayState struct {
 	HumanController1 *core.HumanController
 	HumanController2 *core.HumanController
 	CharacterCards   []*CharacterFrame
+	WaitingForStart  bool
+	Round            int
 }
 
-func NewGamePlayState(characters []*CharData) *GamePlayState {
+func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 	var human1 *core.HumanController
 	var human2 *core.HumanController
 	for _, char := range characters {
@@ -158,10 +160,20 @@ func NewGamePlayState(characters []*CharData) *GamePlayState {
 		HumanController1: human1,
 		HumanController2: human2,
 		CharacterCards:   cards,
+		WaitingForStart:  true,
+		Round:            round,
 	}
 }
 
 func (gs *GamePlayState) Update(g *Game) error {
+	// wait to press space to start the first time
+	if gs.WaitingForStart {
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			gs.WaitingForStart = false
+		}
+		return nil
+	}
+
 	if gs.HumanController1 != nil {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			gs.HumanController1.EnqueueDirection(core.Left)
@@ -195,6 +207,21 @@ func (gs *GamePlayState) Update(g *Game) error {
 	if gs.ArenaTimer.IsReady() {
 		gs.ArenaView.Update()
 		gs.ArenaTimer.Reset()
+
+		numActivePlayers := 0
+		for _, player := range gs.ArenaView.Arena.Players {
+			if player.IsAlive {
+				numActivePlayers++
+			}
+		}
+		if numActivePlayers <= 1 {
+			// game over
+			if gs.Round < NumRounds {
+				g.State = NewGamePlayState(gs.ArenaView.Characters, gs.Round+1)
+			} else {
+				g.State = &TitleScreenState{}
+			}
+		}
 	}
 	return nil
 }

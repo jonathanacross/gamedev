@@ -14,6 +14,7 @@ const (
 	SquareSize   = 4
 
 	GameUpdateSpeedMillis = 100
+	NumRounds             = 5
 
 	ScreenWidth  = 384
 	ScreenHeight = 240
