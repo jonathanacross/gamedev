@@ -43,6 +43,7 @@ func (cs *CharacterSelector) Update() {
 
 func NewCharacterSelector(
 	x, y float64, spaceX, spaceY float64, rows, cols int, numSelectable int,
+	// TODO: remove this parameter after ui update
 	characterIndices []int) *CharacterSelector {
 
 	chars := []*CharacterFrame{}
@@ -59,4 +60,14 @@ func NewCharacterSelector(
 		Characters:    chars,
 		NumSelectable: numSelectable,
 	}
+}
+
+func (cs *CharacterSelector) GetSelectedCharacters() []*CharData {
+	selectedChars := []*CharData{}
+	for _, ch := range cs.Characters {
+		if ch.State == StateSelected {
+			selectedChars = append(selectedChars, &ch.CharData)
+		}
+	}
+	return selectedChars
 }

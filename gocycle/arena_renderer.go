@@ -8,6 +8,31 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
+type ArenaView struct {
+	Arena      *core.Arena
+	Characters []*CharData
+}
+
+func NewArenaView(width, height int, characters []*CharData) *ArenaView {
+	initialPositions := []core.Vector{
+		{X: 10, Y: 10},
+		{X: 30, Y: 30},
+		{X: 10, Y: 30},
+		{X: 30, Y: 10},
+	}
+	initialDirections := []core.Vector{core.Right, core.Left, core.Down, core.Up}
+
+	players := []*core.Player{}
+	for i, char := range characters {
+		players = append(players, core.NewPlayer(i+1, initialPositions[i], initialDirections[i], char.Controller))
+	}
+
+	return &ArenaView{
+		Arena:      core.NewArena(width, height, players),
+		Characters: characters,
+	}
+}
+
 // PlayerColorMap maps Player IDs (1, 2, 3, 4) to their specific rendering colors.
 // Index 0 is left empty since Player IDs start at 1.
 var PlayerColorMap = []struct {
@@ -40,11 +65,11 @@ var PlayerColorMap = []struct {
 
 // GetSquareColor returns the appropriate color.RGBA for a square at (x, y)
 // based on its state and the current player positions.
-func (g *Game) GetSquareColor(x, y int, square core.Square) color.RGBA {
+func (av *ArenaView) GetSquareColor(x, y int, square core.Square) color.RGBA {
 
 	// If ANY player's current position matches (x, y), draw the Head color.
 	currentPos := core.Vector{X: x, Y: y}
-	for _, player := range g.Arena.Players {
+	for _, player := range av.Arena.Players {
 		if player.IsAlive && player.Position.Equals(currentPos) {
 			// Safety check: ensure the ID is within the bounds of our color map
 			if player.ID >= 1 && player.ID < len(PlayerColorMap) {
@@ -59,7 +84,7 @@ func (g *Game) GetSquareColor(x, y int, square core.Square) color.RGBA {
 		return color.RGBA{R: 34, G: 32, B: 52, A: 255}
 	case core.Wall:
 		// Color for the arena border walls
-		return color.RGBA{R: 63, G: 80, B: 151, A: 255}
+		return color.RGBA{R: 128, G: 128, B: 128, A: 255}
 	default:
 		// --- Player Path / Head Logic ---
 		playerID := int(square)
@@ -69,13 +94,14 @@ func (g *Game) GetSquareColor(x, y int, square core.Square) color.RGBA {
 			// Use a fallback color for unexpected IDs
 			return color.RGBA{R: 255, G: 0, B: 255, A: 255}
 		}
+		// TODO: update this to read the colors from av.Characters
 
 		renderData := PlayerColorMap[playerID]
 
 		// Check if the player is alive and the square is their current "head" position.
 		// Note: We access players using ID-1 because the Players slice is 0-indexed.
-		if playerID <= len(g.Arena.Players) {
-			player := g.Arena.Players[playerID-1]
+		if playerID <= len(av.Arena.Players) {
+			player := av.Arena.Players[playerID-1]
 
 			// Check if the current grid coordinate matches the player's head position.
 			currentPos := core.Vector{X: x, Y: y}
@@ -91,12 +117,12 @@ func (g *Game) GetSquareColor(x, y int, square core.Square) color.RGBA {
 	}
 }
 
-func (g *Game) DrawArena(screen *ebiten.Image) {
-	for y := 0; y < g.Arena.Height; y++ {
-		for x := 0; x < g.Arena.Width; x++ {
-			square := g.Arena.Grid[y][x]
+func (av *ArenaView) Draw(screen *ebiten.Image) {
+	for y := 0; y < av.Arena.Height; y++ {
+		for x := 0; x < av.Arena.Width; x++ {
+			square := av.Arena.Grid[y][x]
 
-			color := g.GetSquareColor(x, y, square)
+			color := av.GetSquareColor(x, y, square)
 
 			r32, g32, b32, _ := color.RGBA()
 			r := float64(r32) / 0xFFFF
@@ -112,4 +138,8 @@ func (g *Game) DrawArena(screen *ebiten.Image) {
 			colorm.DrawImage(screen, SquareImage, cm, op)
 		}
 	}
+}
+
+func (av *ArenaView) Update() {
+	av.Arena.Update()
 }
