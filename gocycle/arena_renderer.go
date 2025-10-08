@@ -13,22 +13,9 @@ type ArenaView struct {
 	Characters []*CharData
 }
 
-func NewArenaView(width, height int, characters []*CharData) *ArenaView {
-	initialPositions := []core.Vector{
-		{X: 10, Y: 10},
-		{X: 30, Y: 30},
-		{X: 10, Y: 30},
-		{X: 30, Y: 10},
-	}
-	initialDirections := []core.Vector{core.Right, core.Left, core.Down, core.Up}
-
-	players := []*core.Player{}
-	for i, char := range characters {
-		players = append(players, core.NewPlayer(i+1, initialPositions[i], initialDirections[i], char.Controller))
-	}
-
+func NewArenaView(arena *core.Arena, characters []*CharData) *ArenaView {
 	return &ArenaView{
-		Arena:      core.NewArena(width, height, players),
+		Arena:      arena,
 		Characters: characters,
 	}
 }
@@ -103,7 +90,7 @@ func (av *ArenaView) Draw(screen *ebiten.Image) {
 			cm.Scale(r, g, b, 1.0)
 
 			op := &colorm.DrawImageOptions{}
-			op.GeoM.Translate(float64(x*SquareSize+10), float64(y*SquareSize+10))
+			op.GeoM.Translate(float64(x*SquareSize+ArenaOffsetX), float64(y*SquareSize+ArenaOffsetY))
 
 			colorm.DrawImage(screen, SquareImage, cm, op)
 		}

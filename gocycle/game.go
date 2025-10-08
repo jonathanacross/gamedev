@@ -3,6 +3,7 @@ package main
 import (
 	"gocycle/core"
 	"image/color"
+	"math/rand/v2"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -97,7 +98,13 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 	gs.Selector.Update()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.State = NewGamePlayState(gs.Selector.GetSelectedCharacters())
+		selectedChars := gs.Selector.GetSelectedCharacters()
+		// Shuffle so that chars don't always start in the same place.
+		rand.Shuffle(len(selectedChars), func(i, j int) {
+			selectedChars[i], selectedChars[j] = selectedChars[j], selectedChars[i]
+		})
+
+		g.State = NewGamePlayState(selectedChars)
 	}
 
 	return nil
@@ -114,24 +121,43 @@ type GamePlayState struct {
 	ArenaTimer       *Timer
 	HumanController1 *core.HumanController
 	HumanController2 *core.HumanController
+	CharacterCards   []*CharacterFrame
 }
 
 func NewGamePlayState(characters []*CharData) *GamePlayState {
 	var human1 *core.HumanController
 	var human2 *core.HumanController
 	for _, char := range characters {
-		if char.ControllerType == HumanFirstPlayer {
+		switch char.ControllerType {
+		case HumanFirstPlayer:
 			human1 = char.Controller.(*core.HumanController)
-		} else if char.ControllerType == HumanSecondPlayer {
+		case HumanSecondPlayer:
 			human2 = char.Controller.(*core.HumanController)
 		}
 	}
 
+	positionData := PositionDataByNumChars[len(characters)]
+
+	cards := []*CharacterFrame{}
+	for i, char := range characters {
+		cards = append(cards, NewCharacterFrame(char,
+			positionData[i].CardX, positionData[i].CardY, CharacterNeutral, false))
+	}
+
+	players := []*core.Player{}
+	initialDirections := []core.Vector{core.Right, core.Left, core.Down, core.Up}
+	for i, char := range characters {
+		players = append(players, core.NewPlayer(i+1,
+			positionData[i].ArenaLoc, initialDirections[i], char.Controller))
+	}
+	var arena = core.NewArena(ArenaWidth, ArenaHeight, players)
+
 	return &GamePlayState{
-		ArenaView:        NewArenaView(ArenaWidth, ArenaHeight, characters),
+		ArenaView:        NewArenaView(arena, characters),
 		ArenaTimer:       NewTimer(GameUpdateSpeedMillis * time.Millisecond),
 		HumanController1: human1,
 		HumanController2: human2,
+		CharacterCards:   cards,
 	}
 }
 
@@ -175,4 +201,41 @@ func (gs *GamePlayState) Update(g *Game) error {
 
 func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 	gs.ArenaView.Draw(screen)
+	for _, card := range gs.CharacterCards {
+		card.Draw(screen)
+	}
+}
+
+var PositionDataByNumChars = getPositionData()
+
+type PositionData struct {
+	ArenaLoc core.Vector
+	CardX    float64
+	CardY    float64
+}
+
+// Positions of where to put players in the arena and where to draw the player
+// cards.  This depends on the number of players.
+func getPositionData() [][]PositionData {
+	return [][]PositionData{
+		{},
+		{
+			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
+		},
+		{
+			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: 30, Y: 30}, CardX: 300, CardY: 10},
+		},
+		{
+			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: 30, Y: 30}, CardX: 300, CardY: 10},
+			{ArenaLoc: core.Vector{X: 10, Y: 30}, CardX: 10, CardY: 120},
+		},
+		{
+			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: 30, Y: 30}, CardX: 300, CardY: 120},
+			{ArenaLoc: core.Vector{X: 10, Y: 30}, CardX: 10, CardY: 120},
+			{ArenaLoc: core.Vector{X: 30, Y: 10}, CardX: 300, CardY: 10},
+		},
+	}
 }

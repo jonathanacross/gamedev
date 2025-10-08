@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	ArenaWidth  = 50
-	ArenaHeight = 50
-	SquareSize  = 4
+	ArenaWidth   = 50
+	ArenaHeight  = 50
+	ArenaOffsetX = 90
+	ArenaOffsetY = 10
+	SquareSize   = 4
 
 	GameUpdateSpeedMillis = 100
 

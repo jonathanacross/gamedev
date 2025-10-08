@@ -51,7 +51,7 @@ func NewCharacterSelector(
 	for i, charIdx := range characterIndices {
 		x := float64(i%cols)*spaceX + x
 		y := float64(i/cols)*spaceY + y
-		char := NewCharacterFrame(charIdx, x, y, CharacterNeutral, true)
+		char := NewCharacterFrame(&Characters[charIdx], x, y, CharacterNeutral, true)
 		char.State = StateUnselected
 		chars = append(chars, char)
 	}
@@ -66,7 +66,7 @@ func (cs *CharacterSelector) GetSelectedCharacters() []*CharData {
 	selectedChars := []*CharData{}
 	for _, ch := range cs.Characters {
 		if ch.State == StateSelected {
-			selectedChars = append(selectedChars, &ch.CharData)
+			selectedChars = append(selectedChars, ch.CharData)
 		}
 	}
 	return selectedChars

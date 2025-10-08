@@ -27,7 +27,7 @@ type CharacterFrame struct {
 	Mood        CharacterMood
 	State       CharacterState
 	SpriteSheet *SpriteSheet
-	CharData    CharData
+	CharData    *CharData
 }
 
 func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
@@ -66,8 +66,7 @@ func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
 		1, frameColor, false)
 }
 
-func NewCharacterFrame(CharacterIdx int, x, y float64, mood CharacterMood, smallPortrait bool) *CharacterFrame {
-	charData := Characters[CharacterIdx]
+func NewCharacterFrame(charData *CharData, x, y float64, mood CharacterMood, smallPortrait bool) *CharacterFrame {
 	width := CharPortraitWidth
 	height := CharPortraitBigHeight
 	if smallPortrait {
