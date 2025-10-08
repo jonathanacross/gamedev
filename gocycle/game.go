@@ -17,29 +17,11 @@ type GameState interface {
 
 type Game struct {
 	State GameState
-	// TODO: move this inside the character selector state
-	Selector *CharacterSelector
 }
 
 func NewGame() *Game {
-	//humanController := core.NewHumanController()
-	//turnProb := 0.1
-
-	//player1 := core.NewPlayer(1, core.Vector{X: 10, Y: 10}, core.Right, humanController)
-	//player2 := core.NewPlayer(2, core.Vector{X: 30, Y: 30}, core.Left, &core.RandomTurnerController{TurnProb: 0.01})
-	//player3 := core.NewPlayer(3, core.Vector{X: 10, Y: 30}, core.Down, &core.RandomTurnerController{TurnProb: 0.4})
-	//player4 := core.NewPlayer(4, core.Vector{X: 30, Y: 10}, core.Up, &core.AreaController{})
-	//players := []*core.Player{player1, player2, player3, player4}
-
-	selector := NewCharacterSelector(
-		16, 30, 74, 90, 2, 5, 10, []int{6, 8, 0, 1, 2, 7, 9, 3, 4, 5})
-
 	return &Game{
-		//Arena:           *core.NewArena(ArenaWidth, ArenaHeight, players),
-		//ArenaTimer:      NewTimer(GameUpdateSpeedMillis * time.Millisecond),
-		//HumanController: humanController,
-		State:    &TitleScreenState{},
-		Selector: selector,
+		State: &TitleScreenState{},
 	}
 }
 
@@ -88,7 +70,7 @@ type TitleScreenState struct{}
 
 func (gs *TitleScreenState) Update(g *Game) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.State = &CharacterPickerState{}
+		g.State = NewCharacterPickerState()
 	}
 	return nil
 }
@@ -100,20 +82,29 @@ func (gs *TitleScreenState) Draw(g *Game, screen *ebiten.Image) {
 
 // ------------------- Character Picker State
 
-type CharacterPickerState struct{}
+type CharacterPickerState struct {
+	Selector *CharacterSelector
+}
+
+func NewCharacterPickerState() *CharacterPickerState {
+	return &CharacterPickerState{
+		Selector: NewCharacterSelector(
+			16, 30, 74, 90, 2, 5, 10, []int{6, 8, 0, 1, 2, 7, 9, 3, 4, 5}),
+	}
+}
 
 func (gs *CharacterPickerState) Update(g *Game) error {
-	g.Selector.Update()
+	gs.Selector.Update()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.State = NewGamePlayState(g.Selector.GetSelectedCharacters())
+		g.State = NewGamePlayState(gs.Selector.GetSelectedCharacters())
 	}
 
 	return nil
 }
 
 func (gs *CharacterPickerState) Draw(g *Game, screen *ebiten.Image) {
-	g.Selector.Draw(screen)
+	gs.Selector.Draw(screen)
 }
 
 // ------------------- Game Play State
@@ -126,17 +117,6 @@ type GamePlayState struct {
 }
 
 func NewGamePlayState(characters []*CharData) *GamePlayState {
-	// humanController1 := core.NewHumanController()
-	// humanController2 := core.NewHumanController()
-	//turnProb := 0.1
-
-	// TODO: these players should be passed in to constructor
-	// player1 := core.NewPlayer(1, core.Vector{X: 10, Y: 10}, core.Right, humanController1)
-	// player2 := core.NewPlayer(2, core.Vector{X: 30, Y: 30}, core.Left, &core.RandomTurnerController{TurnProb: 0.01})
-	// player3 := core.NewPlayer(3, core.Vector{X: 10, Y: 30}, core.Down, &core.RandomTurnerController{TurnProb: 0.4})
-	// player4 := core.NewPlayer(4, core.Vector{X: 30, Y: 10}, core.Up, &core.AreaController{})
-	// players := []*core.Player{player1, player2, player3, player4}
-
 	var human1 *core.HumanController
 	var human2 *core.HumanController
 	for _, char := range characters {

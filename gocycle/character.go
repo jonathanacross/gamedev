@@ -19,6 +19,7 @@ const (
 	CharacterMikeV
 	CharacterHeatherG
 	CharacterHeatherV
+	NumCharacters
 )
 
 type ControllerType int
