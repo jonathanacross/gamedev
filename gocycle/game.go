@@ -39,8 +39,26 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ScreenWidth, ScreenHeight
 }
 
+func checkTextSize(screen *ebiten.Image) {
+	for i := 5; i < 20; i++ {
+		fontSize := float64(i)
+		fontFace := &text.GoTextFace{
+			Source: MainFaceSource,
+			Size:   fontSize,
+		}
+
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(10, float64((i-5)*20+10))
+		op.ColorScale.ScaleWithColor(color.White)
+		op.LineSpacing = fontSize
+		op.PrimaryAlign = text.AlignStart
+
+		text.Draw(screen, "GoCycle test 1234", fontFace, op)
+	}
+}
+
 func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, c color.Color) {
-	fontSize := float64(8)
+	fontSize := float64(16)
 	fontFace := &text.GoTextFace{
 		Source: MainFaceSource,
 		Size:   fontSize,
@@ -89,8 +107,7 @@ type CharacterPickerState struct {
 
 func NewCharacterPickerState() *CharacterPickerState {
 	return &CharacterPickerState{
-		Selector: NewCharacterSelector(
-			16, 30, 74, 90, 2, 5, 10, []int{6, 8, 0, 1, 2, 7, 9, 3, 4, 5}),
+		Selector: NewCharacterSelector(16, 30, 74, 90, 2, 5),
 	}
 }
 

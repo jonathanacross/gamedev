@@ -32,7 +32,7 @@ var SaraCharImage = loadImage("assets/sara.png")
 
 var MusicBytes = loadSoundBytes("assets/8bit-canon.mp3")
 
-var MainFaceSource = loadFaceSource("assets/pressstart2p.ttf")
+var MainFaceSource = loadFaceSource("assets/m5x7.ttf")
 
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
