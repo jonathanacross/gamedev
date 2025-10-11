@@ -185,7 +185,7 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 		CharacterCards:     cards,
 		WaitingForStart:    true,
 		WaitingForNewRound: false,
-		EndRoundTimer:      NewTimer(3 * time.Second),
+		EndRoundTimer:      NewTimer(2 * time.Second),
 		Round:              round,
 		PreviousIsAlive:    initialStatus,
 		RemainingRanks:     initialRanks,
