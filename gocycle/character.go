@@ -38,6 +38,7 @@ type CharData struct {
 	FrameColor     color.Color
 	Controller     core.PlayerController
 	ControllerType ControllerType
+	Score          int
 }
 
 var Characters []CharData = loadCharData()
@@ -51,6 +52,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{3, 166, 224, 255},
 			Controller:     &core.RandomAvoidingController{},
 			ControllerType: ComputerPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Sara",
@@ -59,6 +61,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{248, 243, 79, 255},
 			Controller:     &core.RandomTurnerController{TurnProb: 0.30},
 			ControllerType: ComputerPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Dr. Q",
@@ -67,6 +70,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{74, 199, 198, 255},
 			Controller:     &core.RandomTurnerController{TurnProb: 0.10},
 			ControllerType: ComputerPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Erica",
@@ -75,6 +79,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{231, 64, 71, 255},
 			Controller:     &core.RandomTurnerController{TurnProb: 0.01},
 			ControllerType: ComputerPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Biff",
@@ -83,6 +88,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{238, 156, 50, 255},
 			Controller:     &core.AreaController{},
 			ControllerType: ComputerPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Elara",
@@ -91,6 +97,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{121, 121, 203, 255},
 			Controller:     &core.AreaController{},
 			ControllerType: ComputerPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Mike Green",
@@ -99,6 +106,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{156, 224, 42, 255},
 			Controller:     core.NewHumanController(),
 			ControllerType: HumanFirstPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Mike Violet",
@@ -107,6 +115,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{193, 92, 153, 255},
 			Controller:     core.NewHumanController(),
 			ControllerType: HumanSecondPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Heather Green",
@@ -115,6 +124,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{156, 224, 42, 255},
 			Controller:     core.NewHumanController(),
 			ControllerType: HumanFirstPlayer,
+			Score:          0,
 		},
 		{
 			Name:           "Heather Violet",
@@ -123,6 +133,7 @@ func loadCharData() []CharData {
 			FrameColor:     color.RGBA{193, 92, 153, 255},
 			Controller:     core.NewHumanController(),
 			ControllerType: HumanSecondPlayer,
+			Score:          0,
 		},
 	}
 }

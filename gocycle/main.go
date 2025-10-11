@@ -10,7 +10,7 @@ const (
 	ArenaWidth   = 50
 	ArenaHeight  = 50
 	ArenaOffsetX = 90
-	ArenaOffsetY = 10
+	ArenaOffsetY = 30
 	SquareSize   = 4
 
 	GameUpdateSpeedMillis = 100
