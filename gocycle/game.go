@@ -157,7 +157,7 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 		players = append(players, core.NewPlayer(i+1,
 			positionData[i].ArenaLoc, initialDirections[i], char.Controller))
 	}
-	var arena = core.NewArena(ArenaWidth, ArenaHeight, players)
+	var arena = core.NewArenaFromGrid(GetGrid(round), players)
 
 	initialStatus := make([]bool, len(players))
 	for i := range players {
@@ -379,25 +379,29 @@ type PositionData struct {
 // Positions of where to put players in the arena and where to draw the player
 // cards.  This depends on the number of players.
 func getPositionData() [][]PositionData {
+	lo := 12
+	// TODO: this should be 37, but there's a bug when players don't all
+	// start with even coordinates.
+	hi := 38
 	return [][]PositionData{
 		{},
 		{
-			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: lo, Y: lo}, CardX: 10, CardY: 10},
 		},
 		{
-			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
-			{ArenaLoc: core.Vector{X: 30, Y: 30}, CardX: 300, CardY: 10},
+			{ArenaLoc: core.Vector{X: lo, Y: lo}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: hi, Y: hi}, CardX: 300, CardY: 10},
 		},
 		{
-			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
-			{ArenaLoc: core.Vector{X: 30, Y: 30}, CardX: 300, CardY: 10},
-			{ArenaLoc: core.Vector{X: 10, Y: 30}, CardX: 10, CardY: 120},
+			{ArenaLoc: core.Vector{X: lo, Y: lo}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: hi, Y: hi}, CardX: 300, CardY: 10},
+			{ArenaLoc: core.Vector{X: lo, Y: hi}, CardX: 10, CardY: 120},
 		},
 		{
-			{ArenaLoc: core.Vector{X: 10, Y: 10}, CardX: 10, CardY: 10},
-			{ArenaLoc: core.Vector{X: 30, Y: 30}, CardX: 300, CardY: 120},
-			{ArenaLoc: core.Vector{X: 10, Y: 30}, CardX: 10, CardY: 120},
-			{ArenaLoc: core.Vector{X: 30, Y: 10}, CardX: 300, CardY: 10},
+			{ArenaLoc: core.Vector{X: lo, Y: lo}, CardX: 10, CardY: 10},
+			{ArenaLoc: core.Vector{X: hi, Y: hi}, CardX: 300, CardY: 120},
+			{ArenaLoc: core.Vector{X: lo, Y: hi}, CardX: 10, CardY: 120},
+			{ArenaLoc: core.Vector{X: hi, Y: lo}, CardX: 300, CardY: 10},
 		},
 	}
 }

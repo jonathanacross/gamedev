@@ -78,6 +78,27 @@ func NewArena(w, h int, players []*Player) *Arena {
 	}
 }
 
+func NewArenaFromGrid(grid [][]Square, players []*Player) *Arena {
+	// Make a copy of the grid to avoid mutating the input
+	newGrid := make([][]Square, len(grid))
+	for i := range grid {
+		newGrid[i] = make([]Square, len(grid[i]))
+		copy(newGrid[i], grid[i])
+	}
+
+	// Mark player starting positions on the grid
+	for _, p := range players {
+		newGrid[p.Position.Y][p.Position.X] = Square(p.ID)
+	}
+
+	return &Arena{
+		Grid:    newGrid,
+		Width:   len(grid[0]),
+		Height:  len(grid),
+		Players: players,
+	}
+}
+
 // Update moves all living players and handles collisions.
 func (a *Arena) Update() {
 	// Collect all desired new positions and determine potential casualties
