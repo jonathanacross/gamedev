@@ -47,7 +47,9 @@ func (cs *CharacterSelector) Draw(screen *ebiten.Image) {
 	drawTextAt(screen, "Player 1", 60, 15, text.AlignStart, color.White)
 	drawTextAt(screen, "Player 2", 60, 105, text.AlignStart, color.White)
 	drawTextAt(screen, "Computer opponents", 200, 15, text.AlignStart, color.White)
-	drawTextAt(screen, "Press space to continue", 250, 200, text.AlignStart, color.White)
+	if cs.IsValid() {
+		drawTextAt(screen, "Press space to continue", 250, 200, text.AlignStart, color.White)
+	}
 }
 
 func (cs *CharacterSelector) Update() {
@@ -104,4 +106,8 @@ func (cs *CharacterSelector) updateCounts(char *CharacterFrame, delta int) {
 		cs.NumPlayer2Selected += delta
 	}
 	cs.NumSelected += delta
+}
+
+func (cs *CharacterSelector) IsValid() bool {
+	return cs.NumSelected >= 2
 }

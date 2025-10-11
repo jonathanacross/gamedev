@@ -24,11 +24,6 @@ const (
 	CharPortraitWidth       = 64
 	CharPortraitBigHeight   = 80
 	CharPortraitSmallHeight = 64
-
-	ScoreFirstPlace  = 8
-	ScoreSecondPlace = 6
-	ScoreThirdPlace  = 4
-	ScoreFourthPlace = 2
 )
 
 func main() {

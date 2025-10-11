@@ -98,7 +98,7 @@ func NewCharacterPickerState() *CharacterPickerState {
 func (gs *CharacterPickerState) Update(g *Game) error {
 	gs.Selector.Update()
 
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if gs.Selector.IsValid() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		selectedChars := gs.Selector.GetSelectedCharacters()
 		// Shuffle so that chars don't always start in the same place.
 		rand.Shuffle(len(selectedChars), func(i, j int) {
@@ -130,24 +130,23 @@ func NewScoreScreenState(chars []*CharData) *ScoreScreenState {
 		return chars[i].Score > chars[j].Score
 	})
 
+	winner := chars[0]
+	loser := chars[len(chars)-1]
 	cards := []*CharacterFrame{}
 	spaceX := float64(CharPortraitWidth + 20)
 	startX := (ScreenWidth - (spaceX*float64(len(chars)-1) + CharPortraitWidth)) / 2
 	y := float64(ScreenHeight/3 - CharPortraitBigHeight/2)
 	for i, char := range chars {
 		x := startX + float64(i)*spaceX
-		cards = append(cards, NewCharacterFrame(char, x, y, CharacterNeutral, false))
-	}
-	// update character moods
-	winner := cards[0]
-	loser := cards[len(cards)-1]
-	for _, char := range cards {
-		if char.CharData.Score == loser.CharData.Score {
-			char.Mood = CharacterSad
+
+		mood := CharacterNeutral
+		if char.Score == winner.Score {
+			mood = CharacterHappy
+		} else if char.Score == loser.Score {
+			mood = CharacterSad
 		}
-		if char.CharData.Score == winner.CharData.Score {
-			char.Mood = CharacterHappy
-		}
+
+		cards = append(cards, NewCharacterFrame(char, x, y, mood, false))
 	}
 
 	return &ScoreScreenState{
@@ -214,7 +213,7 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 	}
 
 	players := []*core.Player{}
-	initialDirections := []core.Vector{core.Right, core.Left, core.Down, core.Up}
+	initialDirections := []core.Vector{core.Right, core.Left, core.Up, core.Down}
 	for i, char := range characters {
 		players = append(players, core.NewPlayer(i+1,
 			positionData[i].ArenaLoc, initialDirections[i], char.Controller))
@@ -228,15 +227,14 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 
 	roundScores := make(map[*CharData]int)
 	for _, char := range characters {
-		roundScores[char] = 0
+		roundScores[char] = -1 // not yet scored
 	}
 
-	// Initialize RemainingRanks with the top scores (1st, 2nd, 3rd, 4th)
-	initialRanks := []int{ScoreFirstPlace, ScoreSecondPlace, ScoreThirdPlace, ScoreFourthPlace}
-	// Trim the rank array to match the number of players
-	numPlayers := len(characters)
-	if numPlayers < len(initialRanks) {
-		initialRanks = initialRanks[:numPlayers]
+	// Initialize initialRanks with the top scores (1st, 2nd, 3rd, 4th)
+	// This is 6, 4, 2, 0 for 4 players; 4, 2, 0 for 3 players, and 2, 0 for 2 players.
+	initialRanks := []int{}
+	for rank := range characters {
+		initialRanks = append(initialRanks, (len(characters)-rank-1)*2)
 	}
 
 	return &GamePlayState{
@@ -261,7 +259,7 @@ func (gs *GamePlayState) scoreDiedPlayers(justDiedPlayers []*CharData) {
 		return
 	}
 
-	// The ranks we are scoring are the WORST available ranks (the end of the RemainingRanks slice).
+	// The ranks we are scoring are the worst available ranks (the end of the RemainingRanks slice).
 	numRemaining := len(gs.RemainingRanks)
 
 	// Ensure we don't try to score more ranks than are available
@@ -420,7 +418,7 @@ func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 
 		// Draw the scores below each card
 		roundScore := gs.RoundScores[card.CharData]
-		if roundScore > 0 {
+		if roundScore >= 0 {
 			scoreText := fmt.Sprintf("%d", roundScore)
 			scoreX := card.X + card.HitBox().Width()/2
 			scoreY := card.Y + card.HitBox().Height() + 5
