@@ -5,6 +5,7 @@ import (
 	"gocycle/core"
 	"image/color"
 	"math/rand/v2"
+	"sort"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -104,6 +105,10 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 			selectedChars[i], selectedChars[j] = selectedChars[j], selectedChars[i]
 		})
 
+		// Clear out the player scores for the new game
+		for _, char := range selectedChars {
+			char.Score = 0
+		}
 		g.State = NewGamePlayState(selectedChars, 0)
 	}
 
@@ -112,6 +117,63 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 
 func (gs *CharacterPickerState) Draw(g *Game, screen *ebiten.Image) {
 	gs.Selector.Draw(screen)
+}
+
+// ------------------- Scrore Screen State
+
+type ScoreScreenState struct {
+	CharacterCards []*CharacterFrame
+}
+
+func NewScoreScreenState(chars []*CharData) *ScoreScreenState {
+	sort.Slice(chars, func(i, j int) bool {
+		return chars[i].Score > chars[j].Score
+	})
+
+	cards := []*CharacterFrame{}
+	spaceX := float64(CharPortraitWidth + 20)
+	startX := (ScreenWidth - (spaceX*float64(len(chars)-1) + CharPortraitWidth)) / 2
+	y := float64(ScreenHeight/3 - CharPortraitBigHeight/2)
+	for i, char := range chars {
+		x := startX + float64(i)*spaceX
+		cards = append(cards, NewCharacterFrame(char, x, y, CharacterNeutral, false))
+	}
+	// update character moods
+	winner := cards[0]
+	loser := cards[len(cards)-1]
+	for _, char := range cards {
+		if char.CharData.Score == loser.CharData.Score {
+			char.Mood = CharacterSad
+		}
+		if char.CharData.Score == winner.CharData.Score {
+			char.Mood = CharacterHappy
+		}
+	}
+
+	return &ScoreScreenState{
+		CharacterCards: cards,
+	}
+}
+
+func (gs *ScoreScreenState) Update(g *Game) error {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		g.State = &TitleScreenState{}
+	}
+
+	return nil
+}
+
+func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
+	for _, card := range gs.CharacterCards {
+		card.Draw(screen)
+		// Draw the total scores below each card
+		scoreText := fmt.Sprintf("%d", card.CharData.Score)
+		scoreX := card.X + card.HitBox().Width()/2
+		scoreY := card.Y + card.HitBox().Height() + 5
+		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
+	}
+
+	drawTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/4, text.AlignCenter, color.White)
 }
 
 // ------------------- Game Play State
@@ -279,7 +341,7 @@ func (gs *GamePlayState) Update(g *Game) error {
 			if nextRound < NumRounds {
 				g.State = NewGamePlayState(gs.ArenaView.Characters, nextRound)
 			} else {
-				g.State = &TitleScreenState{}
+				g.State = NewScoreScreenState(gs.ArenaView.Characters)
 			}
 		}
 		return nil
