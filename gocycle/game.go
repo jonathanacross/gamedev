@@ -117,16 +117,18 @@ func (gs *CharacterPickerState) Draw(g *Game, screen *ebiten.Image) {
 // ------------------- Game Play State
 
 type GamePlayState struct {
-	ArenaView        *ArenaView
-	ArenaTimer       *Timer
-	HumanController1 *core.HumanController
-	HumanController2 *core.HumanController
-	CharacterCards   []*CharacterFrame
-	WaitingForStart  bool
-	Round            int
-	PreviousIsAlive  []bool      // Stores player.IsAlive status from the *last* update
-	DeathOrder       []*CharData // Stores players as they die
-	RoundScores      map[*CharData]int
+	ArenaView          *ArenaView
+	ArenaTimer         *Timer
+	HumanController1   *core.HumanController
+	HumanController2   *core.HumanController
+	CharacterCards     []*CharacterFrame
+	WaitingForStart    bool
+	WaitingForNewRound bool
+	EndRoundTimer      *Timer
+	Round              int
+	PreviousIsAlive    []bool // Stores player.IsAlive status from the *last* update
+	RemainingRanks     []int  // Stores the score values of remaining ranks [8, 6, 4, 2]
+	RoundScores        map[*CharData]int
 }
 
 func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
@@ -167,100 +169,94 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 		roundScores[char] = 0
 	}
 
+	// Initialize RemainingRanks with the top scores (1st, 2nd, 3rd, 4th)
+	initialRanks := []int{ScoreFirstPlace, ScoreSecondPlace, ScoreThirdPlace, ScoreFourthPlace}
+	// Trim the rank array to match the number of players
+	numPlayers := len(characters)
+	if numPlayers < len(initialRanks) {
+		initialRanks = initialRanks[:numPlayers]
+	}
+
 	return &GamePlayState{
-		ArenaView:        NewArenaView(arena, characters),
-		ArenaTimer:       NewTimer(GameUpdateSpeedMillis * time.Millisecond),
-		HumanController1: human1,
-		HumanController2: human2,
-		CharacterCards:   cards,
-		WaitingForStart:  true,
-		Round:            round,
-		PreviousIsAlive:  initialStatus,
-		DeathOrder:       []*CharData{},
-		RoundScores:      roundScores,
+		ArenaView:          NewArenaView(arena, characters),
+		ArenaTimer:         NewTimer(GameUpdateSpeedMillis * time.Millisecond),
+		HumanController1:   human1,
+		HumanController2:   human2,
+		CharacterCards:     cards,
+		WaitingForStart:    true,
+		WaitingForNewRound: false,
+		EndRoundTimer:      NewTimer(3 * time.Second),
+		Round:              round,
+		PreviousIsAlive:    initialStatus,
+		RemainingRanks:     initialRanks,
+		RoundScores:        roundScores,
 	}
 }
 
+func (gs *GamePlayState) scoreDiedPlayers(justDiedPlayers []*CharData) {
+	numDiedThisTick := len(justDiedPlayers)
+	if numDiedThisTick == 0 {
+		return
+	}
+
+	// The ranks we are scoring are the WORST available ranks (the end of the RemainingRanks slice).
+	numRemaining := len(gs.RemainingRanks)
+
+	// Ensure we don't try to score more ranks than are available
+	if numDiedThisTick > numRemaining {
+		numDiedThisTick = numRemaining
+	}
+
+	// Identify the score values for the ranks involved in the tie (the last elements)
+	ranksInTie := gs.RemainingRanks[numRemaining-numDiedThisTick:]
+
+	scoreSum := 0
+	for _, score := range ranksInTie {
+		scoreSum += score
+	}
+
+	// Calculate the integer-averaged score for the tie group.
+	// Since we used doubled scores, this results in a guaranteed integer.
+	avgScore := scoreSum / numDiedThisTick
+
+	// Assign the score and immediately update total score.
+	for _, char := range justDiedPlayers {
+		gs.RoundScores[char] = avgScore
+		char.Score += avgScore
+	}
+
+	// Remove the assigned ranks from the pool.
+	gs.RemainingRanks = gs.RemainingRanks[:numRemaining-numDiedThisTick]
+}
+
 func (gs *GamePlayState) handleArenaUpdate() int {
-	gs.ArenaView.Update() // This calls gs.Arena.Update()
+	gs.ArenaView.Update()
 
 	currentActivePlayers := 0
-	justDiedPlayers := []*core.Player{}
+	justDiedPlayers := []*CharData{}
 
-	// 1. Identify players who just died in this time step and update DeathOrder
+	// Identify players who just died in this time step
 	for i, player := range gs.ArenaView.Arena.Players {
-		// Check if player just died this frame (was alive, now dead)
+		char := gs.ArenaView.Characters[i]
+
 		if gs.PreviousIsAlive[i] && !player.IsAlive {
-			justDiedPlayers = append(justDiedPlayers, player)
-			// Add the character to the death order list
-			gs.DeathOrder = append(gs.DeathOrder, gs.ArenaView.Characters[i])
+			justDiedPlayers = append(justDiedPlayers, char)
 		}
 		if player.IsAlive {
 			currentActivePlayers++
 		}
 	}
 
-	// 2. Prepare for the next frame's comparison
+	// Score players who just died and update RemainingRanks
+	gs.scoreDiedPlayers(justDiedPlayers)
+
+	// Prepare for the next frame's comparison
 	gs.PreviousIsAlive = make([]bool, len(gs.ArenaView.Arena.Players))
 	for i, player := range gs.ArenaView.Arena.Players {
 		gs.PreviousIsAlive[i] = player.IsAlive
 	}
 
-	// --- Integrated Scoring Logic ---
-	dyingCharScores := make(map[*CharData]int)
-
-	if len(justDiedPlayers) > 0 {
-		groupSize := len(justDiedPlayers)
-
-		// The number of players who have already died. This determines the starting score slot.
-		baseIndex := len(gs.DeathOrder) - groupSize
-
-		// Look up the scores using the base index and the group size.
-		scores, ok := ScoreLookup[baseIndex][groupSize]
-		if !ok {
-			scores = make([]int, groupSize)
-		}
-
-		// Map the dying characters to the scores they receive for fast lookup
-		for i, player := range justDiedPlayers {
-			charData := gs.ArenaView.Characters[player.ID-1]
-			dyingCharScores[charData] = scores[i]
-		}
-	}
-
-	// 3. Iterate over ALL characters in the round to update scores
-	// This ensures that the loop runs for all players, fulfilling your request.
-	for _, charData := range gs.ArenaView.Characters {
-		// If the character is in the dying map, add the calculated score.
-		// Otherwise, the lookup returns 0 (which is correct for alive/already dead players).
-		if score, found := dyingCharScores[charData]; found {
-			gs.RoundScores[charData] += score
-		}
-	}
-	// --- End Integrated Scoring Logic ---
-
 	return currentActivePlayers
-}
-
-var ScoreLookup = map[int]map[int][]int{
-	0: { // First death.
-		1: {0},          // 1 player died
-		2: {1, 1},       // 2 players died simultaneously. Both get 1 point.
-		3: {2, 2, 2},    // 3 players died. All get 2 points.
-		4: {3, 3, 3, 3}, // All 4 players died. All get 3 points.
-	},
-	1: { // Second death.
-		1: {2},       // 1 player died. Score 2.
-		2: {3, 3},    // 2 players died. Both get 3 points.
-		3: {4, 4, 4}, // 3 players died. All get 4 points.
-	},
-	2: { // Third death.
-		1: {4},    // 1 player died. Score 4.
-		2: {5, 5}, // 2 players died. Both get 5 points.
-	},
-	3: { // 1 player remaining
-		1: {6}, // Last player gets all 6 points.
-	},
 }
 
 func (gs *GamePlayState) Update(g *Game) error {
@@ -268,6 +264,23 @@ func (gs *GamePlayState) Update(g *Game) error {
 	if gs.WaitingForStart {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			gs.WaitingForStart = false
+		}
+		return nil
+	}
+
+	if gs.WaitingForNewRound {
+		gs.EndRoundTimer.Update()
+		if gs.EndRoundTimer.IsReady() {
+			gs.EndRoundTimer.Reset()
+			gs.WaitingForNewRound = false
+
+			// Prepare the next round
+			nextRound := gs.Round + 1
+			if nextRound < NumRounds {
+				g.State = NewGamePlayState(gs.ArenaView.Characters, nextRound)
+			} else {
+				g.State = &TitleScreenState{}
+			}
 		}
 		return nil
 	}
@@ -309,16 +322,28 @@ func (gs *GamePlayState) Update(g *Game) error {
 
 		// check for end of round
 		if numActivePlayers <= 1 {
-			for charData, roundScore := range gs.RoundScores {
-				charData.Score += roundScore
+			numWinners := len(gs.RemainingRanks)
+
+			if numWinners > 0 { // If 0, everyone died in the last tick, and they were already scored.
+				scoreSum := 0
+				for _, score := range gs.RemainingRanks {
+					scoreSum += score
+				}
+
+				avgScore := scoreSum / numWinners
+
+				// Identify the remaining alive players and assign the final score
+				for i, player := range gs.ArenaView.Arena.Players {
+					if player.IsAlive {
+						charData := gs.ArenaView.Characters[i]
+						gs.RoundScores[charData] = avgScore
+						charData.Score += avgScore
+					}
+				}
 			}
 
-			nextRound := gs.Round + 1
-			if nextRound < NumRounds {
-				g.State = NewGamePlayState(gs.ArenaView.Characters, nextRound)
-			} else {
-				g.State = &TitleScreenState{}
-			}
+			// Start the clock to delay before the next round
+			gs.WaitingForNewRound = true
 		}
 	}
 	return nil
@@ -333,10 +358,12 @@ func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 
 		// Draw the scores below each card
 		roundScore := gs.RoundScores[card.CharData]
-		scoreText := fmt.Sprintf("%d", roundScore)
-		scoreX := card.X + card.HitBox().Width()/2
-		scoreY := card.Y + card.HitBox().Height() + 5 // +5 for a small offset below the card
-		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
+		if roundScore > 0 {
+			scoreText := fmt.Sprintf("%d", roundScore)
+			scoreX := card.X + card.HitBox().Width()/2
+			scoreY := card.Y + card.HitBox().Height() + 5
+			drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
+		}
 	}
 
 }
