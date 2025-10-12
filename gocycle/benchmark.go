@@ -155,6 +155,8 @@ func runBenchmark() {
 	}
 }
 
+/*
 func main() {
 	runBenchmark()
 }
+*/

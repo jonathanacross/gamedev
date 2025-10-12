@@ -30,7 +30,7 @@ var MikeVCharImage = loadImage("assets/mike_violet.png")
 var MiloCharImage = loadImage("assets/milo.png")
 var SaraCharImage = loadImage("assets/sara.png")
 
-var MusicBytes = loadSoundBytes("assets/chiptune-groovinng.mp3")
+var MusicBytes = loadSoundBytes("assets/chiptune-grooving.mp3")
 
 var MainFaceSource = loadFaceSource("assets/m5x7.ttf")
 

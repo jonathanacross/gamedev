@@ -1,5 +1,11 @@
 package main
 
+import (
+	"log"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
 const (
 	ArenaWidth   = 50
 	ArenaHeight  = 50
@@ -20,7 +26,6 @@ const (
 	CharPortraitSmallHeight = 64
 )
 
-/*
 func main() {
 	game := NewGame()
 	ebiten.SetWindowSize(3*ScreenWidth, 3*ScreenHeight)
@@ -29,4 +34,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-*/
