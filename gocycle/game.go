@@ -106,11 +106,12 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 			selectedChars[i], selectedChars[j] = selectedChars[j], selectedChars[i]
 		})
 
-		// Clear out the player scores for the new game
+		initialScores := make(map[int]int)
 		for _, char := range selectedChars {
-			char.Score = 0
+			initialScores[char.ID] = 0
 		}
-		g.State = NewGamePlayState(selectedChars, 0)
+
+		g.State = NewGamePlayState(selectedChars, 0, initialScores)
 	}
 
 	return nil
@@ -124,15 +125,16 @@ func (gs *CharacterPickerState) Draw(g *Game, screen *ebiten.Image) {
 
 type ScoreScreenState struct {
 	CharacterCards []*CharacterFrame
+	Scores         map[int]int // Key: character ID, Value: total score across rounds
 }
 
-func NewScoreScreenState(chars []*CharData) *ScoreScreenState {
+func NewScoreScreenState(chars []*CharData, scores map[int]int) *ScoreScreenState {
 	sort.Slice(chars, func(i, j int) bool {
-		return chars[i].Score > chars[j].Score
+		return scores[chars[i].ID] > scores[chars[j].ID]
 	})
 
-	winner := chars[0]
-	loser := chars[len(chars)-1]
+	winnerScore := scores[chars[0].ID]
+	loserScore := scores[chars[len(chars)-1].ID]
 	cards := []*CharacterFrame{}
 	spaceX := float64(CharPortraitWidth + 20)
 	startX := (ScreenWidth - (spaceX*float64(len(chars)-1) + CharPortraitWidth)) / 2
@@ -141,9 +143,9 @@ func NewScoreScreenState(chars []*CharData) *ScoreScreenState {
 		x := startX + float64(i)*spaceX
 
 		mood := CharacterNeutral
-		if char.Score == winner.Score {
+		if scores[char.ID] == winnerScore {
 			mood = CharacterHappy
-		} else if char.Score == loser.Score {
+		} else if scores[char.ID] == loserScore {
 			mood = CharacterSad
 		}
 
@@ -152,6 +154,7 @@ func NewScoreScreenState(chars []*CharData) *ScoreScreenState {
 
 	return &ScoreScreenState{
 		CharacterCards: cards,
+		Scores:         scores,
 	}
 }
 
@@ -167,7 +170,8 @@ func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
 	for _, card := range gs.CharacterCards {
 		card.Draw(screen)
 		// Draw the total scores below each card
-		scoreText := fmt.Sprintf("%d", card.CharData.Score)
+		score := gs.Scores[card.CharData.ID]
+		scoreText := fmt.Sprintf("%d", score)
 		scoreX := card.X + card.HitBox().Width()/2
 		scoreY := card.Y + card.HitBox().Height() + 5
 		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
@@ -188,14 +192,20 @@ type GamePlayState struct {
 	WaitingForNewRound bool
 	EndRoundTimer      *Timer
 	Round              int
-	PreviousIsAlive    []bool            // Tracks status for score calculation
-	RemainingRanks     []int             // Scores pool for tie-breaking
-	RoundScores        map[*CharData]int // Key: *CharData, Value: score (-1 means unscored)
+	PreviousIsAlive    []bool      // Tracks status for score calculation
+	RemainingRanks     []int       // Scores pool for tie-breaking
+	TotalScores        map[int]int // Key: character ID, Value: total score across rounds
+	RoundScores        map[int]int // Key: character ID, Value: score for this round
+	RoundScored        bool        // TODO: see if I can remove this
 }
 
-func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
+func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int]int) *GamePlayState {
 	var human1 *core.HumanController
 	var human2 *core.HumanController
+	//	fmt.Printf("Start of round %d\n", round)
+	//for _, card := range characters {
+	//	fmt.Printf("Char %s total score: %d\n", card.Name, card.Score)
+	//}
 	for _, char := range characters {
 		switch char.ControllerType {
 		case HumanFirstPlayer:
@@ -231,15 +241,19 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 		initialStatus[i] = players[i].IsAlive
 	}
 
-	roundScores := make(map[*CharData]int)
+	roundScores := make(map[int]int)
+	totalScores := make(map[int]int)
 	for _, char := range characters {
-		roundScores[char] = -1 // not yet scored
+		roundScores[char.ID] = -1 // not yet scored
+		totalScores[char.ID] = prevTotalScores[char.ID]
 	}
 
 	initialRanks := []int{}
 	for rank := range numPlayers {
 		initialRanks = append(initialRanks, rank*2)
 	}
+
+	fmt.Printf("NEW GAME: totalScores = %v\n", totalScores)
 
 	return &GamePlayState{
 		ArenaView:          NewArenaView(arena, characters),
@@ -254,6 +268,8 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 		PreviousIsAlive:    initialStatus,
 		RemainingRanks:     initialRanks,
 		RoundScores:        roundScores,
+		TotalScores:        totalScores,
+		RoundScored:        false,
 	}
 }
 
@@ -274,10 +290,14 @@ func (gs *GamePlayState) Update(g *Game) error {
 
 			// Prepare the next round
 			nextRound := gs.Round + 1
+			newTotals := make(map[int]int)
+			for k, v := range gs.TotalScores {
+				newTotals[k] = v + gs.RoundScores[k]
+			}
 			if nextRound < NumRounds {
-				g.State = NewGamePlayState(gs.ArenaView.Characters, nextRound)
+				g.State = NewGamePlayState(gs.ArenaView.Characters, nextRound, newTotals)
 			} else {
-				g.State = NewScoreScreenState(gs.ArenaView.Characters)
+				g.State = NewScoreScreenState(gs.ArenaView.Characters, newTotals)
 			}
 		}
 		return nil
@@ -328,10 +348,13 @@ func (gs *GamePlayState) Update(g *Game) error {
 		}
 
 		if numActivePlayers <= 1 {
-			// Score remaining player(s) and end the round
-			gs.scoreRemainingPlayers()
-			gs.WaitingForNewRound = true
-			gs.EndRoundTimer.Reset()
+			if !gs.RoundScored {
+				// Score remaining player(s) and end the round
+				gs.scoreRemainingPlayers()
+				gs.WaitingForNewRound = true
+				gs.EndRoundTimer.Reset()
+				gs.RoundScored = true
+			}
 		}
 	}
 
@@ -360,7 +383,7 @@ func (gs *GamePlayState) scoreDiedPlayers() {
 	roundScoresByID := make(map[int]int)
 	for i, p := range players {
 		char := gs.ArenaView.Characters[i]
-		roundScoresByID[p.ID] = gs.RoundScores[char]
+		roundScoresByID[p.ID] = gs.RoundScores[char.ID]
 	}
 
 	// Update roundScoresByID and gs.RemainingRanks
@@ -370,13 +393,7 @@ func (gs *GamePlayState) scoreDiedPlayers() {
 	for i, p := range players {
 		char := gs.ArenaView.Characters[i]
 		newScore := roundScoresByID[p.ID]
-		gs.RoundScores[char] = newScore
-
-		// Update the character card's status for the UI
-		if newScore >= 0 {
-			// Add score to total for the Score Screen
-			char.Score += newScore
-		}
+		gs.RoundScores[char.ID] = newScore
 	}
 }
 
@@ -388,7 +405,7 @@ func (gs *GamePlayState) scoreRemainingPlayers() {
 	roundScoresByID := make(map[int]int)
 	for i, p := range players {
 		char := gs.ArenaView.Characters[i]
-		roundScoresByID[p.ID] = gs.RoundScores[char]
+		roundScoresByID[p.ID] = gs.RoundScores[char.ID]
 	}
 
 	core.ScoreRemainingPlayers(players, roundScoresByID, gs.RemainingRanks)
@@ -397,9 +414,8 @@ func (gs *GamePlayState) scoreRemainingPlayers() {
 	for i, p := range players {
 		char := gs.ArenaView.Characters[i]
 		finalScore := roundScoresByID[p.ID]
-		if finalScore >= 0 && gs.RoundScores[char] == -1 {
-			gs.RoundScores[char] = finalScore
-			char.Score += finalScore
+		if finalScore >= 0 && gs.RoundScores[char.ID] == -1 {
+			gs.RoundScores[char.ID] = finalScore
 		}
 	}
 }
@@ -412,7 +428,7 @@ func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 		card.Draw(screen)
 
 		// Draw the scores below each card
-		roundScore := gs.RoundScores[card.CharData]
+		roundScore := gs.RoundScores[card.CharData.ID]
 		if roundScore >= 0 {
 			scoreText := fmt.Sprintf("%d", roundScore)
 			scoreX := card.X + card.HitBox().Width()/2

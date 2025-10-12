@@ -280,3 +280,37 @@ func (a *Arena) ComputePlayerScores() map[int]int {
 	// Calculate the total area score based on the assignment grid.
 	return calculateScores(assignmentGrid, a.Players)
 }
+
+// DeepCopy creates a complete copy of the Arena, including deep copies of the Grid and Players.
+func (a *Arena) DeepCopy() *Arena {
+	// 1. Copy the Grid (deep copy)
+	newGrid := make([][]Square, a.Height)
+	for y := range a.Height {
+		newGrid[y] = make([]Square, a.Width)
+		copy(newGrid[y], a.Grid[y])
+	}
+
+	// Copy the Players (deep copy)
+	newPlayers := make([]*Player, len(a.Players))
+	for i, p := range a.Players {
+		// Deep copy the Player struct
+		newP := *p
+		// Deep copy the Path slice
+		newP.Path = make([]Vector, len(p.Path))
+		copy(newP.Path, p.Path)
+
+		// The controller field cannot be deep-copied cleanly, but for a search
+		// where we only care about its *state* (IsAlive, Position),
+		// we can keep a reference to the original controller for the ID/type.
+		// NOTE: Controller state (like InputQueue in HumanController) is irrelevant
+		// in the sandbox, as we're injecting a direction, so this shallow copy is safe.
+		newPlayers[i] = &newP
+	}
+
+	return &Arena{
+		Grid:    newGrid,
+		Width:   a.Width,
+		Height:  a.Height,
+		Players: newPlayers,
+	}
+}

@@ -300,3 +300,235 @@ func (wh *WallHuggerController) GetDirection(arena *Arena, playerID int) Vector 
 	// No safe turns, just go forward and die
 	return player.Direction
 }
+
+// MinimaxAreaController uses the Voronoi score as an evaluation and
+// applies a limited-depth MaxN search.
+type MinimaxAreaController struct {
+	MaxDepth int
+}
+
+func (mac *MinimaxAreaController) GetDirection(arena *Arena, playerID int) Vector {
+	if mac.MaxDepth <= 0 {
+		mac.MaxDepth = 1 // Ensure a minimum lookahead
+	}
+
+	_, bestDir := mac.maxNSearch(arena, mac.MaxDepth, playerID)
+	return bestDir
+}
+
+// maxNSearch is the core recursive MaxN (Multi-Player Minimax) search.
+// It returns the max possible score for the target player and the move to achieve it.
+func (mac *MinimaxAreaController) maxNSearch(arena *Arena, depth int, targetPlayerID int) (int, Vector) {
+	player := arena.Players[targetPlayerID-1]
+
+	// --- Base Case: Depth 0 or Game Over ---
+	numAlive := mac.countAlivePlayers(arena)
+	isTargetAlive := player.IsAlive
+
+	if depth == 0 || numAlive <= 1 || !isTargetAlive {
+		scores := arena.ComputePlayerScores()
+		// Return score and player's current direction (as a placeholder)
+		return scores[targetPlayerID], player.Direction
+	}
+
+	// --- Recursive Step: Simultaneous Move Generation (MaxN with Greedy Opponents) ---
+
+	// 1. Get all safe moves for the target player (moves that don't result in immediate death)
+	targetPlayerMoves := mac.getSafeMoves(arena, targetPlayerID)
+
+	if len(targetPlayerMoves) == 0 {
+		// Target player is trapped, forced to move in a death-inducing direction
+		// We'll treat this as a dead end and return the current score.
+		scores := arena.ComputePlayerScores()
+		return scores[targetPlayerID], player.Direction
+	}
+
+	maxScore := -1
+	bestDir := player.Direction // Fallback
+
+	// 2. Determine the *greedy* move for all opponents (1-ply lookahead)
+	opponentMoves := mac.getGreedyOpponentMoves(arena, targetPlayerID)
+
+	// 3. Iterate over the target player's possible moves
+	for _, targetDir := range targetPlayerMoves {
+
+		// Simulate the simultaneous moves
+		nextArena := mac.applySimultaneousMoves(arena, targetPlayerID, targetDir, opponentMoves)
+
+		// Check if the target player died in the simulation (e.g., in a head-on collision)
+		if !nextArena.Players[targetPlayerID-1].IsAlive {
+			// If the move leads to death, the score is 0.
+			// This is a simplification; a full score calculation should be run
+			// if the simulation is complex, but 0 is usually safe for death.
+			score := 0
+			if score > maxScore {
+				maxScore = score
+				bestDir = targetDir
+			}
+			continue
+		}
+
+		// Recurse to find the score from this new state
+		score, _ := mac.maxNSearch(nextArena, depth-1, targetPlayerID)
+
+		// Update the best move
+		if score > maxScore {
+			maxScore = score
+			bestDir = targetDir
+		}
+	}
+
+	return maxScore, bestDir
+}
+
+// getSafeMoves returns a list of directions that do not result in an immediate wall/path collision
+// and do not risk a head-on collision with a player who might move into that spot.
+func (mac *MinimaxAreaController) getSafeMoves(arena *Arena, playerID int) []Vector {
+	player := arena.Players[playerID-1]
+	dirs := []Vector{Up, Down, Left, Right}
+	safeDirs := []Vector{}
+
+	for _, dir := range dirs {
+		// 1. Do not allow 180-degree turn
+		if IsOpposite(player.Direction, dir) {
+			continue
+		}
+
+		nextPos := player.Position.Add(dir)
+
+		// 2. Check for immediate collision with walls/paths
+		if arena.isCollision(nextPos) {
+			continue
+		}
+
+		// 3. Check for potential simultaneous head-on collision
+		if isPossiblePlayerCollision(arena, playerID, dir) {
+			continue
+		}
+
+		safeDirs = append(safeDirs, dir)
+	}
+
+	return safeDirs
+}
+
+// getGreedyOpponentMoves finds the best 1-ply move for every opponent.
+func (mac *MinimaxAreaController) getGreedyOpponentMoves(arena *Arena, targetPlayerID int) map[int]Vector {
+	opponentMoves := make(map[int]Vector)
+
+	// Use a temporary AreaController instance to get the 1-ply best move
+	ac := &AreaController{}
+
+	for _, otherP := range arena.Players {
+		if otherP.IsAlive && otherP.ID != targetPlayerID {
+			// AreaController.GetDirection already implements the best 1-ply move
+			// based on Voronoi score.
+			opponentMoves[otherP.ID] = ac.GetDirection(arena, otherP.ID)
+		}
+	}
+	return opponentMoves
+}
+
+// applySimultaneousMoves simulates a single game tick with known directions for all players.
+// It uses a sandboxed arena and modifies the Update logic slightly to take a map of moves.
+func (mac *MinimaxAreaController) applySimultaneousMoves(currentArena *Arena, targetID int, targetDir Vector, opponentMoves map[int]Vector) *Arena {
+	// 1. Create a deep copy (the sandbox)
+	sandboxArena := currentArena.DeepCopy()
+
+	// 2. Map all player moves
+	allMoves := make(map[int]Vector)
+	for _, p := range sandboxArena.Players {
+		if !p.IsAlive {
+			continue
+		}
+		if p.ID == targetID {
+			allMoves[p.ID] = targetDir
+		} else if dir, ok := opponentMoves[p.ID]; ok {
+			allMoves[p.ID] = dir
+		} else {
+			// Player is alive but has no determined move (e.g., controller died).
+			// Default to current direction.
+			allMoves[p.ID] = p.Direction
+		}
+	}
+
+	// 3. Run the Update logic on the sandbox (copied from Arena.Update)
+
+	newPositions := make(map[int]Vector)
+	collidedIDs := make(map[int]bool)
+
+	for _, p := range sandboxArena.Players {
+		if !p.IsAlive {
+			continue
+		}
+
+		nextDir, ok := allMoves[p.ID]
+		if !ok {
+			// Should not happen if all living players are in allMoves map
+			continue
+		}
+
+		p.Direction = nextDir
+		nextPos := p.Position.Add(p.Direction)
+		newPositions[p.ID] = nextPos
+
+		// Check for collision with walls or paths
+		if sandboxArena.isCollision(nextPos) {
+			collidedIDs[p.ID] = true
+		}
+	}
+
+	// Resolve simultaneous head-on collisions and apply movement
+	for id, pos := range newPositions {
+		if collidedIDs[id] {
+			continue
+		}
+
+		for otherID, otherPos := range newPositions {
+			if id == otherID {
+				continue
+			}
+			if pos.Equals(otherPos) {
+				collidedIDs[id] = true
+				collidedIDs[otherID] = true
+			}
+		}
+	}
+
+	// Finalize State Changes
+	playersToMove := make(map[int]*Player)
+
+	for _, p := range sandboxArena.Players {
+		if !p.IsAlive {
+			continue
+		}
+
+		if collidedIDs[p.ID] {
+			// Player dies and their trail is cleared *before* they update their position.
+			sandboxArena.clearPath(p)
+			p.IsAlive = false
+		} else {
+			playersToMove[p.ID] = p
+		}
+	}
+
+	for _, p := range playersToMove {
+		oldPos := p.Position
+		p.Position = newPositions[p.ID]
+		sandboxArena.Grid[oldPos.Y][oldPos.X] = Square(p.ID)
+		p.Path = append(p.Path, p.Position)
+	}
+
+	return sandboxArena
+}
+
+// countAlivePlayers is a helper for MaxN base case.
+func (mac *MinimaxAreaController) countAlivePlayers(arena *Arena) int {
+	count := 0
+	for _, p := range arena.Players {
+		if p.IsAlive {
+			count++
+		}
+	}
+	return count
+}

@@ -21,11 +21,12 @@ type PlayerStats struct {
 // AIControllers is the master list of all controllers to be benchmarked.
 var AIControllers = map[string]core.PlayerController{
 	//"Random":             &core.RandomController{},
-	"RandomAvoiding":     &core.RandomAvoidingController{},
-	"RandomTurner_0.1":   &core.RandomTurnerController{TurnProb: 0.10},
-	"RandomTurner_0.005": &core.RandomTurnerController{TurnProb: 0.005},
-	"WallHugger":         &core.WallHuggerController{},
-	"AreaController":     &core.AreaController{},
+	"RandomAvoiding":          &core.RandomAvoidingController{},
+	"RandomTurner_0.1":        &core.RandomTurnerController{TurnProb: 0.10},
+	"RandomTurner_0.005":      &core.RandomTurnerController{TurnProb: 0.005},
+	"WallHugger":              &core.WallHuggerController{},
+	"AreaController":          &core.AreaController{},
+	"MinimaxAreaController_3": &core.MinimaxAreaController{MaxDepth: 3},
 }
 
 // newControllerInstance creates a fresh, non-aliased instance of a controller.
@@ -43,6 +44,8 @@ func newControllerInstance(name string) core.PlayerController {
 		return &core.WallHuggerController{}
 	case "AreaController":
 		return &core.AreaController{}
+	case "MinimaxAreaController_3":
+		return &core.MinimaxAreaController{MaxDepth: 3}
 	}
 	return &core.RandomController{} // Default fallback
 }
@@ -147,11 +150,11 @@ func runBenchmark() {
 		return results[i].TotalScore > results[j].TotalScore
 	})
 
-	fmt.Printf("%-20s %-15s %-10s %-11s\n", "Controller", "Total Score", "Games Played", "Norm Score")
-	fmt.Println("-------------------- --------------- ---------- ----------")
+	fmt.Printf("%-24s %-15s %-10s %-11s\n", "Controller", "Total Score", "Games Played", "Norm Score")
+	fmt.Println("------------------------ --------------- ---------- ----------")
 
 	for _, s := range results {
-		fmt.Printf("%-20s %-15d %-10d %-10f\n", s.Name, s.TotalScore, s.GamesPlayed, float64(s.TotalScore)/float64(s.GamesPlayed))
+		fmt.Printf("%-24s %-15d %-10d %-10f\n", s.Name, s.TotalScore, s.GamesPlayed, float64(s.TotalScore)/float64(s.GamesPlayed))
 	}
 }
 
