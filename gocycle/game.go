@@ -219,7 +219,7 @@ func NewGamePlayState(characters []*CharData, round int) *GamePlayState {
 		players = append(players, core.NewPlayer(i+1,
 			positionData[i].ArenaLoc, initialDirections[i], char.Controller))
 	}
-	var arena = core.NewArenaFromGrid(GetGrid(round), players)
+	var arena = core.NewArenaFromGrid(core.GetGrid(round), players)
 
 	initialStatus := make([]bool, len(players))
 	for i := range players {
