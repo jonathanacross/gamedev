@@ -30,6 +30,7 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	g.State.Update(g)
+	PlayMusic()
 	return nil
 }
 

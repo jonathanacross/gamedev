@@ -94,7 +94,7 @@ func (rc *RandomAvoidingController) GetDirection(arena *Arena, playerID int) Vec
 		if arena.isCollision(nextPos) {
 			continue
 		}
-		if isImmediateFatalCollision(arena, playerID, dir) {
+		if isPossiblePlayerCollision(arena, playerID, dir) {
 			continue
 		}
 
@@ -110,48 +110,28 @@ func (rc *RandomAvoidingController) GetDirection(arena *Arena, playerID int) Vec
 	return safeDirs[rand.Intn(len(safeDirs))]
 }
 
-// isImmediateFatalCollision checks if moving in the proposed direction (nextDir)
-// will result in a simultaneous head-on collision with any other player.
-// It predicts the other player's move using their Path history for direction.
-func isImmediateFatalCollision(arena *Arena, playerID int, nextDir Vector) bool {
+// isPossiblePlayerCollision checks if moving in a direction that may
+// result in a simultaneous head-on collision with another player.
+func isPossiblePlayerCollision(arena *Arena, playerID int, nextDir Vector) bool {
 	player := arena.Players[playerID-1]
 
-	// 1. Calculate the current player's proposed next position
-	nextPosA := player.Position.Add(nextDir)
+	// Calculate the current player's proposed next position
+	nextPos := player.Position.Add(nextDir)
 
-	// 2. Check against all other alive players
+	// Check against all other alive players
 	for _, otherPlayer := range arena.Players {
 		// Skip self and dead players
 		if !otherPlayer.IsAlive || otherPlayer.ID == playerID {
 			continue
 		}
 
-		// A player's path starts with their initial position, so a player always
-		// has at least one position in their Path slice.
-		// If Path.Length == 1, they haven't moved yet, so we can't reliably predict
-		// a direction based on history, and the collision check would rely on the
-		// simultaneous collision logic in Arena.Update() later. We skip the prediction.
-		if len(otherPlayer.Path) < 2 {
-			continue
-		}
-
-		// Calculate the other player's predicted direction based on their last two positions.
-		// Last element is current position (head). Second to last is the previous position.
-		currentPosB := otherPlayer.Path[len(otherPlayer.Path)-1] // Head position
-		prevPosB := otherPlayer.Path[len(otherPlayer.Path)-2]    // Previous position
-
-		// The direction is (Current X - Previous X, Current Y - Previous Y)
-		predictedDirB := Vector{
-			X: currentPosB.X - prevPosB.X,
-			Y: currentPosB.Y - prevPosB.Y,
-		}
-
-		// Calculate the other player's predicted next position
-		nextPosB := currentPosB.Add(predictedDirB)
-
-		// 3. Check for a simultaneous head-on collision (same next square)
-		if nextPosA.Equals(nextPosB) {
-			return true // Fatal collision detected
+		// Avoid moving into a square where the other player might move the
+		// next turn
+		for _, dir := range []Vector{Up, Down, Left, Right} {
+			otherNextPos := otherPlayer.Position.Add(dir)
+			if nextPos.Equals(otherNextPos) {
+				return true
+			}
 		}
 	}
 	return false
@@ -161,40 +141,54 @@ type RandomTurnerController struct {
 	TurnProb float64
 }
 
+func getRandomDir(m map[Vector]struct{}) Vector {
+	keys := []Vector{}
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+	return keys[rand.Intn(len(keys))]
+}
+
 func (rt *RandomTurnerController) GetDirection(arena *Arena, playerID int) Vector {
 	player := arena.Players[playerID-1]
 
 	dirs := []Vector{Up, Down, Left, Right}
-	safeDirs := []Vector{}
+	safeDirs := make(map[Vector]struct{})
+	maybeSafeDirs := make(map[Vector]struct{})
 	for _, dir := range dirs {
 		nextPos := player.Position.Add(dir)
 		if arena.isCollision(nextPos) {
 			continue
 		}
-		if isImmediateFatalCollision(arena, playerID, dir) {
-			continue
+
+		if isPossiblePlayerCollision(arena, playerID, dir) {
+			maybeSafeDirs[dir] = struct{}{}
+		} else {
+			safeDirs[dir] = struct{}{}
 		}
-
-		safeDirs = append(safeDirs, dir)
 	}
 
-	// Going to die; pick anything
-	if len(safeDirs) == 0 {
-		return dirs[rand.Intn(len(dirs))]
+	// Occasionally move randomly
+	if rand.Float64() < rt.TurnProb && len(safeDirs) > 0 {
+		return getRandomDir(safeDirs)
 	}
 
-	// If we would die going forward, then force a turn
-	straightNextPos := player.Position.Add(player.Direction)
-	mustTurn := arena.isCollision(straightNextPos)
-	if mustTurn {
-		// Pick a random safe direction
-		return safeDirs[rand.Intn(len(safeDirs))]
+	// Try to go forward
+	if _, ok := safeDirs[player.Direction]; ok {
+		return player.Direction
 	}
 
-	// Going forward is safe; but with some probability, make a turn anyway
-	if rand.Float64() < rt.TurnProb {
-		return safeDirs[rand.Intn(len(safeDirs))]
+	if len(safeDirs) > 0 {
+		// Pick any random safe direction
+		return getRandomDir(safeDirs)
 	}
+
+	if len(maybeSafeDirs) > 0 {
+		// Pick any random maybe-safe direction
+		return getRandomDir(maybeSafeDirs)
+	}
+
+	// Player is doomed, just go forward
 	return player.Direction
 }
 
@@ -220,7 +214,7 @@ func (ac *AreaController) GetDirection(arena *Arena, playerID int) Vector {
 		if arena.isCollision(nextPos) {
 			continue
 		}
-		if isImmediateFatalCollision(arena, playerID, dir) {
+		if isPossiblePlayerCollision(arena, playerID, dir) {
 			continue
 		}
 
@@ -258,4 +252,51 @@ func (ac *AreaController) GetDirection(arena *Arena, playerID int) Vector {
 	}
 
 	return bestDir
+}
+
+type WallHuggerController struct {
+}
+
+func (wh *WallHuggerController) GetDirection(arena *Arena, playerID int) Vector {
+	player := arena.Players[playerID-1]
+	if len(player.Path) < 2 {
+		dirs := []Vector{Up, Down, Left, Right}
+		return dirs[rand.Intn(len(dirs))]
+	}
+
+	dir := player.Direction
+	leftDir := dir.TurnLeft()
+	toLeftLoc := player.Position.Add(leftDir)
+	toBackLeftLoc := toLeftLoc.Subtract(dir)
+
+	rightDir := dir.TurnRight()
+	toRightLoc := player.Position.Add(rightDir)
+	toBackRightLoc := toRightLoc.Subtract(dir)
+
+	dirs := []Vector{}
+	if arena.isCollision(toBackLeftLoc) {
+		// See a wall on the back left, try to follow it
+		dirs = append(dirs, leftDir)
+		dirs = append(dirs, dir)
+		dirs = append(dirs, rightDir)
+	} else if arena.isCollision(toBackRightLoc) {
+		// See a wall on the back right, try to follow it
+		dirs = append(dirs, rightDir)
+		dirs = append(dirs, dir)
+		dirs = append(dirs, leftDir)
+	} else {
+		// No walls to follow, prefer to go straight
+		dirs = append(dirs, dir)
+		dirs = append(dirs, rightDir)
+		dirs = append(dirs, leftDir)
+	}
+	for _, dir := range dirs {
+		nextPos := player.Position.Add(dir)
+		if !arena.isCollision(nextPos) {
+			return dir
+		}
+	}
+
+	// No safe turns, just go forward and die
+	return player.Direction
 }

@@ -33,6 +33,13 @@ func (v Vector) Add(dir Vector) Vector {
 	}
 }
 
+func (v Vector) Subtract(dir Vector) Vector {
+	return Vector{
+		X: v.X - dir.X,
+		Y: v.Y - dir.Y,
+	}
+}
+
 // Equals checks if two Vectors have the same X and Y coordinates.
 func (v Vector) Equals(other Vector) bool {
 	return v.X == other.X && v.Y == other.Y
@@ -41,4 +48,17 @@ func (v Vector) Equals(other Vector) bool {
 // isOpposite checks if two directions are directly opposite (180-degree turn).
 func IsOpposite(d1, d2 Vector) bool {
 	return d1.X == -d2.X && d1.Y == -d2.Y
+}
+
+func (v Vector) TurnRight() Vector {
+	return Vector{
+		X: -v.Y,
+		Y: v.X,
+	}
+}
+func (v Vector) TurnLeft() Vector {
+	return Vector{
+		X: v.Y,
+		Y: -v.X,
+	}
 }
