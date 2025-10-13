@@ -35,11 +35,11 @@ func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
 	var bgColor color.Color
 	var frameColor color.Color
 	if cf.State == StateSelected {
-		bgColor = cf.CharData.SelectedColor
-		frameColor = cf.CharData.FrameColor
+		bgColor = cf.CharData.DarkColor
+		frameColor = cf.CharData.BrightColor
 	} else {
 		bgColor = color.Black
-		frameColor = cf.CharData.SelectedColor
+		frameColor = cf.CharData.DarkColor
 	}
 	vector.DrawFilledRect(screen,
 		float32(cf.X), float32(cf.Y),

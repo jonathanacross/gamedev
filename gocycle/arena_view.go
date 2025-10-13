@@ -30,7 +30,7 @@ func (av *ArenaView) GetSquareColor(x, y int, square core.Square) color.Color {
 		if player.IsAlive && player.Position.Equals(currentPos) {
 			// Safety check: ensure the ID is within the bounds of our color map
 			if player.ID >= 1 && player.ID < NumCharacters {
-				return av.Characters[player.ID-1].FrameColor
+				return av.Characters[player.ID-1].BrightColor
 			}
 		}
 	}
@@ -52,8 +52,8 @@ func (av *ArenaView) GetSquareColor(x, y int, square core.Square) color.Color {
 			return color.RGBA{R: 255, G: 0, B: 255, A: 255}
 		}
 
-		headColor := av.Characters[playerID-1].FrameColor
-		pathColor := av.Characters[playerID-1].SelectedColor
+		headColor := av.Characters[playerID-1].BrightColor
+		pathColor := av.Characters[playerID-1].DarkColor
 
 		// Check if the player is alive and the square is their current "head" position.
 		// Note: We access players using ID-1 because the Players slice is 0-indexed.
