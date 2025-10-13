@@ -50,7 +50,7 @@ func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(cf.X, cf.Y)
 
-	// Get the source rcdt from the spritesheet, but
+	// Get the source rect from the spritesheet, but
 	// update based on the hitbox in case we're showing small
 	// portraits.
 	srcRect := cf.SpriteSheet.Rect(int(cf.Mood))

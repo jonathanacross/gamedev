@@ -28,6 +28,18 @@ type CharData struct {
 var Characters []CharData = loadCharData()
 var NumCharacters = len(Characters)
 
+// GetCharDataByID returns the CharData for a given 1-based core.Player ID.
+func GetCharDataByID(playerID int) *CharData {
+	// The Characters slice is 0-indexed, so we subtract 1.
+	index := playerID - 1
+
+	if index < 0 || index >= len(Characters) {
+		return nil
+	}
+
+	return &Characters[index]
+}
+
 func loadCharData() []CharData {
 	return []CharData{
 		{

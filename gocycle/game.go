@@ -252,8 +252,6 @@ func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int
 		initialRanks = append(initialRanks, rank*2)
 	}
 
-	fmt.Printf("NEW GAME: totalScores = %v\n", totalScores)
-
 	return &GamePlayState{
 		ArenaView:          NewArenaView(arena, characters),
 		ArenaTimer:         NewTimer(GameUpdateSpeedMillis * time.Millisecond),
@@ -431,7 +429,6 @@ func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 			drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
 		}
 	}
-
 }
 
 var PositionDataByNumChars = getPositionData()
