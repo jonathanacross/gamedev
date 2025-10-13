@@ -29,7 +29,7 @@ func (av *ArenaView) GetSquareColor(x, y int, square core.Square) color.Color {
 	// If any player's current position matches (x, y), draw their Head color.
 	for _, player := range av.Arena.Players {
 		if player.IsAlive && player.Position.Equals(currentPos) {
-			charData := GetCharDataByID(player.ID)
+			charData := av.Characters[player.ID-1]
 			if charData != nil {
 				return charData.BrightColor
 			}
@@ -45,7 +45,7 @@ func (av *ArenaView) GetSquareColor(x, y int, square core.Square) color.Color {
 	default:
 		// Player Path / Trail
 		playerID := int(square)
-		charData := GetCharDataByID(playerID)
+		charData := av.Characters[playerID-1]
 		if charData != nil {
 			return charData.DarkColor
 		} else {

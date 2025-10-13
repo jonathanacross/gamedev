@@ -201,20 +201,8 @@ type GamePlayState struct {
 func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int]int) *GamePlayState {
 	var human1 *core.HumanController
 	var human2 *core.HumanController
-	//	fmt.Printf("Start of round %d\n", round)
-	//for _, card := range characters {
-	//	fmt.Printf("Char %s total score: %d\n", card.Name, card.Score)
-	//}
-	for _, char := range characters {
-		switch char.ControllerType {
-		case HumanFirstPlayer:
-			human1 = char.Controller.(*core.HumanController)
-		case HumanSecondPlayer:
-			human2 = char.Controller.(*core.HumanController)
-		}
-	}
 
-	// 1. Get Starting Locations from the core package
+	// Get starting Locations
 	numPlayers := len(characters)
 	arenaLocs := core.GetStartVectors(numPlayers)
 	positionData := PositionDataByNumChars[numPlayers]
@@ -226,14 +214,26 @@ func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int
 	}
 
 	players := []*core.Player{}
+
 	// Initial directions correspond to the GetStartVectors order: Top-Left=Right, Bottom-Right=Left, Bottom-Left=Up, Top-Right=Down
 	initialDirections := []core.Vector{core.Right, core.Left, core.Up, core.Down}
+
 	for i, char := range characters {
+		controllerInstance := char.NewController()
+
 		// Use the core.Vector from core.GetStartVectors
 		players = append(players, core.NewPlayer(i+1,
-			arenaLocs[i], initialDirections[i], char.Controller))
+			arenaLocs[i], initialDirections[i], controllerInstance))
+
+		// Check and assign Human controllers for input handling using the fresh instance
+		switch char.ControllerType {
+		case HumanFirstPlayer:
+			human1 = controllerInstance.(*core.HumanController)
+		case HumanSecondPlayer:
+			human2 = controllerInstance.(*core.HumanController)
+		}
 	}
-	var arena = core.NewArenaFromGrid(core.GetGrid(round), players) // Use core.GetGrid now
+	var arena = core.NewArenaFromGrid(core.GetGrid(round), players)
 
 	initialStatus := make([]bool, numPlayers)
 	for i := range numPlayers {

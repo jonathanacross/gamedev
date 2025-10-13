@@ -21,24 +21,12 @@ type CharData struct {
 	Image          *ebiten.Image
 	DarkColor      color.Color
 	BrightColor    color.Color
-	Controller     core.PlayerController
+	NewController  func() core.PlayerController
 	ControllerType ControllerType
 }
 
 var Characters []CharData = loadCharData()
 var NumCharacters = len(Characters)
-
-// GetCharDataByID returns the CharData for a given 1-based core.Player ID.
-func GetCharDataByID(playerID int) *CharData {
-	// The Characters slice is 0-indexed, so we subtract 1.
-	index := playerID - 1
-
-	if index < 0 || index >= len(Characters) {
-		return nil
-	}
-
-	return &Characters[index]
-}
 
 func loadCharData() []CharData {
 	return []CharData{
@@ -48,7 +36,7 @@ func loadCharData() []CharData {
 			Image:          MiloCharImage,
 			DarkColor:      color.RGBA{29, 70, 125, 255},
 			BrightColor:    color.RGBA{3, 166, 224, 255},
-			Controller:     &core.RandomAvoidingController{},
+			NewController:  func() core.PlayerController { return &core.RandomAvoidingController{} },
 			ControllerType: ComputerPlayer,
 		},
 		{
@@ -57,7 +45,7 @@ func loadCharData() []CharData {
 			Image:          SaraCharImage,
 			DarkColor:      color.RGBA{167, 151, 50, 255},
 			BrightColor:    color.RGBA{248, 243, 79, 255},
-			Controller:     &core.RandomTurnerController{TurnProb: 0.10},
+			NewController:  func() core.PlayerController { return &core.RandomTurnerController{} },
 			ControllerType: ComputerPlayer,
 		},
 		{
@@ -66,7 +54,7 @@ func loadCharData() []CharData {
 			Image:          DrQCharImage,
 			DarkColor:      color.RGBA{23, 110, 114, 255},
 			BrightColor:    color.RGBA{74, 199, 198, 255},
-			Controller:     &core.WallHuggerController{},
+			NewController:  func() core.PlayerController { return &core.WallHuggerController{} },
 			ControllerType: ComputerPlayer,
 		},
 		{
@@ -75,7 +63,7 @@ func loadCharData() []CharData {
 			Image:          EricaCharImage,
 			DarkColor:      color.RGBA{156, 20, 38, 255},
 			BrightColor:    color.RGBA{231, 64, 71, 255},
-			Controller:     &core.RandomTurnerController{TurnProb: 0.005},
+			NewController:  func() core.PlayerController { return &core.RandomTurnerController{TurnProb: 0.005} },
 			ControllerType: ComputerPlayer,
 		},
 		{
@@ -84,7 +72,7 @@ func loadCharData() []CharData {
 			Image:          BiffCharImage,
 			DarkColor:      color.RGBA{182, 70, 37, 255},
 			BrightColor:    color.RGBA{238, 156, 50, 255},
-			Controller:     &core.AreaController{},
+			NewController:  func() core.PlayerController { return &core.AreaController{} },
 			ControllerType: ComputerPlayer,
 		},
 		{
@@ -93,7 +81,7 @@ func loadCharData() []CharData {
 			Image:          ElaraCharImage,
 			DarkColor:      color.RGBA{67, 67, 130, 255},
 			BrightColor:    color.RGBA{121, 121, 203, 255},
-			Controller:     &core.MinimaxAreaController{MaxDepth: 3},
+			NewController:  func() core.PlayerController { return &core.MinimaxAreaController{MaxDepth: 3} },
 			ControllerType: ComputerPlayer,
 		},
 		{
@@ -102,7 +90,7 @@ func loadCharData() []CharData {
 			Image:          MikeGCharImage,
 			DarkColor:      color.RGBA{20, 104, 20, 255},
 			BrightColor:    color.RGBA{156, 224, 42, 255},
-			Controller:     core.NewHumanController(),
+			NewController:  func() core.PlayerController { return core.NewHumanController() },
 			ControllerType: HumanFirstPlayer,
 		},
 		{
@@ -111,7 +99,7 @@ func loadCharData() []CharData {
 			Image:          MikeVCharImage,
 			DarkColor:      color.RGBA{94, 33, 72, 255},
 			BrightColor:    color.RGBA{193, 92, 153, 255},
-			Controller:     core.NewHumanController(),
+			NewController:  func() core.PlayerController { return core.NewHumanController() },
 			ControllerType: HumanSecondPlayer,
 		},
 		{
@@ -120,7 +108,7 @@ func loadCharData() []CharData {
 			Image:          HeatherGCharImage,
 			DarkColor:      color.RGBA{20, 104, 20, 255},
 			BrightColor:    color.RGBA{156, 224, 42, 255},
-			Controller:     core.NewHumanController(),
+			NewController:  func() core.PlayerController { return core.NewHumanController() },
 			ControllerType: HumanFirstPlayer,
 		},
 		{
@@ -129,7 +117,7 @@ func loadCharData() []CharData {
 			Image:          HeatherVCharImage,
 			DarkColor:      color.RGBA{94, 33, 72, 255},
 			BrightColor:    color.RGBA{193, 92, 153, 255},
-			Controller:     core.NewHumanController(),
+			NewController:  func() core.PlayerController { return core.NewHumanController() },
 			ControllerType: HumanSecondPlayer,
 		},
 	}
