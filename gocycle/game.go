@@ -87,20 +87,20 @@ func (gs *TitleScreenState) Draw(g *Game, screen *ebiten.Image) {
 // ------------------- Character Picker State
 
 type CharacterPickerState struct {
-	Selector *CharacterSelector
+	Picker *CharacterPicker
 }
 
 func NewCharacterPickerState() *CharacterPickerState {
 	return &CharacterPickerState{
-		Selector: NewCharacterSelector(16, 30, 74, 90, 2, 5),
+		Picker: NewCharacterPicker(),
 	}
 }
 
 func (gs *CharacterPickerState) Update(g *Game) error {
-	gs.Selector.Update()
+	gs.Picker.Update()
 
-	if gs.Selector.IsValid() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		selectedChars := gs.Selector.GetSelectedCharacters()
+	if gs.Picker.IsValid() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		selectedChars := gs.Picker.GetSelectedCharacters()
 		// Shuffle so that chars don't always start in the same place.
 		rand.Shuffle(len(selectedChars), func(i, j int) {
 			selectedChars[i], selectedChars[j] = selectedChars[j], selectedChars[i]
@@ -118,7 +118,7 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 }
 
 func (gs *CharacterPickerState) Draw(g *Game, screen *ebiten.Image) {
-	gs.Selector.Draw(screen)
+	gs.Picker.Draw(screen)
 }
 
 // ------------------- Scrore Screen State
@@ -196,7 +196,6 @@ type GamePlayState struct {
 	RemainingRanks     []int       // Scores pool for tie-breaking
 	TotalScores        map[int]int // Key: character ID, Value: total score across rounds
 	RoundScores        map[int]int // Key: character ID, Value: score for this round
-	RoundScored        bool        // TODO: see if I can remove this
 }
 
 func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int]int) *GamePlayState {
@@ -269,7 +268,6 @@ func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int
 		RemainingRanks:     initialRanks,
 		RoundScores:        roundScores,
 		TotalScores:        totalScores,
-		RoundScored:        false,
 	}
 }
 
@@ -348,13 +346,10 @@ func (gs *GamePlayState) Update(g *Game) error {
 		}
 
 		if numActivePlayers <= 1 {
-			if !gs.RoundScored {
-				// Score remaining player(s) and end the round
-				gs.scoreRemainingPlayers()
-				gs.WaitingForNewRound = true
-				gs.EndRoundTimer.Reset()
-				gs.RoundScored = true
-			}
+			// Score remaining player(s) and end the round
+			gs.scoreRemainingPlayers()
+			gs.WaitingForNewRound = true
+			gs.EndRoundTimer.Reset()
 		}
 	}
 

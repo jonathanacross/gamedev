@@ -1,5 +1,17 @@
 package core
 
+// grids.go contains predefined arena grids and functions to access them.
+
+const (
+	ArenaWidth  = 50
+	ArenaHeight = 50
+
+	PlayerStartLow = 12
+	// TODO: this should be 37, but there's a bug when players don't all
+	// start with even coordinates.
+	PlayerStartHigh = 38
+)
+
 var grids = loadGridsFromStrings(gridData)
 
 func GetGrid(level int) [][]Square {
@@ -13,17 +25,12 @@ func GetGrid(level int) [][]Square {
 // grid coordinates for the given number of players (up to 4).
 // These positions are designed for the default 50x50 arena size grids in this file.
 func GetStartVectors(numPlayers int) []Vector {
-	const lo = 12
-	// TODO: this should be 37, but there's a bug when players don't all
-	// start with even coordinates.
-	const hi = 38
-
 	// The positions are returned in a fixed order.
 	allPositions := []Vector{
-		{X: lo, Y: lo}, // Top-Left
-		{X: hi, Y: hi}, // Bottom-Right
-		{X: lo, Y: hi}, // Bottom-Left
-		{X: hi, Y: lo}, // Top-Right
+		{X: PlayerStartLow, Y: PlayerStartLow},   // Top-Left
+		{X: PlayerStartHigh, Y: PlayerStartHigh}, // Bottom-Right
+		{X: PlayerStartLow, Y: PlayerStartHigh},  // Bottom-Left
+		{X: PlayerStartHigh, Y: PlayerStartLow},  // Top-Right
 	}
 
 	if numPlayers <= 0 || numPlayers > len(allPositions) {

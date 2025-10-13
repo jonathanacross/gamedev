@@ -8,7 +8,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
-type CharacterSelector struct {
+const (
+	PickerRows   = 2
+	PickerCols   = 5
+	PickerSpaceX = 74
+	PickerSpaceY = 90
+	PickerStartX = 16
+	PickerStartY = 30
+)
+
+type CharacterPicker struct {
 	Characters         []*CharacterFrame
 	MaxNumSelectable   int
 	NumPlayer1Selected int
@@ -16,21 +25,20 @@ type CharacterSelector struct {
 	NumSelected        int
 }
 
-func NewCharacterSelector(
-	x, y float64, spaceX, spaceY float64, rows, cols int) *CharacterSelector {
+func NewCharacterPicker() *CharacterPicker {
 
 	chars := []*CharacterFrame{}
 	characterIndices := []int{6, 8, 0, 1, 2, 7, 9, 3, 4, 5}
 
 	for i, charIdx := range characterIndices {
-		x := float64(i%cols)*spaceX + x
-		y := float64(i/cols)*spaceY + y
+		x := float64(i%PickerCols)*PickerSpaceX + PickerStartX
+		y := float64(i/PickerCols)*PickerSpaceY + PickerStartY
 		char := NewCharacterFrame(&Characters[charIdx], x, y, CharacterNeutral, true)
 		char.State = StateUnselected
 		chars = append(chars, char)
 	}
 
-	return &CharacterSelector{
+	return &CharacterPicker{
 		Characters:         chars,
 		MaxNumSelectable:   4,
 		NumPlayer1Selected: 0,
@@ -39,7 +47,7 @@ func NewCharacterSelector(
 	}
 }
 
-func (cs *CharacterSelector) Draw(screen *ebiten.Image) {
+func (cs *CharacterPicker) Draw(screen *ebiten.Image) {
 	for _, char := range cs.Characters {
 		char.Draw(screen)
 	}
@@ -52,7 +60,7 @@ func (cs *CharacterSelector) Draw(screen *ebiten.Image) {
 	}
 }
 
-func (cs *CharacterSelector) Update() {
+func (cs *CharacterPicker) Update() {
 	for _, char := range cs.Characters {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 			x, y := ebiten.CursorPosition()
@@ -69,7 +77,7 @@ func (cs *CharacterSelector) Update() {
 	}
 }
 
-func (cs *CharacterSelector) GetSelectedCharacters() []*CharData {
+func (cs *CharacterPicker) GetSelectedCharacters() []*CharData {
 	selectedChars := []*CharData{}
 	for _, ch := range cs.Characters {
 		if ch.State == StateSelected {
@@ -79,7 +87,7 @@ func (cs *CharacterSelector) GetSelectedCharacters() []*CharData {
 	return selectedChars
 }
 
-func (cs *CharacterSelector) canSelect(char *CharacterFrame) bool {
+func (cs *CharacterPicker) canSelect(char *CharacterFrame) bool {
 	// can only pick one human player 1
 	if char.CharData.ControllerType == HumanFirstPlayer && cs.NumPlayer1Selected >= 1 {
 		return false
@@ -98,7 +106,7 @@ func (cs *CharacterSelector) canSelect(char *CharacterFrame) bool {
 	return true
 }
 
-func (cs *CharacterSelector) updateCounts(char *CharacterFrame, delta int) {
+func (cs *CharacterPicker) updateCounts(char *CharacterFrame, delta int) {
 	switch char.CharData.ControllerType {
 	case HumanFirstPlayer:
 		cs.NumPlayer1Selected += delta
@@ -108,6 +116,6 @@ func (cs *CharacterSelector) updateCounts(char *CharacterFrame, delta int) {
 	cs.NumSelected += delta
 }
 
-func (cs *CharacterSelector) IsValid() bool {
+func (cs *CharacterPicker) IsValid() bool {
 	return cs.NumSelected >= 2
 }

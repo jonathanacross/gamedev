@@ -7,8 +7,6 @@ import (
 )
 
 const (
-	ArenaWidth   = 50
-	ArenaHeight  = 50
 	ArenaOffsetX = 90
 	ArenaOffsetY = 30
 	SquareSize   = 4

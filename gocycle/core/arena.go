@@ -2,11 +2,6 @@ package core
 
 import "math"
 
-const (
-	ArenaWidth  = 50
-	ArenaHeight = 50
-)
-
 type Arena struct {
 	// Grid stores the state of each square (Open, Wall, or PlayerID)
 	Grid   [][]Square
