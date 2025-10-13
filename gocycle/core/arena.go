@@ -112,6 +112,7 @@ func (a *Arena) Update() {
 		newPositions[p.ID] = nextPos
 
 		// Check for collision with walls or paths
+		// This checks collision with *existing* paths/walls/heads on the grid.
 		if a.isCollision(nextPos) {
 			collidedIDs[p.ID] = true
 		}
@@ -119,8 +120,8 @@ func (a *Arena) Update() {
 
 	// Resolve simultaneous head-on collisions and apply movement
 
-	// Check for players attempting to move into the same square
-	// or crossing paths (A moves to B's old spot, B moves to A's old spot)
+	// Check for players attempting to move into the same square.
+	// This handles head-to-head collisions that bypass the grid check.
 	for id, pos := range newPositions {
 		if collidedIDs[id] {
 			continue
@@ -157,12 +158,19 @@ func (a *Arena) Update() {
 
 	// Only after all collisions are determined, move the survivors and draw their new path
 	for _, p := range playersToMove {
-		// Update the player's position first.
+		// Store old position (the trail segment)
 		oldPos := p.Position
+
+		// Update the player's position to the new head location
 		p.Position = newPositions[p.ID]
 
-		// Now that the player has moved, mark the *old* position as the trail/path.
+		// Mark the *old* position as the permanent trail/path.
 		a.Grid[oldPos.Y][oldPos.X] = Square(p.ID)
+
+		// Mark the *new* head position on the grid.
+		// This prevents other players from moving into a surviving player's head
+		// on subsequent turns.
+		a.Grid[p.Position.Y][p.Position.X] = Square(p.ID)
 
 		// Add the new head position to the Path history.
 		p.Path = append(p.Path, p.Position)

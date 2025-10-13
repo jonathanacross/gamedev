@@ -6,10 +6,8 @@ const (
 	ArenaWidth  = 50
 	ArenaHeight = 50
 
-	PlayerStartLow = 12
-	// TODO: this should be 37, but there's a bug when players don't all
-	// start with even coordinates.
-	PlayerStartHigh = 38
+	PlayerStartLow  = 12
+	PlayerStartHigh = 37
 )
 
 var grids = loadGridsFromStrings(gridData)

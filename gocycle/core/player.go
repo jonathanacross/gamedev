@@ -515,7 +515,14 @@ func (mac *MinimaxAreaController) applySimultaneousMoves(currentArena *Arena, ta
 	for _, p := range playersToMove {
 		oldPos := p.Position
 		p.Position = newPositions[p.ID]
+
+		// Draw the trail segment at the old position
 		sandboxArena.Grid[oldPos.Y][oldPos.X] = Square(p.ID)
+
+		// Mark the *new* head position on the simulated grid.
+		// This ensures subsequent simulation steps correctly treat this square as occupied.
+		sandboxArena.Grid[p.Position.Y][p.Position.X] = Square(p.ID)
+
 		p.Path = append(p.Path, p.Position)
 	}
 

@@ -147,7 +147,6 @@ type forcedController struct{ Dir Vector }
 func (fc *forcedController) GetDirection(*Arena, int) Vector { return fc.Dir }
 
 func TestUpdate(t *testing.T) {
-
 	// Test case 1: Simple movement
 	p1StartPos := Vector{X: 1, Y: 1}
 	p1 := NewPlayer(1, p1StartPos, Right, &forcedController{Dir: Right})
@@ -192,6 +191,60 @@ func TestUpdate(t *testing.T) {
 
 	if p3.IsAlive || p4.IsAlive {
 		t.Errorf("Head-on Collision Failed: Both players should be dead. P3 Alive: %v, P4 Alive: %v", p3.IsAlive, p4.IsAlive)
+	}
+}
+
+// TestUpdatePathCollision checks that a player attempting to move into a square
+// just vacated by another player's path will die on the next tick (Tick 2).
+func TestUpdatePathCollision(t *testing.T) {
+	// Use the existing mockController that always returns Right
+	controller := &mockController{}
+
+	// Setup: P1 starts two squares behind P2.
+	// P1 (ID 1) starts at (1, 3) moving Right.
+	// P2 (ID 2) starts at (3, 3) moving Right.
+	p1 := NewPlayer(1, Vector{X: 1, Y: 3}, Right, controller)
+	p2 := NewPlayer(2, Vector{X: 3, Y: 3}, Right, controller)
+	arena := newTestArena(7, 7, []*Player{p1, p2})
+
+	// --- Tick 1: Both move right (P1 moves into Open, P2 moves into Open) ---
+	arena.Update()
+
+	// Expected: Both survive
+	if !p1.IsAlive || !p2.IsAlive {
+		t.Fatalf("Tick 1 failed: Both players should have survived a simple forward move.")
+	}
+
+	// Expected Positions: P1 at (2, 3), P2 at (4, 3)
+	if !p1.Position.Equals(Vector{X: 2, Y: 3}) || !p2.Position.Equals(Vector{X: 4, Y: 3}) {
+		t.Fatalf("Tick 1 failed: Incorrect positions. Got P1=%v, P2=%v", p1.Position, p2.Position)
+	}
+
+	// Crucial Grid Check: P2's trail segment at (3, 3) must be marked by its ID (2).
+	if arena.Grid[3][3] != 2 {
+		t.Fatalf("Tick 1 FAILED THE FIX: P2's trail at (3, 3) is not marked by its ID (Got: %v, Want: 2).", arena.Grid[3][3])
+	}
+
+	// --- Tick 2: P1 moves to (3, 3) (P2's trail) while P2 moves to (5, 3) ---
+	// P1's next position is (3, 3). Grid[3][3] == 2 (P2's path). Collision should occur.
+	arena.Update()
+
+	// Expected: P1 dies trying to move into P2's trail segment. P2 survives.
+	if p1.IsAlive {
+		t.Error("Tick 2 FAILED: P1 should have died trying to move into P2's path/trail segment.")
+	}
+	if !p2.IsAlive {
+		t.Error("Tick 2 FAILED: P2 should have survived a simple forward move.")
+	}
+
+	// Final Grid Check:
+	// P1's path (1, 3), (2, 3) should be cleared (Open = 0)
+	if arena.Grid[3][1] != Open || arena.Grid[3][2] != Open {
+		t.Errorf("P1's path was not cleared upon death. Grid[3][1]=%v, Grid[3][2]=%v (Want 0)", arena.Grid[3][1], arena.Grid[3][2])
+	}
+	// P2's trail (4, 3) should be marked by P2's ID (2)
+	if arena.Grid[3][4] != 2 {
+		t.Errorf("P2's trail at (4, 3) is not marked. Got: %v (Want: 2)", arena.Grid[3][4])
 	}
 }
 
