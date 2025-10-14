@@ -51,12 +51,12 @@ func (cs *CharacterPicker) Draw(screen *ebiten.Image) {
 	for _, char := range cs.Characters {
 		char.Draw(screen)
 	}
-	drawTextAt(screen, "Pick your characters", 130, 5, text.AlignStart, color.White)
-	drawTextAt(screen, "Player 1", 60, 25, text.AlignStart, color.White)
-	drawTextAt(screen, "Player 2", 60, 115, text.AlignStart, color.White)
-	drawTextAt(screen, "Computer opponents", 200, 25, text.AlignStart, color.White)
+	drawShadowedTextAt(screen, "Pick your characters", 130, 5, text.AlignStart, color.White)
+	drawShadowedTextAt(screen, "Player 1", 60, 25, text.AlignStart, color.White)
+	drawShadowedTextAt(screen, "Player 2", 60, 115, text.AlignStart, color.White)
+	drawShadowedTextAt(screen, "Computer opponents", 200, 25, text.AlignStart, color.White)
 	if cs.IsValid() {
-		drawTextAt(screen, "Press space to continue", 250, 205, text.AlignStart, color.White)
+		drawShadowedTextAt(screen, "Press space to continue", 250, 205, text.AlignStart, color.White)
 	}
 }
 

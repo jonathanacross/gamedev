@@ -60,7 +60,7 @@ func loadCharData() []CharData {
 			Image:          saraCharImage,
 			DarkColor:      color.RGBA{167, 151, 50, 255},
 			BrightColor:    color.RGBA{248, 243, 79, 255},
-			NewController:  func() core.PlayerController { return &core.RandomTurnerController{} },
+			NewController:  func() core.PlayerController { return &core.RandomTurnerController{TurnProb: 0.10} },
 			ControllerType: ComputerPlayer,
 		},
 		{

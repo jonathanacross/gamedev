@@ -68,6 +68,14 @@ func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, alig
 	text.Draw(screen, message, fontFace, op)
 }
 
+func drawShadowedTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, c color.Color) {
+	drawTextAt(screen, message, x-1, y, align, color.Black)
+	drawTextAt(screen, message, x+1, y, align, color.Black)
+	drawTextAt(screen, message, x, y-1, align, color.Black)
+	drawTextAt(screen, message, x, y+1, align, color.Black)
+	drawTextAt(screen, message, x, y, align, c)
+}
+
 // ------------------- Title Screen State
 
 type TitleScreenState struct{}
@@ -180,10 +188,10 @@ func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
 		scoreText := fmt.Sprintf("%d", score)
 		scoreX := card.X + card.HitBox().Width()
 		scoreY := card.Y + card.HitBox().Height() + ScoreOffset
-		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignEnd, color.White)
+		drawShadowedTextAt(screen, scoreText, scoreX, scoreY, text.AlignEnd, color.White)
 	}
 
-	drawTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/5, text.AlignCenter, color.White)
+	drawShadowedTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/5, text.AlignCenter, color.White)
 }
 
 // ------------------- Game Play State
@@ -458,7 +466,7 @@ func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 			scoreText := fmt.Sprintf("%d", roundScore)
 			scoreX := card.X + card.HitBox().Width()
 			scoreY := card.Y + card.HitBox().Height() + ScoreOffset
-			drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignEnd, color.White)
+			drawShadowedTextAt(screen, scoreText, scoreX, scoreY, text.AlignEnd, color.White)
 		}
 	}
 }
