@@ -3,6 +3,7 @@ package main
 import (
 	"gocycle/core"
 	"image/color"
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -29,6 +30,20 @@ var Characters []CharData = loadCharData()
 var NumCharacters = len(Characters)
 
 func loadCharData() []CharData {
+
+	saraCharImage := SaraCharImage
+	ericaCharImage := EricaCharImage
+	elaraCharImage := ElaraCharImage
+	heatherVCharImage := HeatherVCharImage
+	heatherGCharImage := HeatherGCharImage
+	if len(os.Args) == 2 && os.Args[1] == "--swimsuits" {
+		saraCharImage = SaraSwimCharImage
+		ericaCharImage = EricaSwimCharImage
+		elaraCharImage = ElaraSwimCharImage
+		heatherVCharImage = HeatherVSwimCharImage
+		heatherGCharImage = HeatherGSwimCharImage
+	}
+
 	return []CharData{
 		{
 			ID:             1,
@@ -42,7 +57,7 @@ func loadCharData() []CharData {
 		{
 			ID:             2,
 			Name:           "Sara",
-			Image:          SaraCharImage,
+			Image:          saraCharImage,
 			DarkColor:      color.RGBA{167, 151, 50, 255},
 			BrightColor:    color.RGBA{248, 243, 79, 255},
 			NewController:  func() core.PlayerController { return &core.RandomTurnerController{} },
@@ -60,7 +75,7 @@ func loadCharData() []CharData {
 		{
 			ID:             4,
 			Name:           "Erica",
-			Image:          EricaCharImage,
+			Image:          ericaCharImage,
 			DarkColor:      color.RGBA{156, 20, 38, 255},
 			BrightColor:    color.RGBA{231, 64, 71, 255},
 			NewController:  func() core.PlayerController { return &core.RandomTurnerController{TurnProb: 0.005} },
@@ -78,7 +93,7 @@ func loadCharData() []CharData {
 		{
 			ID:             6,
 			Name:           "Elara",
-			Image:          ElaraCharImage,
+			Image:          elaraCharImage,
 			DarkColor:      color.RGBA{67, 67, 130, 255},
 			BrightColor:    color.RGBA{121, 121, 203, 255},
 			NewController:  func() core.PlayerController { return &core.MinimaxAreaController{MaxDepth: 3} },
@@ -105,7 +120,7 @@ func loadCharData() []CharData {
 		{
 			ID:             9,
 			Name:           "Heather Green",
-			Image:          HeatherGCharImage,
+			Image:          heatherGCharImage,
 			DarkColor:      color.RGBA{20, 104, 20, 255},
 			BrightColor:    color.RGBA{156, 224, 42, 255},
 			NewController:  func() core.PlayerController { return core.NewHumanController() },
@@ -114,7 +129,7 @@ func loadCharData() []CharData {
 		{
 			ID:             10,
 			Name:           "Heather Violet",
-			Image:          HeatherVCharImage,
+			Image:          heatherVCharImage,
 			DarkColor:      color.RGBA{94, 33, 72, 255},
 			BrightColor:    color.RGBA{193, 92, 153, 255},
 			NewController:  func() core.PlayerController { return core.NewHumanController() },

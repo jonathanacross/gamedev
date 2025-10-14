@@ -185,6 +185,7 @@ func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
 type GamePlayState struct {
 	ArenaView          *ArenaView
 	ArenaTimer         *Timer
+	ArenaTimeSpeedMs   int
 	HumanController1   *core.HumanController
 	HumanController2   *core.HumanController
 	CharacterCards     []*CharacterFrame
@@ -255,6 +256,7 @@ func NewGamePlayState(characters []*CharData, round int, prevTotalScores map[int
 	return &GamePlayState{
 		ArenaView:          NewArenaView(arena, characters),
 		ArenaTimer:         NewTimer(GameUpdateSpeedMillis * time.Millisecond),
+		ArenaTimeSpeedMs:   GameUpdateSpeedMillis,
 		HumanController1:   human1,
 		HumanController2:   human2,
 		CharacterCards:     cards,
@@ -330,6 +332,12 @@ func (gs *GamePlayState) Update(g *Game) error {
 		}
 	}
 
+	// Allow player to speed up the game if there are no active human players
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) && gs.AllHumanPlayersDead() {
+		gs.ArenaTimeSpeedMs /= 2
+		gs.ArenaTimer = NewTimer(time.Duration(gs.ArenaTimeSpeedMs) * time.Millisecond)
+	}
+
 	gs.ArenaTimer.Update()
 	if gs.ArenaTimer.IsReady() {
 		gs.ArenaTimer.Reset()
@@ -352,6 +360,22 @@ func (gs *GamePlayState) Update(g *Game) error {
 	}
 
 	return nil
+}
+
+func (gs *GamePlayState) AllHumanPlayersDead() bool {
+	hasHuman := false
+	humansAlive := false
+	for i, p := range gs.ArenaView.Arena.Players {
+		char := gs.ArenaView.Characters[i]
+		if char.ControllerType == HumanFirstPlayer || char.ControllerType == HumanSecondPlayer {
+			hasHuman = true
+			if p.IsAlive {
+				humansAlive = true
+			}
+		}
+	}
+
+	return !hasHuman || !humansAlive
 }
 
 // handleArenaUpdate runs one game tick and updates scoring for dead players.
