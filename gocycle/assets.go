@@ -15,7 +15,8 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-// var TitlePageImage = loadImage("assets/title.png")
+var TitleImage = loadImage("assets/title.png")
+var GridImage = loadImage("assets/grid.png")
 var SquareImage = loadImage("assets/square.png")
 
 // Characters

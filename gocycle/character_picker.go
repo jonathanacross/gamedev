@@ -13,8 +13,8 @@ const (
 	PickerCols   = 5
 	PickerSpaceX = 74
 	PickerSpaceY = 90
-	PickerStartX = 16
-	PickerStartY = 30
+	PickerStartX = 12
+	PickerStartY = 40
 )
 
 type CharacterPicker struct {
@@ -52,11 +52,11 @@ func (cs *CharacterPicker) Draw(screen *ebiten.Image) {
 		char.Draw(screen)
 	}
 	drawTextAt(screen, "Pick your characters", 130, 5, text.AlignStart, color.White)
-	drawTextAt(screen, "Player 1", 60, 15, text.AlignStart, color.White)
-	drawTextAt(screen, "Player 2", 60, 105, text.AlignStart, color.White)
-	drawTextAt(screen, "Computer opponents", 200, 15, text.AlignStart, color.White)
+	drawTextAt(screen, "Player 1", 60, 25, text.AlignStart, color.White)
+	drawTextAt(screen, "Player 2", 60, 115, text.AlignStart, color.White)
+	drawTextAt(screen, "Computer opponents", 200, 25, text.AlignStart, color.White)
 	if cs.IsValid() {
-		drawTextAt(screen, "Press space to continue", 250, 200, text.AlignStart, color.White)
+		drawTextAt(screen, "Press space to continue", 250, 205, text.AlignStart, color.White)
 	}
 }
 

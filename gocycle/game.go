@@ -80,8 +80,10 @@ func (gs *TitleScreenState) Update(g *Game) error {
 }
 
 func (gs *TitleScreenState) Draw(g *Game, screen *ebiten.Image) {
-	drawTextAt(screen, "GoCycle", ScreenWidth/2, ScreenHeight/2, text.AlignCenter, color.White)
-	drawTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/4, text.AlignCenter, color.White)
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(TitleImage, op)
+	drawTextAt(screen, "by Jonathan Cross", ScreenWidth/2, 1*ScreenHeight/3, text.AlignCenter, color.White)
+	drawTextAt(screen, "Press Space", ScreenWidth/2, 2*ScreenHeight/4, text.AlignCenter, color.White)
 }
 
 // ------------------- Character Picker State
@@ -118,6 +120,8 @@ func (gs *CharacterPickerState) Update(g *Game) error {
 }
 
 func (gs *CharacterPickerState) Draw(g *Game, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(GridImage, op)
 	gs.Picker.Draw(screen)
 }
 
@@ -167,6 +171,8 @@ func (gs *ScoreScreenState) Update(g *Game) error {
 }
 
 func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(GridImage, op)
 	for _, card := range gs.CharacterCards {
 		card.Draw(screen)
 		// Draw the total scores below each card
@@ -177,7 +183,7 @@ func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
 		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
 	}
 
-	drawTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/4, text.AlignCenter, color.White)
+	drawTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/5, text.AlignCenter, color.White)
 }
 
 // ------------------- Game Play State
@@ -438,6 +444,8 @@ func (gs *GamePlayState) scoreRemainingPlayers() {
 }
 
 func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(GridImage, op)
 	roundString := fmt.Sprintf("Round %d/%d", gs.Round+1, NumRounds)
 	drawTextAt(screen, roundString, 90, 10, text.AlignStart, color.White)
 	gs.ArenaView.Draw(screen)
