@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -28,6 +29,7 @@ type CharacterFrame struct {
 	State       CharacterState
 	SpriteSheet *SpriteSheet
 	CharData    *CharData
+	ShowName    bool
 }
 
 func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
@@ -59,6 +61,16 @@ func (cf *CharacterFrame) Draw(screen *ebiten.Image) {
 	currImage := cf.image.SubImage(srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 
+	if cf.ShowName {
+		x := cf.X
+		y := cf.Y + cf.hitbox.Height() + ScoreOffset
+		drawTextAt(screen, cf.CharData.Name, x-1, y, text.AlignStart, color.Black)
+		drawTextAt(screen, cf.CharData.Name, x+1, y, text.AlignStart, color.Black)
+		drawTextAt(screen, cf.CharData.Name, x, y-1, text.AlignStart, color.Black)
+		drawTextAt(screen, cf.CharData.Name, x, y+1, text.AlignStart, color.Black)
+		drawTextAt(screen, cf.CharData.Name, x, y, text.AlignStart, cf.CharData.BrightColor)
+	}
+
 	// Draw the frame
 	vector.StrokeRect(screen,
 		float32(cf.X), float32(cf.Y),
@@ -87,6 +99,7 @@ func NewCharacterFrame(charData *CharData, x, y float64, mood CharacterMood, sma
 		Mood:        mood,
 		State:       StateUnselected,
 		CharData:    charData,
+		ShowName:    true, //!smallPortrait,
 	}
 
 	return frame

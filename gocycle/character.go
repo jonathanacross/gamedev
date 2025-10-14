@@ -101,7 +101,7 @@ func loadCharData() []CharData {
 		},
 		{
 			ID:             7,
-			Name:           "Mike Green",
+			Name:           "Mike",
 			Image:          MikeGCharImage,
 			DarkColor:      color.RGBA{20, 104, 20, 255},
 			BrightColor:    color.RGBA{156, 224, 42, 255},
@@ -110,7 +110,7 @@ func loadCharData() []CharData {
 		},
 		{
 			ID:             8,
-			Name:           "Mike Violet",
+			Name:           "Mike",
 			Image:          MikeVCharImage,
 			DarkColor:      color.RGBA{94, 33, 72, 255},
 			BrightColor:    color.RGBA{193, 92, 153, 255},
@@ -119,7 +119,7 @@ func loadCharData() []CharData {
 		},
 		{
 			ID:             9,
-			Name:           "Heather Green",
+			Name:           "Heather",
 			Image:          heatherGCharImage,
 			DarkColor:      color.RGBA{20, 104, 20, 255},
 			BrightColor:    color.RGBA{156, 224, 42, 255},
@@ -128,7 +128,7 @@ func loadCharData() []CharData {
 		},
 		{
 			ID:             10,
-			Name:           "Heather Violet",
+			Name:           "Heather",
 			Image:          heatherVCharImage,
 			DarkColor:      color.RGBA{94, 33, 72, 255},
 			BrightColor:    color.RGBA{193, 92, 153, 255},

@@ -17,7 +17,7 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 	TileSize     = 16
-	ScoreOffset  = 3
+	ScoreOffset  = 0
 
 	CharPortraitWidth       = 64
 	CharPortraitBigHeight   = 80

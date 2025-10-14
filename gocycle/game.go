@@ -178,9 +178,9 @@ func (gs *ScoreScreenState) Draw(g *Game, screen *ebiten.Image) {
 		// Draw the total scores below each card
 		score := gs.Scores[card.CharData.ID]
 		scoreText := fmt.Sprintf("%d", score)
-		scoreX := card.X + card.HitBox().Width()/2
-		scoreY := card.Y + card.HitBox().Height() + 5
-		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
+		scoreX := card.X + card.HitBox().Width()
+		scoreY := card.Y + card.HitBox().Height() + ScoreOffset
+		drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignEnd, color.White)
 	}
 
 	drawTextAt(screen, "Press Space", ScreenWidth/2, 3*ScreenHeight/5, text.AlignCenter, color.White)
@@ -456,9 +456,9 @@ func (gs *GamePlayState) Draw(g *Game, screen *ebiten.Image) {
 		roundScore := gs.RoundScores[card.CharData.ID]
 		if roundScore >= 0 {
 			scoreText := fmt.Sprintf("%d", roundScore)
-			scoreX := card.X + card.HitBox().Width()/2
-			scoreY := card.Y + card.HitBox().Height() + 5
-			drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignCenter, color.White)
+			scoreX := card.X + card.HitBox().Width()
+			scoreY := card.Y + card.HitBox().Height() + ScoreOffset
+			drawTextAt(screen, scoreText, scoreX, scoreY, text.AlignEnd, color.White)
 		}
 	}
 }
