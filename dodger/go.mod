@@ -1,4 +1,4 @@
-module dodger
+module github.com/jacross/gamedev/dodger
 
 go 1.23.1
 
