@@ -1,13 +1,33 @@
 <!DOCTYPE html>
 <head>
-<script src="web/wasm_exec.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Dodger</h1>
-<script>
-const go = new Go();
-WebAssembly.instantiateStreaming(fetch("web/dodger.wasm"), go.importObject).then(result => {
-    go.run(result.instance);
-});
-</script>
+    <p>Here are a collection of games I've made to learn game development with Ebiten.</p>
+
+    <dl>
+        <dt>Dodger</dt>
+        <dd>First attempt at making some sprites. Play <a href="web/dodger.html">here</a></dd>
+
+        <dt>Flappy</dt>
+        <dd>My take on the <a href="https://flappybird.io/index.html">Flappy Bird</a> game.</dd>
+
+        <dt>Fifteen</dt>
+        <dd>The classic <a href="https://en.wikipedia.org/wiki/15_puzzle">15 puzzle</a>.</dd>
+
+        <dt>Infection</dt>
+        <dd>A clone of the Infection game from <a href="https://en.wikipedia.org/wiki/The_7th_Guest">The 7th Guest</a>. </dd>
+
+        <dt>EasyUi</dt>
+        <dd>Not a game, but beginnings of a library for UI elements.</dd>
+
+        <dt>VVV</dt>
+        <dd>A simple version of the game <a href="https://en.wikipedia.org/wiki/VVVVVV">VVVVVV</a>.</dd>
+
+        <dt>Splatcard</dt>
+        <dd>A silly flashcard game to learn the capitals of the 50 states.</dd>
+
+        <dt>GoCycle</dt>
+        <dd>A version of the Tron Lightcycles game. This has several different characters, each with their own computer AI.</dd>
+    </dl>
 </body>

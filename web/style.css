@@ -1,0 +1,26 @@
+body {
+    font-family: Verdana, sans-serif; 
+    margin: 40px auto; 
+    max-width: 800px; 
+    color: #333; 
+    background-color: #f4f4f9; 
+}
+
+dl {
+    margin: 0;
+    padding: 0;
+}
+
+
+dt {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #007bff; 
+    margin-top: 1.5em;
+}
+
+dd {
+    margin-left: 0;
+    margin-bottom: 0.5em;
+    padding-bottom: 1em; 
+}

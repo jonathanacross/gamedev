@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="web/wasm_exec.js"></script>
+<script>
+const go = new Go();
+const name = window.location.search.substring(1);
+WebAssembly.instantiateStreaming(fetch("web/${name}.wasm"), go.importObject).then(result => {
+    go.run(result.instance);
+});
+</script>
