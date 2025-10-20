@@ -1,4 +1,4 @@
-module easyui
+module github.com/jonathanacross/gamedev/easyui
 
 go 1.23.1
 

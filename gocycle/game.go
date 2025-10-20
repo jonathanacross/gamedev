@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gocycle/core"
+	"github.com/jonathanacross/gamedev/gocycle/core"
 	"image/color"
 	"math/rand/v2"
 	"sort"

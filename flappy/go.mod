@@ -1,4 +1,4 @@
-module flappy
+module github.com/jonathanacross/gamedev/flappy
 
 go 1.23.1
 

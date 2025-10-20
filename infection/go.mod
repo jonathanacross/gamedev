@@ -1,4 +1,4 @@
-module infection
+module github.com/jonathanacross/gamedev/infection
 
 go 1.23.1
 

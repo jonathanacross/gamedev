@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gocycle/core"
+	"github.com/jonathanacross/gamedev/gocycle/core"
 	"image/color"
 	"os"
 

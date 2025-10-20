@@ -1,4 +1,4 @@
-module fifteen
+module github.com/jonathanacross/gamedev/fifteen
 
 go 1.23.1
 

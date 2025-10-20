@@ -1,6 +1,4 @@
-module vvv
-
-replace vvv => /Users/jonathan/tmp/golang/gamelearn/vvv
+module github.com/jonathanacross/gamedev/vvv
 
 go 1.23.1
 

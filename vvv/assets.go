@@ -7,7 +7,7 @@ import (
 	"image"
 	"path/filepath"
 	"strconv"
-	"vvv/tiled"
+	"github.com/jonathanacross/gamedev/vvv/tiled"
 
 	_ "image/png"
 

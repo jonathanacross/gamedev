@@ -2,7 +2,7 @@ package main
 
 import (
 	"image/color"
-	"vvv/tiled"
+	"github.com/jonathanacross/gamedev/vvv/tiled"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"

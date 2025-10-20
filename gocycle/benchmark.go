@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gocycle/core" // Assuming your core package is correctly imported
+	"github.com/jonathanacross/gamedev/gocycle/core"
 	"math/rand/v2"
 	"os"
 	"sort"

@@ -1,8 +1,6 @@
-module gocycle
+module github.com/jonathanacross/gamedev/gocycle
 
 go 1.23.1
-
-replace gocycle => /Users/jonathan/Development/golang/gamelearn
 
 require github.com/hajimehoshi/ebiten/v2 v2.8.8
 
