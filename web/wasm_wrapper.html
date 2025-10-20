@@ -3,7 +3,8 @@
 <script>
 const go = new Go();
 const name = window.location.search.substring(1);
-WebAssembly.instantiateStreaming(fetch("${name}.wasm"), go.importObject).then(result => {
+const url = `${name}.wasm`
+WebAssembly.instantiateStreaming(fetch(url), go.importObject).then(result => {
     go.run(result.instance);
 });
 </script>
