@@ -44,67 +44,21 @@ func FillSolidWalls(width, height int) [][]int {
 	return squares
 }
 
-type Point struct {
-	X int
-	Y int
-}
-
-// PointInPolygon implements the Ray Casting Algorithm (Even-Odd Rule).
-// It determines if a given point is inside the polygon defined by the vertices.
-func PointInPolygon(point Point, vertices []Point) bool {
-	n := len(vertices)
-	if n < 3 {
-		return false
-	}
-
-	x := float64(point.X)
-	//y := float64(point.Y)
-	inside := false
-
-	// Iterate over each edge of the polygon
-	// (vj, vi) represents the current edge
-	for i, j := 0, n-1; i < n; j, i = i, i+1 {
-		vi := vertices[i]
-		vj := vertices[j]
-
-		// Check if the horizontal ray from (x, y) intersects the edge (vi, vj).
-		// The condition (vi.Y > y) != (vj.Y > y) ensures the edge crosses the line y=Y.
-		if (vi.Y > point.Y) != (vj.Y > point.Y) {
-			// Calculate the X-intercept (intersectX) of the edge with the horizontal ray y=Y.
-			intersectX := (float64(vj.X-vi.X)*float64(point.Y-vi.Y))/(float64(vj.Y-vi.Y)) + float64(vi.X)
-
-			// If the X-intercept is to the right of the test point's X (x < intersectX),
-			// the ray crosses the edge, so we flip the 'inside' state.
-			if x < intersectX {
-				inside = !inside
-			}
-		}
-	}
-
-	return inside
-}
-
 type RoomInfo struct {
 	X        int
 	Y        int
 	XRadius  int
 	YRadius  int
-	Vertices []Point
+	Vertices Polygon
 }
 
 func (room *RoomInfo) Area() float64 {
-	// TODO: replace with polygon area
-	return float64(room.XRadius*2+1) * float64(room.YRadius*2+1)
+	return room.Vertices.area()
 }
 
 func (room *RoomInfo) Overlaps(rooms []RoomInfo) bool {
-	// TODO: replace with polygon intersection
 	for _, prevRoom := range rooms {
-		dx := abs(room.X - prevRoom.X)
-		dy := abs(room.Y - prevRoom.Y)
-		minDistX := room.XRadius + prevRoom.XRadius + 1
-		minDistY := room.XRadius + prevRoom.YRadius + 1
-		if dx <= minDistX && dy <= minDistY {
+		if room.Vertices.overlaps(prevRoom.Vertices) {
 			return true
 		}
 	}
@@ -130,7 +84,7 @@ func genRoom(mapWidth, mapHeight int) RoomInfo {
 	}
 }
 
-func MakeShape(centerX, centerY int, xRadius, yRadius int) []Point {
+func MakeShape(centerX, centerY int, xRadius, yRadius int) Polygon {
 	r := (xRadius + yRadius) / 2
 	numSpokes := 3 * r / 2
 	// Set initial random radius for each spoke
@@ -149,31 +103,47 @@ func MakeShape(centerX, centerY int, xRadius, yRadius int) []Point {
 	}
 	radii = smoothedRadii
 
-	// compute vertex positions for the shape
+	// Use FPoint for vertex positions calculation
 	dTheta := 2 * math.Pi / float64(numSpokes)
-	vertices := make([]Point, numSpokes)
+	fVertices := make([]FPoint, numSpokes) // Changed to FPoint
 	for i := range numSpokes {
 		theta := dTheta * float64(i)
 		r := radii[i]
-		x := centerX + int(r*math.Cos(theta))
-		y := centerY + int(r*math.Sin(theta))
-		vertices[i] = Point{X: x, Y: y}
+		// Calculations remain in float64
+		x := float64(centerX) + r*math.Cos(theta)
+		y := float64(centerY) + r*math.Sin(theta)
+		fVertices[i] = FPoint{X: x, Y: y}
 	}
 
-	xMin, xMax := vertices[0].X, vertices[0].X
-	yMin, yMax := vertices[0].Y, vertices[0].Y
-	for _, v := range vertices {
-		xMin = min(xMin, v.X)
-		xMax = max(xMax, v.X)
-		yMin = min(yMin, v.Y)
-		yMax = max(yMax, v.Y)
+	// Calculate bounds using FPoint values
+	xMin, xMax := fVertices[0].X, fVertices[0].X
+	yMin, yMax := fVertices[0].Y, fVertices[0].Y
+	for _, v := range fVertices {
+		xMin = math.Min(xMin, v.X)
+		xMax = math.Max(xMax, v.X)
+		yMin = math.Min(yMin, v.Y)
+		yMax = math.Max(yMax, v.Y)
 	}
-	scaleX := float64(2*xRadius+1) / float64(xMax-xMin)
-	scaleY := float64(2*yRadius+1) / float64(yMax-yMin)
 
-	for i, v := range vertices {
-		vertices[i].X = int(float64(v.X-xMin)*scaleX + float64(centerX-xRadius))
-		vertices[i].Y = int(float64(v.Y-yMin)*scaleY + float64(centerY-yRadius))
+	// Check for zero-division risk (in case shape collapsed to a line/point)
+	var scaleX, scaleY float64 = 1.0, 1.0
+	if xMax-xMin > 0 {
+		scaleX = float64(2*xRadius+1) / (xMax - xMin)
+	}
+	if yMax-yMin > 0 {
+		scaleY = float64(2*yRadius+1) / (yMax - yMin)
+	}
+
+	// Final conversion and scaling to integer Point
+	vertices := make(Polygon, numSpokes)
+	for i, v := range fVertices {
+		// Scaling and offset calculation using floats
+		scaledX := (v.X-xMin)*scaleX + float64(centerX-xRadius)
+		scaledY := (v.Y-yMin)*scaleY + float64(centerY-yRadius)
+
+		// Final conversion to integer Point
+		vertices[i].X = int(scaledX)
+		vertices[i].Y = int(scaledY)
 	}
 
 	return vertices
@@ -205,7 +175,7 @@ func BuildLevel(width, height int) *LevelBlueprint {
 		for x := range width {
 			point := Point{X: x, Y: y}
 			for _, room := range rooms {
-				if PointInPolygon(point, room.Vertices) {
+				if room.Vertices.contains(point) {
 					data[y][x] = floor
 					break
 				}
