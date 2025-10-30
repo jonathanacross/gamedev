@@ -149,6 +149,85 @@ func MakeShape(centerX, centerY int, xRadius, yRadius int) Polygon {
 	return vertices
 }
 
+func visitPermutation(rooms []RoomInfo) []int {
+	permutation := []int{}
+	seen := make([]bool, len(rooms))
+
+	// start with first room
+	currRoom := 0
+	seen[currRoom] = true
+	permutation = append(permutation, currRoom)
+
+	for len(permutation) < len(rooms) {
+		// find nearest unseen room
+		bestDist := math.MaxInt
+		closestRoom := -1
+		for i, r := range rooms {
+			if !seen[i] {
+				dist := abs(r.X-rooms[currRoom].X) + abs(r.Y-rooms[currRoom].Y)
+				if dist < bestDist {
+					bestDist = dist
+					closestRoom = i
+				}
+			}
+		}
+
+		currRoom = closestRoom
+		seen[currRoom] = true
+		permutation = append(permutation, currRoom)
+	}
+
+	return permutation
+}
+
+// adds a new path
+func addPath(data [][]int, rooms []RoomInfo, oldx, oldy, newx, newy int) {
+	dx := sign(newx - oldx)
+	dy := sign(newy - oldy)
+
+	for x := oldx; x != newx; x += dx {
+		data[oldy][x] = floor
+	}
+	for y := oldy; y != newy; y += dy {
+		data[y][newx] = floor
+	}
+}
+
+func connectRoomsWithPaths(data [][]int, rooms []RoomInfo) {
+	// Sort the rooms by closest path so there aren't
+	// too many long paths that crisscross over the
+	// dungeon.
+	pi := visitPermutation(rooms)
+
+	// Add a few extra paths so that the final result isn't
+	// too circular.
+	pi = append(pi, pi[0])
+	pi = append(pi, pi[len(rooms)/4])
+	pi = append(pi, pi[2*len(rooms)/4])
+	pi = append(pi, pi[3*len(rooms)/4])
+
+	// connect the rooms with corridors -- just go in order
+	for i := 1; i < len(pi); i++ {
+		oldx := roundEven(rooms[pi[i-1]].X)
+		oldy := roundEven(rooms[pi[i-1]].Y)
+		newx := roundEven(rooms[pi[i]].X)
+		newy := roundEven(rooms[pi[i]].Y)
+
+		addPath(data, rooms, oldx, oldy, newx, newy)
+	}
+}
+
+func ensureOuterEdgeIsWall(data [][]int) {
+	for x := range data[0] {
+		data[0][x] = wall
+		data[len(data)-1][x] = wall
+	}
+	for y := range data {
+		data[y][0] = wall
+		data[y][len(data[0])-1] = wall
+	}
+}
+
 func BuildLevel(width, height int) *LevelBlueprint {
 	// initialize to solid wall
 	data := FillSolidWalls(width, height)
@@ -166,10 +245,6 @@ func BuildLevel(width, height int) *LevelBlueprint {
 		}
 	}
 
-	for _, room := range rooms {
-		fmt.Printf("room = %v\n", room)
-	}
-
 	// clear out the area in the rooms
 	for y := range height {
 		for x := range width {
@@ -182,6 +257,10 @@ func BuildLevel(width, height int) *LevelBlueprint {
 			}
 		}
 	}
+
+	connectRoomsWithPaths(data, rooms)
+
+	ensureOuterEdgeIsWall(data)
 
 	return &LevelBlueprint{
 		Width:   width,
