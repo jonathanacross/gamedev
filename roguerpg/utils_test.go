@@ -95,7 +95,7 @@ func TestArea(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := area(tt.poly); !floatEquals(got, tt.want) {
+			if got := tt.poly.area(); !floatEquals(got, tt.want) {
 				t.Errorf("area() = %v, want %v", got, tt.want)
 			}
 		})
@@ -199,7 +199,7 @@ func TestPointInPolygon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := pointInPolygon(tt.point, tt.poly); got != tt.want {
+			if got := tt.poly.contains(tt.point); got != tt.want {
 				t.Errorf("pointInPolygon(%v) = %v, want %v", tt.point, got, tt.want)
 			}
 		})
@@ -237,7 +237,7 @@ func TestOverlaps(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := overlaps(tt.poly1, tt.poly2); got != tt.want {
+			if got := tt.poly1.overlaps(tt.poly2); got != tt.want {
 				t.Errorf("overlaps(%v, %v) = %v, want %v", tt.poly1, tt.poly2, got, tt.want)
 			}
 		})

@@ -206,6 +206,8 @@ func (sb *SubBlobTileMap) BuildBlobImage() image.Image {
 	return outputImage
 }
 
+// Temporarily commented out so that the game can build;
+// uncomment to run the tool
 func main() {
 	if len(os.Args) != 4 {
 		fmt.Println("Usage: blob_builder [input_image.png] [input_tile_size] [output_image.png]")
