@@ -25,7 +25,8 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	g.player.Update(Idle)
+	g.player.HandleUserInput()
+	g.player.Update()
 	return nil
 }
 

@@ -58,7 +58,7 @@ func NewPlayer() *Player {
 		Dying:   PlayerDeathSpritesImage,
 	}
 
-	spriteSheet := NewSpriteSheet(48, 48, 6, 6)
+	spriteSheet := NewSpriteSheet(48, 64, 6, 6)
 
 	return &Player{
 		BaseSprite: BaseSprite{
@@ -82,10 +82,8 @@ func NewPlayer() *Player {
 	}
 }
 
-func (c *Player) Update(state PlayerState) {
-	c.state = state
-
-	animationSet, exists := c.animations[state]
+func (c *Player) Update() {
+	animationSet, exists := c.animations[c.state]
 	if !exists {
 		return
 	}
@@ -96,6 +94,30 @@ func (c *Player) Update(state PlayerState) {
 
 	animation.Update()
 
-	c.image = c.images[state]
+	c.image = c.images[c.state]
 	c.srcRect = c.spriteSheet.Rect(animation.Frame())
+}
+
+func (p *Player) HandleUserInput() {
+	walkSpeed := 2.0
+
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		p.X -= walkSpeed
+		p.state = Walking
+		p.direction = Left
+	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		p.X += walkSpeed
+		p.state = Walking
+		p.direction = Right
+	} else if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		p.Y -= walkSpeed
+		p.state = Walking
+		p.direction = Up
+	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
+		p.Y += walkSpeed
+		p.state = Walking
+		p.direction = Down
+	} else {
+		p.state = Idle
+	}
 }
