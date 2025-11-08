@@ -15,6 +15,9 @@ var assets embed.FS
 
 var TerrainTileset = loadImage("assets/terrain.png")
 var WallBlobTileset = loadImage("assets/walls_blob.png")
+var PlayerIdleSpritesImage = loadImage("assets/player_idle.png")
+var PlayerWalkSpritesImage = loadImage("assets/player_walk.png")
+var PlayerDeathSpritesImage = loadImage("assets/player_death.png")
 
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)

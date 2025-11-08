@@ -13,16 +13,19 @@ const (
 
 type Game struct {
 	terrain [][]*Tile
+	player  *Player
 }
 
 func NewGame() *Game {
 	terrain := BuildLevel(70, 50)
 	return &Game{
 		terrain: terrain,
+		player:  NewPlayer(),
 	}
 }
 
 func (g *Game) Update() error {
+	g.player.Update(Idle)
 	return nil
 }
 
@@ -32,6 +35,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			tile.Draw(screen)
 		}
 	}
+	g.player.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
