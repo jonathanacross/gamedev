@@ -17,18 +17,17 @@ type BaseSprite struct {
 
 // HitBox returns the collision rectangle for the BaseSprite.
 func (bs *BaseSprite) HitBox() Rect {
-	return bs.hitbox
+	return bs.hitbox.Offset(bs.X, bs.Y)
 }
 
-// GetX returns the X coordinate of the BaseSprite.
 func (bs *BaseSprite) GetX() float64 { return bs.X }
 
-// GetY returns the Y coordinate of the BaseSprite.
 func (bs *BaseSprite) GetY() float64 { return bs.Y }
 
-func (bs *BaseSprite) Draw(screen *ebiten.Image) {
+func (bs *BaseSprite) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(bs.X, bs.Y)
+	op.GeoM.Concat(cameraMatrix)
 	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }

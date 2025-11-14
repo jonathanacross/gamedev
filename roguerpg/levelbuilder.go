@@ -411,6 +411,12 @@ func BuildLevel(width, height int) [][]*Tile {
 						Location: location,
 						image:    WallBlobTileset,
 						srcRect:  wallEdgeBlobSpriteSheet.Rect(blobValue),
+						hitbox: Rect{
+							Left:   0,
+							Top:    0,
+							Right:  float64(tileSize),
+							Bottom: float64(tileSize),
+						},
 					},
 				}
 			} else {
@@ -420,6 +426,12 @@ func BuildLevel(width, height int) [][]*Tile {
 						Location: location,
 						image:    TerrainTileset,
 						srcRect:  terrainSpriteSheet.Rect(tileIdx),
+						hitbox: Rect{
+							Left:   0,
+							Top:    0,
+							Right:  float64(tileSize),
+							Bottom: float64(tileSize),
+						},
 					},
 				}
 			}
