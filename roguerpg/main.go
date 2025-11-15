@@ -41,10 +41,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		for _, tile := range row {
 			if tile.HitBox().Intersects(viewRect) {
 				tile.Draw(screen, cameraMatrix)
+				if tile.solid {
+					tile.DrawDebugInfo(screen, cameraMatrix)
+				}
 			}
 		}
 	}
 	g.player.Draw(screen, cameraMatrix)
+	g.player.DrawDebugInfo(screen, cameraMatrix)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

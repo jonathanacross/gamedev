@@ -406,34 +406,11 @@ func BuildLevel(width, height int) [][]*Tile {
 			var tile *Tile = nil
 			if squareType == wall {
 				blobValue := blueprint.GetBlobValueForWallEdge(x, y)
-				tile = &Tile{
-					BaseSprite: BaseSprite{
-						Location: location,
-						image:    WallBlobTileset,
-						srcRect:  wallEdgeBlobSpriteSheet.Rect(blobValue),
-						hitbox: Rect{
-							Left:   0,
-							Top:    0,
-							Right:  float64(tileSize),
-							Bottom: float64(tileSize),
-						},
-					},
-				}
+				tile = NewTile(location, WallBlobTileset, wallEdgeBlobSpriteSheet.Rect(blobValue), true)
 			} else {
 				tileIdx := blueprint.GetSheetIdxForTerrain(x, y)
-				tile = &Tile{
-					BaseSprite: BaseSprite{
-						Location: location,
-						image:    TerrainTileset,
-						srcRect:  terrainSpriteSheet.Rect(tileIdx),
-						hitbox: Rect{
-							Left:   0,
-							Top:    0,
-							Right:  float64(tileSize),
-							Bottom: float64(tileSize),
-						},
-					},
-				}
+				solid := blueprint.Squares[y][x] != floor
+				tile = NewTile(location, TerrainTileset, terrainSpriteSheet.Rect(tileIdx), solid)
 			}
 			row = append(row, tile)
 		}
