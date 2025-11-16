@@ -8,6 +8,7 @@ type Level struct {
 	WidthInTiles  int
 	HeightInTiles int
 	Tiles         [][]*Tile
+	Enemies       []*BlobEnemy
 }
 
 func (level *Level) FindRandomFloorLocation() Location {
@@ -21,5 +22,14 @@ func (level *Level) FindRandomFloorLocation() Location {
 				Y: float64(y*TileSize + TileSize/2),
 			}
 		}
+	}
+}
+
+func (level *Level) AddEnemies() {
+	numEnemies := 25
+	for range numEnemies {
+		enemy := NewBlobEnemy()
+		enemy.Location = level.FindRandomFloorLocation()
+		level.Enemies = append(level.Enemies, enemy)
 	}
 }

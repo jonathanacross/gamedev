@@ -23,6 +23,8 @@ type Game struct {
 
 func NewGame() *Game {
 	level := BuildLevel(70, 50)
+	level.AddEnemies()
+
 	player := NewPlayer()
 	player.Location = level.FindRandomFloorLocation()
 	return &Game{
@@ -33,6 +35,9 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
+	for _, enemy := range g.level.Enemies {
+		enemy.Update(g.level)
+	}
 	g.player.HandleUserInput()
 	g.player.Update(g.level)
 	g.camera.CenterOn(g.player.Location)
@@ -53,6 +58,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
+
+	for _, enemy := range g.level.Enemies {
+		if enemy.HitBox().Intersects(viewRect) {
+			enemy.Draw(screen, cameraMatrix)
+			enemy.DrawDebugInfo(screen, cameraMatrix)
+		}
+	}
+
 	g.player.Draw(screen, cameraMatrix)
 	g.player.DrawDebugInfo(screen, cameraMatrix)
 }
