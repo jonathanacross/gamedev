@@ -11,6 +11,8 @@ const (
 	ScreenHeight = 240
 
 	TileSize = 16
+
+	ShowDebugInfo = false
 )
 
 type Game struct {

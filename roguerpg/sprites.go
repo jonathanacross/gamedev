@@ -68,6 +68,10 @@ func (bs *BaseSprite) GetX() float64 { return bs.X }
 func (bs *BaseSprite) GetY() float64 { return bs.Y }
 
 func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	if !ShowDebugInfo {
+		return
+	}
+
 	if bs.debugImage == nil || dotImage == nil {
 		return
 	}
