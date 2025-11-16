@@ -32,7 +32,7 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	g.player.HandleUserInput()
-	g.player.Update()
+	g.player.Update(g.level)
 	g.camera.CenterOn(g.player.Location)
 	return nil
 }

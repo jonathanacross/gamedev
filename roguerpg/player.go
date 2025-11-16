@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -21,6 +23,13 @@ const (
 	Down
 )
 
+type CollisionAxis int
+
+const (
+	AxisX CollisionAxis = iota
+	AxisY
+)
+
 type Player struct {
 	BaseSprite
 	images      map[PlayerState]*ebiten.Image
@@ -28,6 +37,8 @@ type Player struct {
 	animations  map[PlayerState]map[PlayerDirection]*Animation
 	state       PlayerState
 	direction   PlayerDirection
+	Vx          float64
+	Vy          float64
 }
 
 func NewPlayer() *Player {
@@ -91,7 +102,7 @@ func NewPlayer() *Player {
 	}
 }
 
-func (c *Player) Update() {
+func (c *Player) Update(level *Level) {
 	animationSet, exists := c.animations[c.state]
 	if !exists {
 		return
@@ -105,6 +116,11 @@ func (c *Player) Update() {
 
 	c.image = c.images[c.state]
 	c.srcRect = c.spriteSheet.Rect(animation.Frame())
+
+	c.X += c.Vx
+	c.HandleTileCollisions(level, AxisX)
+	c.Y += c.Vy
+	c.HandleTileCollisions(level, AxisY)
 }
 
 func (p *Player) HandleUserInput() {
@@ -134,7 +150,68 @@ func (p *Player) HandleUserInput() {
 	if p.state == Walking {
 		walkSpeed := 2.0
 		moveDir = moveDir.Normalize().Scale(walkSpeed)
-		p.X += moveDir.X
-		p.Y += moveDir.Y
+	}
+	p.Vx = moveDir.X
+	p.Vy = moveDir.Y
+}
+
+func (p *Player) resolveCollision(otherRect Rect, axis CollisionAxis) {
+	// TOOD: change HitBox to PushBox
+	playerRect := p.HitBox()
+
+	if !playerRect.Intersects(otherRect) {
+		return
+	}
+
+	if axis == AxisX {
+		overlap := 0.0
+		if p.Vx > 0 { // moving right
+			overlap = playerRect.Right - otherRect.Left
+		} else if p.Vx < 0 { // moving left
+			overlap = playerRect.Left - otherRect.Right
+		}
+
+		if math.Abs(overlap) > 0 {
+			p.X -= overlap
+			p.Vx = 0.0
+		}
+	} else if axis == AxisY {
+		overlap := 0.0
+		if p.Vy > 0 { // moving down
+			overlap = playerRect.Bottom - otherRect.Top
+		} else if p.Vy < 0 { // moving up
+			overlap = playerRect.Top - otherRect.Bottom
+		}
+
+		if math.Abs(overlap) > 0 {
+			p.Y -= overlap
+			p.Vy = 0.0
+		}
+	}
+}
+
+func (p *Player) HandleTileCollisions(level *Level, axis CollisionAxis) {
+	// Only check the tiles near the player to improve performance
+	playerHitBox := p.HitBox()
+	minX := int(math.Floor(playerHitBox.Left/TileSize)) - 1
+	maxX := int(math.Floor(playerHitBox.Right/TileSize)) + 1
+	minY := int(math.Floor(playerHitBox.Top/TileSize)) - 1
+	maxY := int(math.Floor(playerHitBox.Bottom/TileSize)) + 1
+
+	for _, row := range level.Tiles {
+		for _, tile := range row {
+			if !tile.solid {
+				continue
+			}
+
+			// Skip over tiles that are not near the player
+			tileX := int(tile.X / TileSize)
+			tileY := int(tile.Y / TileSize)
+			if tileX < minX || tileX > maxX || tileY < minY || tileY > maxY {
+				continue
+			}
+
+			p.resolveCollision(tile.HitBox(), axis)
+		}
 	}
 }
