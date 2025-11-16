@@ -9,20 +9,24 @@ import (
 const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
+
+	TileSize = 16
 )
 
 type Game struct {
-	terrain [][]*Tile
-	player  *Player
-	camera  *Camera
+	level  *Level
+	player *Player
+	camera *Camera
 }
 
 func NewGame() *Game {
-	terrain := BuildLevel(70, 50)
+	level := BuildLevel(70, 50)
+	player := NewPlayer()
+	player.Location = level.FindRandomFloorLocation()
 	return &Game{
-		terrain: terrain,
-		player:  NewPlayer(),
-		camera:  NewCamera(ScreenWidth, ScreenHeight),
+		level:  level,
+		player: player,
+		camera: NewCamera(ScreenWidth, ScreenHeight),
 	}
 }
 
@@ -37,7 +41,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	cameraMatrix := g.camera.WorldToScreen()
 	viewRect := g.camera.GetViewRect()
 
-	for _, row := range g.terrain {
+	for _, row := range g.level.Tiles {
 		for _, tile := range row {
 			if tile.HitBox().Intersects(viewRect) {
 				tile.Draw(screen, cameraMatrix)

@@ -63,21 +63,21 @@ func NewPlayer() *Player {
 	// need to make a separate hurtbox for the player, and hitboxes
 	// for attacks/weapons.
 	hitbox := Rect{
-		Left:   0,
-		Top:    0,
-		Right:  12,
-		Bottom: 12,
+		Left:   -6,
+		Top:    -6,
+		Right:  6,
+		Bottom: 6,
 	}
 
 	return &Player{
 		BaseSprite: BaseSprite{
 			Location: Location{
-				X: 100,
-				Y: 50,
+				X: 0,
+				Y: 0,
 			},
 			drawOffset: Location{
-				X: 19,
-				Y: 32,
+				X: 25,
+				Y: 38,
 			},
 			srcRect:    spriteSheet.Rect(0),
 			hitbox:     hitbox,

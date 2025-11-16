@@ -386,21 +386,20 @@ func (lb *LevelBlueprint) GetBlobValueForWallEdge(x, y int) int {
 	return lookup
 }
 
-func BuildLevel(width, height int) [][]*Tile {
-	tileSize := 16
+func BuildLevel(width, height int) *Level {
 	blueprint := BuildLevelBlueprint(width, height)
 	terrainTiles := [][]*Tile{}
 
-	terrainSpriteSheet := NewSpriteSheet(tileSize, tileSize, 5, 3)
-	wallEdgeBlobSpriteSheet := NewBlobSpriteSheet(tileSize, tileSize)
+	terrainSpriteSheet := NewSpriteSheet(TileSize, TileSize, 5, 3)
+	wallEdgeBlobSpriteSheet := NewBlobSpriteSheet(TileSize, TileSize)
 
 	for y := 0; y < blueprint.Height; y++ {
 		row := []*Tile{}
 		for x := 0; x < blueprint.Width; x++ {
 			squareType := blueprint.Squares[y][x]
 			location := Location{
-				X: float64(x * tileSize),
-				Y: float64(y * tileSize),
+				X: float64(x * TileSize),
+				Y: float64(y * TileSize),
 			}
 
 			var tile *Tile = nil
@@ -417,7 +416,11 @@ func BuildLevel(width, height int) [][]*Tile {
 		terrainTiles = append(terrainTiles, row)
 	}
 
-	return terrainTiles
+	return &Level{
+		WidthInTiles:  width,
+		HeightInTiles: height,
+		Tiles:         terrainTiles,
+	}
 }
 
 /*
