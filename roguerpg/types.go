@@ -1,8 +1,36 @@
 package main
 
+import (
+	"math"
+)
+
 type Location struct {
 	X float64
 	Y float64
+}
+
+type Vector struct {
+	X float64
+	Y float64
+}
+
+func (v Vector) Length() float64 {
+	return math.Hypot(v.X, v.Y)
+}
+
+func (v Vector) Normalize() Vector {
+	length := v.Length()
+	return Vector{
+		X: v.X / length,
+		Y: v.Y / length,
+	}
+}
+
+func (v Vector) Scale(scalar float64) Vector {
+	return Vector{
+		X: v.X * scalar,
+		Y: v.Y * scalar,
+	}
 }
 
 type Rect struct {

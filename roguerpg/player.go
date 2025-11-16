@@ -108,25 +108,33 @@ func (c *Player) Update() {
 }
 
 func (p *Player) HandleUserInput() {
-	walkSpeed := 2.0
+	p.state = Idle
+	moveDir := Vector{X: 0, Y: 0}
 
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		p.X -= walkSpeed
-		p.state = Walking
-		p.direction = Left
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		p.X += walkSpeed
-		p.state = Walking
-		p.direction = Right
-	} else if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		p.Y -= walkSpeed
+	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		moveDir.Y = -1
 		p.state = Walking
 		p.direction = Up
 	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		p.Y += walkSpeed
+		moveDir.Y = 1
 		p.state = Walking
 		p.direction = Down
-	} else {
-		p.state = Idle
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		moveDir.X = -1
+		p.state = Walking
+		p.direction = Left
+	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		moveDir.X = 1
+		p.state = Walking
+		p.direction = Right
+	}
+
+	if p.state == Walking {
+		walkSpeed := 2.0
+		moveDir = moveDir.Normalize().Scale(walkSpeed)
+		p.X += moveDir.X
+		p.Y += moveDir.Y
 	}
 }
