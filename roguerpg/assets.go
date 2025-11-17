@@ -18,6 +18,7 @@ var WallBlobTileset = loadImage("assets/walls_blob.png")
 var PlayerIdleSpritesImage = loadImage("assets/player_idle.png")
 var PlayerWalkSpritesImage = loadImage("assets/player_walk.png")
 var PlayerDeathSpritesImage = loadImage("assets/player_death.png")
+var PlayerAttackSwordSpritesImage = loadImage("assets/player_attack_sword.png")
 var BlobSpritesImage = loadImage("assets/blob.png")
 
 func loadImage(name string) *ebiten.Image {

@@ -11,6 +11,7 @@ type PlayerState int
 const (
 	Idle PlayerState = iota
 	Walking
+	Attacking
 	Dying
 )
 
@@ -55,6 +56,12 @@ func NewPlayer() *Player {
 			Up:    NewAnimation([]int{18, 19, 20, 21, 22, 23}, 15, true),
 			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5}, 15, true),
 		},
+		Attacking: {
+			Left:  NewAnimation([]int{6, 7, 8, 9}, 5, false),
+			Right: NewAnimation([]int{30, 31, 32, 33}, 5, false),
+			Up:    NewAnimation([]int{18, 19, 20, 21}, 5, false),
+			Down:  NewAnimation([]int{0, 1, 2, 3}, 5, false),
+		},
 		Dying: {
 			Left:  NewAnimation([]int{6, 7, 8, 9, 10, 11}, 15, false),
 			Right: NewAnimation([]int{30, 31, 32, 33, 34, 35}, 15, false),
@@ -64,9 +71,10 @@ func NewPlayer() *Player {
 	}
 
 	charImages := map[PlayerState]*ebiten.Image{
-		Idle:    PlayerIdleSpritesImage,
-		Walking: PlayerWalkSpritesImage,
-		Dying:   PlayerDeathSpritesImage,
+		Idle:      PlayerIdleSpritesImage,
+		Walking:   PlayerWalkSpritesImage,
+		Attacking: PlayerAttackSwordSpritesImage,
+		Dying:     PlayerDeathSpritesImage,
 	}
 
 	spriteSheet := NewSpriteSheet(48, 64, 6, 6)
@@ -102,14 +110,28 @@ func NewPlayer() *Player {
 	}
 }
 
-func (c *Player) Update(level *Level) {
+func (c *Player) GetCurrentAnimation() *Animation {
 	animationSet, exists := c.animations[c.state]
 	if !exists {
-		return
+		return nil
 	}
 	animation, exists := animationSet[c.direction]
 	if !exists {
+		return nil
+	}
+	return animation
+}
+
+func (c *Player) Update(level *Level) {
+	animation := c.GetCurrentAnimation()
+	if animation == nil {
 		return
+	}
+
+	if c.state == Attacking && animation.IsFinished() {
+		c.state = Idle
+		animation.Reset()
+		animation = c.GetCurrentAnimation()
 	}
 
 	animation.Update()
@@ -145,6 +167,10 @@ func (p *Player) HandleUserInput() {
 		moveDir.X = 1
 		p.state = Walking
 		p.direction = Right
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		p.state = Attacking
 	}
 
 	if p.state == Walking {
