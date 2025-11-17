@@ -110,16 +110,27 @@ func NewPlayer() *Player {
 	}
 }
 
-func (c *Player) GetCurrentAnimation() *Animation {
-	animationSet, exists := c.animations[c.state]
+func (p *Player) GetCurrentAnimation() *Animation {
+	animationSet, exists := p.animations[p.state]
 	if !exists {
 		return nil
 	}
-	animation, exists := animationSet[c.direction]
+	animation, exists := animationSet[p.direction]
 	if !exists {
 		return nil
 	}
 	return animation
+}
+
+func (p *Player) TransitionState(newState PlayerState) {
+	if p.state != newState {
+		p.state = newState
+
+		// Reset the animation for the *new* state
+		if anim := p.GetCurrentAnimation(); anim != nil {
+			anim.Reset()
+		}
+	}
 }
 
 func (c *Player) Update(level *Level) {
@@ -129,9 +140,9 @@ func (c *Player) Update(level *Level) {
 	}
 
 	if c.state == Attacking && animation.IsFinished() {
-		c.state = Idle
+		c.TransitionState(Idle)
 		animation.Reset()
-		animation = c.GetCurrentAnimation()
+		animation = c.GetCurrentAnimation() // Re-fetch animation after state change
 	}
 
 	animation.Update()
@@ -146,33 +157,57 @@ func (c *Player) Update(level *Level) {
 }
 
 func (p *Player) HandleUserInput() {
-	p.state = Idle
+	// If currently attacking, stop movement and skip input processing
+	// The Update function is now responsible for transitioning *out* of Attacking.
+	if p.state == Attacking {
+		p.Vx = 0
+		p.Vy = 0
+		return
+	}
+
 	moveDir := Vector{X: 0, Y: 0}
 
+	// Handle Movement
+	isMoving := false
+
+	// Vertical movement
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
 		moveDir.Y = -1
-		p.state = Walking
 		p.direction = Up
+		isMoving = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
 		moveDir.Y = 1
-		p.state = Walking
 		p.direction = Down
+		isMoving = true
 	}
 
+	// Horizontal movement (updates state if no vertical was pressed,
+	// otherwise just changes direction/velocity)
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		moveDir.X = -1
-		p.state = Walking
 		p.direction = Left
+		isMoving = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		moveDir.X = 1
-		p.state = Walking
 		p.direction = Right
+		isMoving = true
 	}
 
+	if isMoving {
+		p.TransitionState(Walking)
+	} else {
+		p.TransitionState(Idle)
+	}
+
+	// Handle Attack
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		p.state = Attacking
+		// If attack is pressed, it takes precedence over Walking/Idle
+		p.TransitionState(Attacking)
+		// Reset movement since attacking is generally stationary
+		moveDir = Vector{X: 0, Y: 0}
 	}
 
+	// Calculate Velocity
 	if p.state == Walking {
 		walkSpeed := 2.0
 		moveDir = moveDir.Normalize().Scale(walkSpeed)
