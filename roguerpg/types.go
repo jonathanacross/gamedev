@@ -2,6 +2,8 @@ package main
 
 import (
 	"math"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Location struct {
@@ -62,8 +64,52 @@ func (r1 Rect) Intersects(r2 Rect) bool {
 		r1.Top < r2.Bottom && r1.Bottom > r2.Top
 }
 
+// EntityTag is used to categorize game objects for collision filtering (e.g., friendly fire)
+type EntityTag int
+
+const (
+	TagPlayer EntityTag = iota
+	TagEnemy
+	TagTile
+)
+
+// DamageSource represents an active attack hitbox in the world.
+type DamageSource struct {
+	SourceTag  EntityTag // e.g., TagPlayer, TagEnemy
+	HitBox     Rect      // The current world-space hitbox of the attack
+	Damage     int
+	debugImage *ebiten.Image
+}
+
+func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource {
+	return &DamageSource{
+		SourceTag:  sourceTag,
+		HitBox:     hitBox,
+		Damage:     damage,
+		debugImage: createDebugRectImage(hitBox),
+	}
+}
+
+func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	if !ShowDebugInfo {
+		return
+	}
+
+	if ds.debugImage == nil || dotImage == nil {
+		return
+	}
+
+	// Draw the Hitbox rectangle
+	hb := ds.HitBox
+
+	opRect := &ebiten.DrawImageOptions{}
+	opRect.GeoM.Translate(hb.Left, hb.Top)
+	opRect.GeoM.Concat(cameraMatrix)
+	screen.DrawImage(ds.debugImage, opRect)
+}
+
 // GameObject is an interface for any interactive entity in the game world.
 type GameObject interface {
-	HitBox() Rect
+	HitBox() Rect // Represents the 'PushBox' or 'HurtBox' for receiving damage
 	Update()
 }

@@ -24,6 +24,9 @@ type BlobEnemy struct {
 	Vx          float64
 	Vy          float64
 
+	Health int
+	IsDead bool
+
 	// AI
 	state BlobEnemyState
 
@@ -63,7 +66,24 @@ func NewBlobEnemy() *BlobEnemy {
 		spriteSheet: spriteSheet,
 		animation:   animation,
 		state:       BlobIdle,
+		Health:      3, // Set initial health
+		IsDead:      false,
 		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
+	}
+}
+
+func (c *BlobEnemy) TakeDamage(damage int) {
+	if c.IsDead || c.state == BlobDying {
+		return
+	}
+	c.Health -= damage
+	if c.Health <= 0 {
+		c.state = BlobDying
+		c.IsDead = true
+		// TODO: transition to death animation, or start fading/removal process
+		// For now, just stop movement immediately.
+		c.Vx = 0
+		c.Vy = 0
 	}
 }
 
