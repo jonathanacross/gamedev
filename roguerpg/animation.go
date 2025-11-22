@@ -1,5 +1,9 @@
 package main
 
+import (
+	"math/rand"
+)
+
 type Animation struct {
 	frames       []int
 	frameIndex   int
@@ -38,6 +42,11 @@ func (a *Animation) Update() {
 			}
 		}
 	}
+}
+
+func (a *Animation) SetRandomFrame() {
+	a.frameIndex = rand.Intn(len(a.frames))
+	a.frameCounter = rand.Intn(a.speed)
 }
 
 func (a *Animation) Frame() int {
