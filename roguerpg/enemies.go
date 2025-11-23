@@ -85,6 +85,7 @@ func (c *BlobEnemy) TakeDamage(damage int) {
 	}
 
 	c.state = BlobHurt
+	c.animations[BlobHurt].Reset() // Without this, the animation may be at the end, allowing multiple hits.
 
 	c.Health -= damage
 	if c.Health <= 0 {
