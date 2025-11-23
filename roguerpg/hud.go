@@ -18,7 +18,7 @@ type Heart struct {
 func newHeart() Heart {
 	return Heart{
 		image:       HealthHeartImage,
-		spriteSheet: NewSpriteSheet(HeartWidth, HeartHeight, 3, 1),
+		spriteSheet: NewSpriteSheet(HeartWidth, HeartHeight, HeartSubdivisions+1, 1),
 	}
 }
 

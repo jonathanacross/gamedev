@@ -51,6 +51,7 @@ func (g *Game) handlePlayerAttackCollisions() {
 		}
 
 		// Check for intersection between the DamageSource's HitBox and the enemy's HurtBox (which is its HitBox())
+		// TODO: why don't we need to use damageSource.HitBox()?
 		if damageSource.HitBox.Intersects(enemy.HitBox()) {
 			// Check if this enemy has already been hit by this damage source
 			alreadyHit := false
@@ -70,10 +71,24 @@ func (g *Game) handlePlayerAttackCollisions() {
 	}
 }
 
+func (g *Game) HandleEnemyAttackCollisions() {
+	for _, enemy := range g.level.Enemies {
+		if enemy.IsDead {
+			continue
+		}
+
+		if enemy.HitBox().Intersects(g.player.HitBox()) {
+			g.player.TakeDamage(1)
+			break
+		}
+	}
+}
+
 func (g *Game) Update() error {
 	for _, enemy := range g.level.Enemies {
 		enemy.Update(g.level)
 	}
+	g.HandleEnemyAttackCollisions()
 	g.player.HandleUserInput()
 	g.player.Update(g.level)
 	g.handlePlayerAttackCollisions()

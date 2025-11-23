@@ -12,6 +12,7 @@ const (
 	Idle PlayerState = iota
 	Walking
 	Attacking
+	Hurt
 	Dying
 )
 
@@ -102,6 +103,12 @@ func NewPlayer() *Player {
 			Up:    NewAnimation([]int{18, 19, 20, 21}, 5, false),
 			Down:  NewAnimation([]int{0, 1, 2, 3}, 5, false),
 		},
+		Hurt: {
+			Left:  NewAnimation([]int{6, 7, 8, 9}, 15, false),
+			Right: NewAnimation([]int{30, 31, 32, 33}, 15, false),
+			Up:    NewAnimation([]int{18, 19, 20, 21}, 15, false),
+			Down:  NewAnimation([]int{0, 1, 2, 3}, 15, false),
+		},
 		Dying: {
 			Left:  NewAnimation([]int{6, 7, 8, 9, 10, 11}, 15, false),
 			Right: NewAnimation([]int{30, 31, 32, 33, 34, 35}, 15, false),
@@ -114,6 +121,7 @@ func NewPlayer() *Player {
 		Idle:      PlayerIdleSpritesImage,
 		Walking:   PlayerWalkSpritesImage,
 		Attacking: PlayerAttackSwordSpritesImage,
+		Hurt:      PlayerHurtSpritesImage,
 		Dying:     PlayerDeathSpritesImage,
 	}
 
@@ -147,7 +155,7 @@ func NewPlayer() *Player {
 		animations:     animations,
 		state:          Idle,
 		direction:      Down,
-		Health:         5,
+		Health:         8,
 		MaxHealth:      8,
 		attackHitboxes: attackHitboxes,
 	}
@@ -204,10 +212,31 @@ func (p *Player) GetActiveDamageSource() *DamageSource {
 	return nil
 }
 
+func (c *Player) TakeDamage(damage int) {
+	if c.IsDead || c.state == Dying || c.state == Hurt {
+		return
+	}
+
+	c.state = Hurt
+	animation := c.GetCurrentAnimation()
+	animation.Reset() // Without this, the animation may be at the end, allowing multiple hits.
+
+	c.Health -= damage
+	// if c.Health < 0 {
+	// 	c.state = Dying
+	// }
+}
+
 func (c *Player) Update(level *Level) {
 	animation := c.GetCurrentAnimation()
 	if animation == nil {
 		return
+	}
+
+	if c.state == Hurt && animation.IsFinished() {
+		c.TransitionState(Idle)
+		animation.Reset()
+		animation = c.GetCurrentAnimation() // Re-fetch animation after state change
 	}
 
 	if c.state == Attacking && animation.IsFinished() {
@@ -229,8 +258,7 @@ func (c *Player) Update(level *Level) {
 
 func (p *Player) HandleUserInput() {
 	// If currently attacking, stop movement and skip input processing
-	// The Update function is now responsible for transitioning *out* of Attacking.
-	if p.state == Attacking {
+	if p.state == Attacking || p.state == Hurt {
 		p.Vx = 0
 		p.Vy = 0
 		return
