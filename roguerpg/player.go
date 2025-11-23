@@ -14,6 +14,7 @@ const (
 	Attacking
 	Hurt
 	Dying
+	Dead
 )
 
 type PlayerDirection int
@@ -51,7 +52,6 @@ type Player struct {
 	attackHitboxes map[PlayerDirection]map[int]AttackFrameConfig
 	Health         int
 	MaxHealth      int
-	IsDead         bool
 }
 
 func NewPlayer() *Player {
@@ -86,34 +86,40 @@ func NewPlayer() *Player {
 
 	animations := map[PlayerState]map[PlayerDirection]*Animation{
 		Idle: {
-			Left:  NewAnimation([]int{6, 7, 8, 9, 10, 11}, 15, true),
-			Right: NewAnimation([]int{30, 31, 32, 33, 34, 35}, 15, true),
-			Up:    NewAnimation([]int{18, 19, 20, 21, 22, 23}, 15, true),
-			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5}, 15, true),
+			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 10, true),
+			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 10, true),
+			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 10, true),
+			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 10, true),
 		},
 		Walking: {
-			Left:  NewAnimation([]int{6, 7, 8, 9, 10, 11}, 15, true),
-			Right: NewAnimation([]int{30, 31, 32, 33, 34, 35}, 15, true),
-			Up:    NewAnimation([]int{18, 19, 20, 21, 22, 23}, 15, true),
-			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5}, 15, true),
+			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 10, true),
+			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 10, true),
+			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 10, true),
+			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 10, true),
 		},
 		Attacking: {
-			Left:  NewAnimation([]int{6, 7, 8, 9}, 5, false),
-			Right: NewAnimation([]int{30, 31, 32, 33}, 5, false),
-			Up:    NewAnimation([]int{18, 19, 20, 21}, 5, false),
-			Down:  NewAnimation([]int{0, 1, 2, 3}, 5, false),
+			Left:  NewAnimation([]int{8, 9, 10, 11}, 6, false),
+			Right: NewAnimation([]int{40, 41, 42, 43}, 6, false),
+			Up:    NewAnimation([]int{24, 25, 26, 27}, 6, false),
+			Down:  NewAnimation([]int{0, 1, 2, 3}, 6, false),
 		},
 		Hurt: {
-			Left:  NewAnimation([]int{6, 7, 8, 9}, 15, false),
-			Right: NewAnimation([]int{30, 31, 32, 33}, 15, false),
-			Up:    NewAnimation([]int{18, 19, 20, 21}, 15, false),
-			Down:  NewAnimation([]int{0, 1, 2, 3}, 15, false),
+			Left:  NewAnimation([]int{8, 9, 10, 11}, 10, false),
+			Right: NewAnimation([]int{40, 41, 42, 43}, 10, false),
+			Up:    NewAnimation([]int{24, 25, 26, 27}, 10, false),
+			Down:  NewAnimation([]int{0, 1, 2, 3}, 10, false),
 		},
 		Dying: {
-			Left:  NewAnimation([]int{6, 7, 8, 9, 10, 11}, 15, false),
-			Right: NewAnimation([]int{30, 31, 32, 33, 34, 35}, 15, false),
-			Up:    NewAnimation([]int{18, 19, 20, 21, 22, 23}, 15, false),
-			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5}, 15, false),
+			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 8, false),
+			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 8, false),
+			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 8, false),
+			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 8, false),
+		},
+		Dead: {
+			Left:  NewAnimation([]int{15}, 100, true),
+			Right: NewAnimation([]int{47}, 100, true),
+			Up:    NewAnimation([]int{31}, 100, true),
+			Down:  NewAnimation([]int{7}, 100, true),
 		},
 	}
 
@@ -123,9 +129,10 @@ func NewPlayer() *Player {
 		Attacking: PlayerAttackSwordSpritesImage,
 		Hurt:      PlayerHurtSpritesImage,
 		Dying:     PlayerDeathSpritesImage,
+		Dead:      PlayerDeathSpritesImage,
 	}
 
-	spriteSheet := NewSpriteSheet(48, 64, 6, 6)
+	spriteSheet := NewSpriteSheet(48, 64, 8, 6)
 	// TODO: this is really the "pushbox" for the player;
 	// need to make a separate hurtbox for the player, and hitboxes
 	// for attacks/weapons.
@@ -213,18 +220,16 @@ func (p *Player) GetActiveDamageSource() *DamageSource {
 }
 
 func (c *Player) TakeDamage(damage int) {
-	if c.IsDead || c.state == Dying || c.state == Hurt {
+	if c.state == Dead || c.state == Dying || c.state == Hurt {
 		return
 	}
 
-	c.state = Hurt
-	animation := c.GetCurrentAnimation()
-	animation.Reset() // Without this, the animation may be at the end, allowing multiple hits.
+	c.TransitionState(Hurt)
 
 	c.Health -= damage
-	// if c.Health < 0 {
-	// 	c.state = Dying
-	// }
+	if c.Health < 0 {
+		c.TransitionState(Dying)
+	}
 }
 
 func (c *Player) Update(level *Level) {
@@ -236,13 +241,20 @@ func (c *Player) Update(level *Level) {
 	if c.state == Hurt && animation.IsFinished() {
 		c.TransitionState(Idle)
 		animation.Reset()
-		animation = c.GetCurrentAnimation() // Re-fetch animation after state change
+		animation = c.GetCurrentAnimation()
 	}
 
 	if c.state == Attacking && animation.IsFinished() {
 		c.TransitionState(Idle)
 		animation.Reset()
-		animation = c.GetCurrentAnimation() // Re-fetch animation after state change
+		animation = c.GetCurrentAnimation()
+	}
+
+	if c.state == Dying && animation.IsFinished() {
+		c.TransitionState(Dead)
+		animation.Reset()
+		animation = c.GetCurrentAnimation()
+		return
 	}
 
 	animation.Update()
@@ -257,8 +269,8 @@ func (c *Player) Update(level *Level) {
 }
 
 func (p *Player) HandleUserInput() {
-	// If currently attacking, stop movement and skip input processing
-	if p.state == Attacking || p.state == Hurt {
+	// If currently in middle of blocking animation, break out
+	if p.state == Attacking || p.state == Hurt || p.state == Dying || p.state == Dead {
 		p.Vx = 0
 		p.Vy = 0
 		return
