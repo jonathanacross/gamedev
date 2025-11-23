@@ -2,6 +2,10 @@ package main
 
 import (
 	"math/rand"
+	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
 type BlobEnemyState int
@@ -10,6 +14,7 @@ const (
 	BlobIdle   BlobEnemyState = iota // Waiting phase
 	BlobMoving                       // Moving phase (renamed from BlobWalking)
 	BlobAttacking
+	BlobHurt
 	BlobDying
 
 	// Movement constants
@@ -24,8 +29,10 @@ type BlobEnemy struct {
 	Vx          float64
 	Vy          float64
 
-	Health int
-	IsDead bool
+	Health          int
+	IsDead          bool
+	InvincibleFrame int
+	InvincibleTimer *Timer
 
 	// AI
 	state BlobEnemyState
@@ -63,19 +70,26 @@ func NewBlobEnemy() *BlobEnemy {
 			hitbox:     hitbox,
 			debugImage: createDebugRectImage(hitbox),
 		},
-		spriteSheet: spriteSheet,
-		animation:   animation,
-		state:       BlobIdle,
-		Health:      3, // Set initial health
-		IsDead:      false,
-		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
+		spriteSheet:     spriteSheet,
+		animation:       animation,
+		state:           BlobIdle,
+		Health:          3, // Set initial health
+		IsDead:          false,
+		InvincibleFrame: 0,
+		InvincibleTimer: NewTimer(500 * time.Millisecond),
+		waitFrames:      rand.Intn(MaxWaitFrames) + 1,
 	}
 }
 
 func (c *BlobEnemy) TakeDamage(damage int) {
-	if c.IsDead || c.state == BlobDying {
+	if c.IsDead || c.state == BlobDying || c.state == BlobHurt {
 		return
 	}
+
+	c.state = BlobHurt
+	c.InvincibleFrame = 0
+	c.InvincibleTimer.Reset()
+
 	c.Health -= damage
 	if c.Health <= 0 {
 		c.state = BlobDying
@@ -120,6 +134,20 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 
 	// No adjacent open tile found
 	return false
+}
+
+func (c *BlobEnemy) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	op := &colorm.DrawImageOptions{}
+	op.GeoM.Translate(c.X-c.drawOffset.X, c.Y-c.drawOffset.Y)
+	op.GeoM.Concat(cameraMatrix)
+
+	cm := colorm.ColorM{}
+	if c.state == BlobHurt && ((c.InvincibleFrame/5)%2 == 0) {
+		cm.Translate(1.0, 0.0, 0.5, 0.0)
+	}
+
+	currImage := c.image.SubImage(c.srcRect).(*ebiten.Image)
+	colorm.DrawImage(screen, currImage, cm, op)
 }
 
 func (c *BlobEnemy) Update(level *Level) {
@@ -181,6 +209,14 @@ func (c *BlobEnemy) Update(level *Level) {
 		c.Vy = 0
 		// For now, immediately return to idle/exploring state
 		c.state = BlobIdle
+
+	case BlobHurt:
+		c.InvincibleFrame++
+		c.InvincibleTimer.Update()
+		if c.InvincibleTimer.IsReady() {
+			c.state = BlobIdle
+		}
+
 	case BlobDying:
 		// TODO: Implement dying logic here
 		c.Vx = 0

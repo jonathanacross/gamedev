@@ -54,12 +54,10 @@ func NewPlayer() *Player {
 	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
 	attackHitboxes := make(map[PlayerDirection]map[int]AttackFrameConfig)
 
-	// Define the base rect for the sword swing (e.g., 10px wide, 20px long, offset 10px out)
-	// Damage is set to 1 for initial testing
 	baseDmg := 1
 
-	// Setup Hitboxes for specific frames (index 0 is frame 6, index 1 is frame 7, etc., relative to the Attacking animation slice)
-	// The key (int) is the *index* within the animation array: [0, 1, 2, 3]
+	// Setup Hitboxes for specific frames of the attack animation.
+	// The key (int) is the index within the animation array.
 
 	// Downward swing: Attack box is in front (down) of the player
 	attackHitboxes[Down] = map[int]AttackFrameConfig{
