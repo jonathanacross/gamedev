@@ -41,6 +41,10 @@ func (g *Game) handlePlayerAttackCollisions() {
 		return // Player is not currently attacking or hitbox is inactive
 	}
 
+	// TODO: put in game constants
+	const knockbackForce = 3.0
+	const knockbackDuration = 6
+
 	// Use an array to track enemies that have been hit in this frame
 	// to prevent a single attack frame from hitting one enemy multiple times.
 	var hitEnemies []*BlobEnemy
@@ -63,8 +67,9 @@ func (g *Game) handlePlayerAttackCollisions() {
 			}
 
 			if !alreadyHit {
-				// Apply damage
 				enemy.TakeDamage(damageSource.Damage)
+				force := CalculateKnockbackForce(g.player.Location, enemy.Location, knockbackForce)
+				enemy.ApplyKnockback(force, knockbackDuration)
 				hitEnemies = append(hitEnemies, enemy)
 			}
 		}
@@ -72,6 +77,9 @@ func (g *Game) handlePlayerAttackCollisions() {
 }
 
 func (g *Game) HandleEnemyAttackCollisions() {
+	const enemyKnockbackForce = 3.0
+	const enemyKnockbackDuration = 6
+
 	for _, enemy := range g.level.Enemies {
 		if enemy.IsDead {
 			continue
@@ -79,6 +87,8 @@ func (g *Game) HandleEnemyAttackCollisions() {
 
 		if enemy.HitBox().Intersects(g.player.HitBox()) {
 			g.player.TakeDamage(1)
+			force := CalculateKnockbackForce(enemy.Location, g.player.Location, enemyKnockbackForce)
+			g.player.ApplyKnockback(force, enemyKnockbackDuration)
 			break
 		}
 	}

@@ -42,16 +42,19 @@ type AttackFrameConfig struct {
 
 type Player struct {
 	BaseSprite
-	images         map[PlayerState]*ebiten.Image
-	spriteSheet    *SpriteSheet
-	animations     map[PlayerState]map[PlayerDirection]*Animation
-	state          PlayerState
-	direction      PlayerDirection
-	Vx             float64
-	Vy             float64
-	attackHitboxes map[PlayerDirection]map[int]AttackFrameConfig
-	Health         int
-	MaxHealth      int
+	images          map[PlayerState]*ebiten.Image
+	spriteSheet     *SpriteSheet
+	animations      map[PlayerState]map[PlayerDirection]*Animation
+	state           PlayerState
+	direction       PlayerDirection
+	Vx              float64
+	Vy              float64
+	attackHitboxes  map[PlayerDirection]map[int]AttackFrameConfig
+	Health          int
+	MaxHealth       int
+	KnockbackVx     float64
+	KnockbackVy     float64
+	KnockbackFrames int
 }
 
 func NewPlayer() *Player {
@@ -157,14 +160,15 @@ func NewPlayer() *Player {
 			hitbox:     hitbox,
 			debugImage: createDebugRectImage(hitbox),
 		},
-		images:         charImages,
-		spriteSheet:    spriteSheet,
-		animations:     animations,
-		state:          Idle,
-		direction:      Down,
-		Health:         8,
-		MaxHealth:      8,
-		attackHitboxes: attackHitboxes,
+		images:          charImages,
+		spriteSheet:     spriteSheet,
+		animations:      animations,
+		state:           Idle,
+		direction:       Down,
+		Health:          8,
+		MaxHealth:       8,
+		attackHitboxes:  attackHitboxes,
+		KnockbackFrames: 0,
 	}
 }
 
@@ -232,9 +236,39 @@ func (c *Player) TakeDamage(damage int) {
 	}
 }
 
+func (p *Player) ApplyKnockback(force Vector, duration int) {
+	if p.state == Dead || p.state == Dying {
+		return
+	}
+	p.KnockbackVx = force.X
+	p.KnockbackVy = force.Y
+	p.KnockbackFrames = duration
+	// Transition to Hurt state when knocked back
+	p.TransitionState(Hurt)
+}
+
+func (p *Player) IsKnockedBack() bool {
+	return p.KnockbackFrames > 0
+}
+
 func (c *Player) Update(level *Level) {
 	animation := c.GetCurrentAnimation()
 	if animation == nil {
+		return
+	}
+
+	if c.IsKnockedBack() {
+		c.KnockbackFrames--
+
+		// Apply knockback velocity
+		c.X += c.KnockbackVx
+		c.HandleTileCollisions(level, AxisX)
+		c.Y += c.KnockbackVy
+		c.HandleTileCollisions(level, AxisY)
+
+		animation.Update()
+		c.image = c.images[c.state]
+		c.srcRect = c.spriteSheet.Rect(animation.Frame())
 		return
 	}
 
@@ -270,7 +304,7 @@ func (c *Player) Update(level *Level) {
 
 func (p *Player) HandleUserInput() {
 	// If currently in middle of blocking animation, break out
-	if p.state == Attacking || p.state == Hurt || p.state == Dying || p.state == Dead {
+	if p.state == Attacking || p.state == Hurt || p.state == Dying || p.state == Dead || p.IsKnockedBack() {
 		p.Vx = 0
 		p.Vy = 0
 		return

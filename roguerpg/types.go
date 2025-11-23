@@ -112,4 +112,19 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 type GameObject interface {
 	HitBox() Rect // Represents the 'PushBox' or 'HurtBox' for receiving damage
 	Update()
+	ApplyKnockback(force Vector, duration int)
+	IsKnockedBack() bool
+}
+
+// CalculateKnockbackForce computes a normalized, scaled vector pointing from the attacker to the defender.
+func CalculateKnockbackForce(attackerLoc Location, defenderLoc Location, speed float64) Vector {
+	direction := Vector{
+		X: defenderLoc.X - attackerLoc.X,
+		Y: defenderLoc.Y - attackerLoc.Y,
+	}
+
+	if direction.Length() == 0 {
+		return Vector{X: 0, Y: 0}
+	}
+	return direction.Normalize().Scale(speed)
 }

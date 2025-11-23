@@ -34,6 +34,9 @@ type BlobEnemy struct {
 	currentFrame       int // Frame counter for the current move or wait action
 	waitFrames         int // Total frames to wait when idle
 
+	KnockbackVx     float64
+	KnockbackVy     float64
+	KnockbackFrames int
 }
 
 func NewBlobEnemy() *BlobEnemy {
@@ -70,13 +73,30 @@ func NewBlobEnemy() *BlobEnemy {
 			hitbox:     hitbox,
 			debugImage: createDebugRectImage(hitbox),
 		},
-		spriteSheet: spriteSheet,
-		animations:  animations,
-		state:       BlobIdle,
-		Health:      3,
-		IsDead:      false,
-		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
+		spriteSheet:     spriteSheet,
+		animations:      animations,
+		state:           BlobIdle,
+		Health:          3,
+		IsDead:          false,
+		waitFrames:      rand.Intn(MaxWaitFrames) + 1,
+		KnockbackFrames: 0,
 	}
+}
+
+func (c *BlobEnemy) ApplyKnockback(force Vector, duration int) {
+	if c.IsDead || c.state == BlobDying {
+		return
+	}
+	c.KnockbackVx = force.X
+	c.KnockbackVy = force.Y
+	c.KnockbackFrames = duration
+	// Transition to Hurt state when knocked back
+	c.state = BlobHurt
+	c.animations[BlobHurt].Reset()
+}
+
+func (c *BlobEnemy) IsKnockedBack() bool {
+	return c.KnockbackFrames > 0
 }
 
 func (c *BlobEnemy) TakeDamage(damage int) {
@@ -131,6 +151,21 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 func (c *BlobEnemy) Update(level *Level) {
 	c.animations[c.state].Update()
 	c.srcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
+
+	if c.IsKnockedBack() {
+		c.KnockbackFrames--
+
+		// Apply knockback force
+		c.X += c.KnockbackVx
+		c.Y += c.KnockbackVy
+
+		// Ensure the BlobHurt animation can finish, even during knockback
+		if c.state == BlobHurt && c.animations[BlobHurt].IsFinished() {
+			c.state = BlobIdle
+		}
+
+		return // Skip AI and movement logic
+	}
 
 	// Future extension: Check for Attacking proximity here first (Step 1)
 	// if c.IsNearPlayer(level.Player) {
