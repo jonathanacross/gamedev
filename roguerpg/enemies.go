@@ -2,10 +2,6 @@ package main
 
 import (
 	"math/rand"
-	"time"
-
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
 type BlobEnemyState int
@@ -25,14 +21,10 @@ const (
 type BlobEnemy struct {
 	BaseSprite
 	spriteSheet *SpriteSheet
-	animation   *Animation
-	Vx          float64
-	Vy          float64
+	animations  map[BlobEnemyState]*Animation
 
-	Health          int
-	IsDead          bool
-	InvincibleFrame int
-	InvincibleTimer *Timer
+	Health int
+	IsDead bool
 
 	// AI
 	state BlobEnemyState
@@ -45,9 +37,17 @@ type BlobEnemy struct {
 }
 
 func NewBlobEnemy() *BlobEnemy {
-	animation := NewAnimation([]int{0, 1, 2}, 20, true)
-	animation.SetRandomFrame()
-	spriteSheet := NewSpriteSheet(16, 16, 3, 1)
+
+	animations := map[BlobEnemyState]*Animation{
+		BlobIdle:      NewAnimation([]int{0, 1, 2}, 20, true),
+		BlobMoving:    NewAnimation([]int{0, 1, 2}, 20, true),
+		BlobAttacking: NewAnimation([]int{0, 1, 2}, 20, true),
+		BlobHurt:      NewAnimation([]int{5, 6, 5, 6}, 10, false),
+		BlobDying:     NewAnimation([]int{5, 6, 10, 11, 12, 13, 14}, 10, false),
+	}
+	animations[BlobIdle].SetRandomFrame()
+
+	spriteSheet := NewSpriteSheet(16, 16, 5, 3)
 	hitbox := Rect{
 		Left:   -6,
 		Top:    -6,
@@ -70,14 +70,12 @@ func NewBlobEnemy() *BlobEnemy {
 			hitbox:     hitbox,
 			debugImage: createDebugRectImage(hitbox),
 		},
-		spriteSheet:     spriteSheet,
-		animation:       animation,
-		state:           BlobIdle,
-		Health:          3, // Set initial health
-		IsDead:          false,
-		InvincibleFrame: 0,
-		InvincibleTimer: NewTimer(500 * time.Millisecond),
-		waitFrames:      rand.Intn(MaxWaitFrames) + 1,
+		spriteSheet: spriteSheet,
+		animations:  animations,
+		state:       BlobIdle,
+		Health:      3,
+		IsDead:      false,
+		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
 	}
 }
 
@@ -87,17 +85,10 @@ func (c *BlobEnemy) TakeDamage(damage int) {
 	}
 
 	c.state = BlobHurt
-	c.InvincibleFrame = 0
-	c.InvincibleTimer.Reset()
 
 	c.Health -= damage
 	if c.Health <= 0 {
 		c.state = BlobDying
-		c.IsDead = true
-		// TODO: transition to death animation, or start fading/removal process
-		// For now, just stop movement immediately.
-		c.Vx = 0
-		c.Vy = 0
 	}
 }
 
@@ -136,23 +127,9 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 	return false
 }
 
-func (c *BlobEnemy) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	op := &colorm.DrawImageOptions{}
-	op.GeoM.Translate(c.X-c.drawOffset.X, c.Y-c.drawOffset.Y)
-	op.GeoM.Concat(cameraMatrix)
-
-	cm := colorm.ColorM{}
-	if c.state == BlobHurt && ((c.InvincibleFrame/5)%2 == 0) {
-		cm.Translate(1.0, 0.0, 0.5, 0.0)
-	}
-
-	currImage := c.image.SubImage(c.srcRect).(*ebiten.Image)
-	colorm.DrawImage(screen, currImage, cm, op)
-}
-
 func (c *BlobEnemy) Update(level *Level) {
-	c.animation.Update()
-	c.srcRect = c.spriteSheet.Rect(c.animation.Frame())
+	c.animations[c.state].Update()
+	c.srcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
 
 	// Future extension: Check for Attacking proximity here first (Step 1)
 	// if c.IsNearPlayer(level.Player) {
@@ -161,10 +138,7 @@ func (c *BlobEnemy) Update(level *Level) {
 
 	switch c.state {
 	case BlobIdle:
-		// 1. Wait
 		c.waitFrames--
-		c.Vx = 0
-		c.Vy = 0
 
 		if c.waitFrames <= 0 {
 			// Wait time is over. Look for a new target tile.
@@ -177,61 +151,35 @@ func (c *BlobEnemy) Update(level *Level) {
 		}
 
 	case BlobMoving:
-		// 2. Move (Smoothly move from current to target over 60 frames)
 		c.currentFrame++
 
 		if c.currentFrame >= MoveDurationFrames {
-			// Movement finished
 			c.Location = c.moveTargetLocation // Snap to final position
 			c.state = BlobIdle
-			// 3. Wait for a random time (up to 1 second)
+			// Wait for a random time (up to 1 second)
 			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
 			return
 		}
 
 		// Calculate interpolation factor (t: 0.0 -> 1.0)
 		t := float64(c.currentFrame) / float64(MoveDurationFrames)
-
-		// Linear interpolation (Lerp) for smooth movement
 		dx := c.moveTargetLocation.X - c.moveStartLocation.X
 		dy := c.moveTargetLocation.Y - c.moveStartLocation.Y
-
 		c.X = c.moveStartLocation.X + dx*t
 		c.Y = c.moveStartLocation.Y + dy*t
 
-		// Since we are setting position directly via Lerp, Vx/Vy are zero
-		c.Vx = 0
-		c.Vy = 0
-
 	case BlobAttacking:
-		// Placeholder for future Attacking logic
-		c.Vx = 0
-		c.Vy = 0
 		// For now, immediately return to idle/exploring state
 		c.state = BlobIdle
 
 	case BlobHurt:
-		c.InvincibleFrame++
-		c.InvincibleTimer.Update()
-		if c.InvincibleTimer.IsReady() {
+		if c.animations[BlobHurt].IsFinished() {
 			c.state = BlobIdle
 		}
 
 	case BlobDying:
-		// TODO: Implement dying logic here
-		c.Vx = 0
-		c.Vy = 0
+		if c.animations[BlobDying].IsFinished() {
+			c.IsDead = true
+		}
 	}
-
-	// if c.state == BlobWalking {
-	// 	c.X += c.Vx
-	// 	c.HandleTileCollisions(level, AxisX)
-	// 	c.Y += c.Vy
-	// 	c.HandleTileCollisions(level, AxisY)
-	// }
-
-	// c.X += c.Vx
-	// c.HandleTileCollisions(level, AxisX)
-	// c.Y += c.Vy
-	// c.HandleTileCollisions(level, AxisY)
 }
