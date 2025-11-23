@@ -128,6 +128,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
+	DrawHeadsUpDisplay(screen, g.player)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

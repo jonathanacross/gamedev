@@ -48,6 +48,9 @@ type Player struct {
 	Vx             float64
 	Vy             float64
 	attackHitboxes map[PlayerDirection]map[int]AttackFrameConfig
+	Health         int
+	MaxHealth      int
+	IsDead         bool
 }
 
 func NewPlayer() *Player {
@@ -144,6 +147,8 @@ func NewPlayer() *Player {
 		animations:     animations,
 		state:          Idle,
 		direction:      Down,
+		Health:         5,
+		MaxHealth:      8,
 		attackHitboxes: attackHitboxes,
 	}
 }

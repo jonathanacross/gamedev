@@ -42,6 +42,15 @@ func sign(n int) int {
 	return 0
 }
 
+func clamp(n int, min int, max int) int {
+	if n < min {
+		return min
+	} else if n > max {
+		return max
+	}
+	return n
+}
+
 type Point struct {
 	X int
 	Y int

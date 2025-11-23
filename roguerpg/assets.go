@@ -21,6 +21,8 @@ var PlayerDeathSpritesImage = loadImage("assets/player_death.png")
 var PlayerAttackSwordSpritesImage = loadImage("assets/player_attack_sword.png")
 var BlobSpritesImage = loadImage("assets/blob.png")
 
+var HealthHeartImage = loadImage("assets/heart.png")
+
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
 	if err != nil {
