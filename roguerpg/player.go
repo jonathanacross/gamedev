@@ -336,9 +336,8 @@ func (c *Player) Update(level *Level) {
 	// Handle all state transitions.
 	c.handleState(level)
 
-	// Apply Velocity and resolve collisions (uses final Vx and Vy set by handleState or knockback).
-	c.HandleTileCollisions(level, AxisX, &c.Vx)
-	c.HandleTileCollisions(level, AxisY, &c.Vy)
+	c.Vx = c.HandleTileCollisions(level, AxisX, c.Vx)
+	c.Vy = c.HandleTileCollisions(level, AxisY, c.Vy)
 
 	// Update visuals
 	animation := c.GetCurrentAnimation()

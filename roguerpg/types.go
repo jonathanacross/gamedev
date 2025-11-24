@@ -59,9 +59,16 @@ func (r Rect) Offset(x, y float64) Rect {
 	}
 }
 
+func (r1 Rect) IntersectsX(r2 Rect) bool {
+	return r1.Left < r2.Right && r1.Right > r2.Left
+}
+
+func (r1 Rect) IntersectsY(r2 Rect) bool {
+	return r1.Top < r2.Bottom && r1.Bottom > r2.Top
+}
+
 func (r1 Rect) Intersects(r2 Rect) bool {
-	return r1.Left < r2.Right && r1.Right > r2.Left &&
-		r1.Top < r2.Bottom && r1.Bottom > r2.Top
+	return r1.IntersectsX(r2) && r1.IntersectsY(r2)
 }
 
 type CollisionAxis int

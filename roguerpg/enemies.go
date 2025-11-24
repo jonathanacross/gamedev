@@ -199,10 +199,8 @@ func (c *BlobEnemy) Update(level *Level) {
 		}
 
 		velocity := target.Normalize().Scale(BlobMoveSpeed)
-
-		// If a collision occurs, HandleTileCollisions will adjust c.X/c.Y and zero out the velocity
-		c.HandleTileCollisions(level, AxisX, &velocity.X)
-		c.HandleTileCollisions(level, AxisY, &velocity.Y)
+		c.HandleTileCollisions(level, AxisX, velocity.X)
+		c.HandleTileCollisions(level, AxisY, velocity.Y)
 
 	case BlobAttacking:
 		// For now, immediately return to idle/exploring state

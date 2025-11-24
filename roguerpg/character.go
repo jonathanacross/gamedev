@@ -41,73 +41,112 @@ func (c *BaseCharacter) IsDead() bool {
 	return c.isDead
 }
 
-// resolveCollision takes a Rect (tile/other object) and resolves the collision.
-// It uses the velocity pointer to determine collision direction and adjusts the character's X/Y position.
-// It also sets the velocity to 0.0 if collision occurred.
-func (c *BaseCharacter) resolveCollision(otherRect Rect, axis CollisionAxis, v *float64) {
+// CheckAndApplyMovement performs the movement for the given velocity v and returns true
+// if a collision occurred.  It modifies c.X or c.Y depending on axis.
+func (c *BaseCharacter) CheckAndApplyMovement(level *Level, axis CollisionAxis, v float64) bool {
+	if v == 0.0 {
+		return false
+	}
+
 	characterRect := c.GetPushBox()
+	hitT := 1.0 // Fraction of movement completed before collision (0.0 to 1.0)
 
-	if !characterRect.Intersects(otherRect) {
-		return
-	}
+	// Define a small tolerance for floating point errors in the collision check
+	const collisionTolerance float64 = 0.001
 
-	if axis == AxisX {
-		overlap := 0.0
-		// Check the direction of movement using the velocity pointer
-		if *v > 0 { // moving right
-			overlap = characterRect.Right - otherRect.Left
-		} else if *v < 0 { // moving left
-			overlap = characterRect.Left - otherRect.Right
-		}
-
-		if math.Abs(overlap) > 0 {
-			c.X -= overlap
-			*v = 0.0 // Velocity consumed by collision
-		}
-	} else if axis == AxisY {
-		overlap := 0.0
-		// Check the direction of movement using the velocity pointer
-		if *v > 0 { // moving down
-			overlap = characterRect.Bottom - otherRect.Top
-		} else if *v < 0 { // moving up
-			overlap = characterRect.Top - otherRect.Bottom
-		}
-
-		if math.Abs(overlap) > 0 {
-			c.Y -= overlap
-			*v = 0.0 // Velocity consumed by collision
-		}
-	}
-}
-
-// HandleTileCollisions moves the character by the velocity in the pointer 'v' and resolves collisions.
-// The caller must provide a pointer to the velocity variable they wish to modify (Vx/Vy or KnockbackVx/KnockbackVy).
-func (c *BaseCharacter) HandleTileCollisions(level *Level, axis CollisionAxis, v *float64) {
-	// Apply movement for the current axis
-	if axis == AxisX {
-		c.X += *v
-	} else if axis == AxisY {
-		c.Y += *v
-	}
-
-	// Check and resolve collisions with solid tiles
-	characterHitBox := c.GetPushBox()
-
-	// Determine the range of tiles to check
-	// TileSize is assumed to be a globally accessible constant (from main.go)
-	minX := int(math.Floor(characterHitBox.Left/TileSize)) - 1
-	maxX := int(math.Floor(characterHitBox.Right/TileSize)) + 1
-	minY := int(math.Floor(characterHitBox.Top/TileSize)) - 1
-	maxY := int(math.Floor(characterHitBox.Bottom/TileSize)) + 1
+	// Determine the range of tiles to check.
+	minX := int(math.Floor(characterRect.Left/TileSize)) - 1
+	maxX := int(math.Floor(characterRect.Right/TileSize)) + 1
+	minY := int(math.Floor(characterRect.Top/TileSize)) - 1
+	maxY := int(math.Floor(characterRect.Bottom/TileSize)) + 1
 
 	for y := minY; y <= maxY; y++ {
 		for x := minX; x <= maxX; x++ {
 			tile := level.GetTile(x, y)
 			if tile != nil && tile.solid {
-				c.resolveCollision(tile.GetPushBox(), axis, v)
+				tileRect := tile.GetPushBox()
+				t := 1.0
+
+				if axis == AxisX {
+					if !characterRect.IntersectsY(tileRect) {
+						continue // Skip this tile, no Y-overlap
+					}
+				} else if axis == AxisY {
+					if !characterRect.IntersectsX(tileRect) {
+						continue // Skip this tile, no X-overlap
+					}
+				}
+
+				// Calculate collision time 't' (Swept AABB logic)
+				if axis == AxisX {
+					if v > 0 { // moving right (Right edge hits Left edge)
+						t = (tileRect.Left - characterRect.Right) / v
+					} else if v < 0 { // moving left (Left edge hits Right edge)
+						t = (tileRect.Right - characterRect.Left) / v
+					}
+				} else if axis == AxisY {
+					if v > 0 { // moving down (Bottom edge hits Top edge)
+						t = (tileRect.Top - characterRect.Bottom) / v
+					} else if v < 0 { // moving up (Top edge hits Bottom edge)
+						t = (tileRect.Bottom - characterRect.Top) / v
+					}
+				}
+
+				// A collision occurs if t is between -tolerance and 1.0
+				// -tolerance ensures we detect collisions even if the boxes are slightly overlapping
+				// due to previous floating point math.
+				if t >= -collisionTolerance && t < 1.0 {
+					hitT = math.Min(hitT, t)
+				}
 			}
 		}
 	}
+
+	// Apply the movement up to the point of impact (minus epsilon)
+	const separationEpsilon float64 = 0.0001
+	moveFraction := hitT // Start with the fraction of movement allowed
+
+	// Only apply the separation epsilon if a collision was detected
+	if hitT < 1.0 {
+		moveFraction = math.Max(0.0, hitT-separationEpsilon)
+	}
+
+	moveDistance := v * moveFraction
+
+	// 2. Apply movement to position.
+	if axis == AxisX {
+		c.X += moveDistance
+	} else if axis == AxisY {
+		c.Y += moveDistance
+	}
+
+	// Return true if a collision was detected before the full movement (hitT < 1.0)
+	return hitT < 1.0
+
+}
+
+// ResolveTileCollision applies the default response (stopping) to a velocity vector.
+// This function can be overridden or extended for different behaviors (e.g., bounce).
+func (c *BaseCharacter) ResolveTileCollision(axis CollisionAxis, v float64) float64 {
+	// Default response: stop movement along this axis
+	return 0.0
+}
+
+// HandleTileCollisions performs collision checks, moves the character,
+// and returns the resolved velocity for that axis.
+func (c *BaseCharacter) HandleTileCollisions(level *Level, axis CollisionAxis, v float64) float64 {
+	// Move the character and check if a collision occurred.
+	// CheckAndApplyMovement uses the velocity v to determine distance,
+	// and moves the character's position (c.X/c.Y).
+	hit := c.CheckAndApplyMovement(level, axis, v)
+
+	// If a collision occurred, apply the collision response.
+	if hit {
+		return c.ResolveTileCollision(axis, v)
+	}
+
+	// If no collision, the full velocity is kept for the next frame.
+	return v
 }
 
 // UpdateKnockback must be called by the concrete character's Update() method.
@@ -118,15 +157,9 @@ func (c *BaseCharacter) UpdateKnockback(level *Level) bool {
 
 	c.KnockbackFrames--
 
-	// Apply knockback velocity. Since this is in BaseCharacter,
-	// we use the X/Y fields and assume the concrete type handles collision if needed.
-	// For now, we apply movement and let the concrete type handle tile collision
-	// if it needs it (like the Player does).
-	c.X += c.KnockbackVx
-	c.Y += c.KnockbackVy
-
-	c.HandleTileCollisions(level, AxisX, &c.KnockbackVx)
-	c.HandleTileCollisions(level, AxisY, &c.KnockbackVy)
+	// Update character position with knockback velocity.
+	c.HandleTileCollisions(level, AxisX, c.KnockbackVx)
+	c.HandleTileCollisions(level, AxisY, c.KnockbackVy)
 
 	return true // Knockback was active this frame
 }
