@@ -24,13 +24,6 @@ const (
 	Down
 )
 
-// AttackFrameConfig holds the Rect offset and damage value for a specific attack frame.
-// Rect is relative to the player's center (Location).
-type AttackFrameConfig struct {
-	HitBox Rect
-	Damage int
-}
-
 type Player struct {
 	BaseCharacter
 	images         map[PlayerState]*ebiten.Image
@@ -40,12 +33,12 @@ type Player struct {
 	direction      PlayerDirection
 	Vx             float64
 	Vy             float64
-	attackHitboxes map[PlayerDirection]map[int]AttackFrameConfig
+	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig
 }
 
 func NewPlayer() *Player {
 	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
-	attackHitboxes := make(map[PlayerDirection]map[int]AttackFrameConfig)
+	attackHitboxes := make(map[PlayerDirection]map[int]DamageSourceConfig)
 
 	baseDmg := 1
 
@@ -53,22 +46,22 @@ func NewPlayer() *Player {
 	// The key (int) is the index within the animation array.
 
 	// Downward swing: Attack box is in front (down) of the player
-	attackHitboxes[Down] = map[int]AttackFrameConfig{
+	attackHitboxes[Down] = map[int]DamageSourceConfig{
 		1: {HitBox: Rect{Left: -8, Top: 10, Right: 8, Bottom: 30}, Damage: baseDmg},   // Frame 1 (sword out)
 		2: {HitBox: Rect{Left: -16, Top: 15, Right: 16, Bottom: 35}, Damage: baseDmg}, // Frame 2 (full extension)
 	}
 	// Left swing: Attack box is to the left
-	attackHitboxes[Left] = map[int]AttackFrameConfig{
+	attackHitboxes[Left] = map[int]DamageSourceConfig{
 		1: {HitBox: Rect{Left: -30, Top: -8, Right: -10, Bottom: 8}, Damage: baseDmg},
 		2: {HitBox: Rect{Left: -35, Top: -16, Right: -15, Bottom: 16}, Damage: baseDmg},
 	}
 	// Right swing: Attack box is to the right
-	attackHitboxes[Right] = map[int]AttackFrameConfig{
+	attackHitboxes[Right] = map[int]DamageSourceConfig{
 		1: {HitBox: Rect{Left: 10, Top: -8, Right: 30, Bottom: 8}, Damage: baseDmg},
 		2: {HitBox: Rect{Left: 15, Top: -16, Right: 35, Bottom: 16}, Damage: baseDmg},
 	}
 	// Upward swing: Attack box is above the player
-	attackHitboxes[Up] = map[int]AttackFrameConfig{
+	attackHitboxes[Up] = map[int]DamageSourceConfig{
 		1: {HitBox: Rect{Left: -8, Top: -30, Right: 8, Bottom: -10}, Damage: baseDmg},
 		2: {HitBox: Rect{Left: -16, Top: -35, Right: 16, Bottom: -15}, Damage: baseDmg},
 	}
@@ -134,18 +127,20 @@ func NewPlayer() *Player {
 
 	return &Player{
 		BaseCharacter: BaseCharacter{
-			BaseSprite: BaseSprite{
-				Location: Location{
-					X: 0,
-					Y: 0,
+			BasePhysical: BasePhysical{
+				BaseSprite: BaseSprite{
+					Location: Location{
+						X: 0,
+						Y: 0,
+					},
+					drawOffset: Location{
+						X: 25,
+						Y: 38,
+					},
+					srcRect:    spriteSheet.Rect(0),
+					debugImage: createDebugRectImage(hitbox),
 				},
-				drawOffset: Location{
-					X: 25,
-					Y: 38,
-				},
-				srcRect:    spriteSheet.Rect(0),
-				hitbox:     hitbox,
-				debugImage: createDebugRectImage(hitbox),
+				pushBoxOffset: hitbox,
 			},
 			Health:          8,
 			MaxHealth:       8,

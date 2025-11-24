@@ -53,19 +53,21 @@ func NewBlobEnemy() *BlobEnemy {
 
 	return &BlobEnemy{
 		BaseCharacter: BaseCharacter{
-			BaseSprite: BaseSprite{
-				Location: Location{
-					X: 0,
-					Y: 0,
+			BasePhysical: BasePhysical{
+				BaseSprite: BaseSprite{
+					Location: Location{
+						X: 0,
+						Y: 0,
+					},
+					drawOffset: Location{
+						X: 8,
+						Y: 8,
+					},
+					srcRect:    spriteSheet.Rect(0),
+					image:      BlobSpritesImage,
+					debugImage: createDebugRectImage(hitbox),
 				},
-				drawOffset: Location{
-					X: 8,
-					Y: 8,
-				},
-				srcRect:    spriteSheet.Rect(0),
-				image:      BlobSpritesImage,
-				hitbox:     hitbox,
-				debugImage: createDebugRectImage(hitbox),
+				pushBoxOffset: hitbox,
 			},
 			Health:          3,
 			MaxHealth:       3,

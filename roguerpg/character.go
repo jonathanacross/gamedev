@@ -5,7 +5,7 @@ import "math"
 
 // BaseCharacter holds the common state and logic for any combat-capable entity.
 type BaseCharacter struct {
-	BaseSprite
+	BasePhysical
 
 	Health    int
 	MaxHealth int
@@ -17,6 +17,10 @@ type BaseCharacter struct {
 
 	// Internal state tracking for death/dying (specific implementation is handled by Player/Enemy)
 	isDead bool
+}
+
+func (c *BaseCharacter) GetHurtBox() Rect {
+	return c.GetPushBox() // Use the inherited push box (from BasePhysical)
 }
 
 func (c *BaseCharacter) ApplyKnockback(force Vector, duration int) {
@@ -41,8 +45,7 @@ func (c *BaseCharacter) IsDead() bool {
 // It uses the velocity pointer to determine collision direction and adjusts the character's X/Y position.
 // It also sets the velocity to 0.0 if collision occurred.
 func (c *BaseCharacter) resolveCollision(otherRect Rect, axis CollisionAxis, v *float64) {
-	// NOTE: This uses the hitbox defined in BaseSprite/sprites.go
-	characterRect := c.HitBox()
+	characterRect := c.GetPushBox()
 
 	if !characterRect.Intersects(otherRect) {
 		return
@@ -80,15 +83,15 @@ func (c *BaseCharacter) resolveCollision(otherRect Rect, axis CollisionAxis, v *
 // HandleTileCollisions moves the character by the velocity in the pointer 'v' and resolves collisions.
 // The caller must provide a pointer to the velocity variable they wish to modify (Vx/Vy or KnockbackVx/KnockbackVy).
 func (c *BaseCharacter) HandleTileCollisions(level *Level, axis CollisionAxis, v *float64) {
-	// 1. Apply movement for the current axis
+	// Apply movement for the current axis
 	if axis == AxisX {
 		c.X += *v
 	} else if axis == AxisY {
 		c.Y += *v
 	}
 
-	// 2. Check and resolve collisions with solid tiles
-	characterHitBox := c.HitBox()
+	// Check and resolve collisions with solid tiles
+	characterHitBox := c.GetPushBox()
 
 	// Determine the range of tiles to check
 	// TileSize is assumed to be a globally accessible constant (from main.go)
@@ -101,7 +104,7 @@ func (c *BaseCharacter) HandleTileCollisions(level *Level, axis CollisionAxis, v
 		for x := minX; x <= maxX; x++ {
 			tile := level.GetTile(x, y)
 			if tile != nil && tile.solid {
-				c.resolveCollision(tile.HitBox(), axis, v)
+				c.resolveCollision(tile.GetPushBox(), axis, v)
 			}
 		}
 	}

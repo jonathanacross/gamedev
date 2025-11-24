@@ -49,18 +49,29 @@ func createDebugRectImage(r Rect) *ebiten.Image {
 
 // BaseSprite provides common fields and methods for any visible game entity.
 // It handles drawing a single sprite or the current frame of an animation.
+// This implements the GameObject interface.
 type BaseSprite struct {
 	Location
 	image      *ebiten.Image
 	srcRect    image.Rectangle
-	hitbox     Rect
 	drawOffset Location
 	debugImage *ebiten.Image
 }
 
-// HitBox returns the collision rectangle for the BaseSprite.
-func (bs *BaseSprite) HitBox() Rect {
-	return bs.hitbox.Offset(bs.X, bs.Y)
+// GetBounds returns the drawing rectangle for the BaseSprite.
+func (bs *BaseSprite) GetBounds() Rect {
+	x := bs.X - bs.drawOffset.X
+	y := bs.Y - bs.drawOffset.Y
+
+	width := float64(bs.srcRect.Dx())
+	height := float64(bs.srcRect.Dy())
+
+	return Rect{
+		Left:   x,
+		Top:    y,
+		Right:  x + width,
+		Bottom: y + height,
+	}
 }
 
 func (bs *BaseSprite) GetX() float64 { return bs.X }
@@ -76,8 +87,8 @@ func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.Ge
 		return
 	}
 
-	// Draw the Hitbox rectangle
-	hb := bs.HitBox()
+	// Draw the pushbox rectangle
+	hb := bs.GetBounds()
 
 	opRect := &ebiten.DrawImageOptions{}
 	opRect.GeoM.Translate(hb.Left, hb.Top)
@@ -99,29 +110,62 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 	screen.DrawImage(currImage, op)
 }
 
-type Tile struct {
+// Base entity for physical objects.  Tiles, monsters, the player, items,
+// will be based on this struct.
+type BasePhysical struct {
 	BaseSprite
+
+	pushBoxOffset Rect // The offset of the physical box relative to Location.
+}
+
+// GetPushBox implements the PhysicalObject interface.
+func (bp *BasePhysical) GetPushBox() Rect {
+	return bp.pushBoxOffset.Offset(bp.X, bp.Y)
+}
+
+// DrawDebugInfo overrides the BaseSprite version to draw the PushBox.
+func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	// Draw base debug info (Location Dot)
+	bp.BaseSprite.DrawDebugInfo(screen, cameraMatrix)
+
+	if !ShowDebugInfo || bp.debugImage == nil {
+		return
+	}
+
+	// Draw the PushBox rectangle
+	pb := bp.GetPushBox()
+
+	opRect := &ebiten.DrawImageOptions{}
+	opRect.GeoM.Translate(pb.Left, pb.Top)
+	opRect.GeoM.Concat(cameraMatrix)
+	screen.DrawImage(bp.debugImage, opRect)
+}
+
+type Tile struct {
+	BasePhysical
 	solid bool
 }
 
 func NewTile(location Location, image *ebiten.Image, srcRect image.Rectangle, solid bool) *Tile {
-	hitBox := Rect{
+	pushBox := Rect{
 		Left:   0,
 		Top:    0,
 		Right:  float64(srcRect.Dx()),
 		Bottom: float64(srcRect.Dy()),
 	}
 	return &Tile{
-		BaseSprite: BaseSprite{
-			Location: location,
-			image:    image,
-			srcRect:  srcRect,
-			hitbox:   hitBox,
-			drawOffset: Location{
-				X: 0,
-				Y: 0,
+		BasePhysical: BasePhysical{
+			BaseSprite: BaseSprite{
+				Location: location,
+				image:    image,
+				srcRect:  srcRect,
+				drawOffset: Location{
+					X: 0,
+					Y: 0,
+				},
+				debugImage: createDebugRectImage(pushBox),
 			},
-			debugImage: createDebugRectImage(hitBox),
+			pushBoxOffset: pushBox,
 		},
 		solid: solid,
 	}

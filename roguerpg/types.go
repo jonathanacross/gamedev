@@ -80,6 +80,13 @@ const (
 	TagTile
 )
 
+// DamageSourceConfig holds the Rect offset and damage value for a specific attack frame.
+// Rect is relative to the player's center (Location).
+type DamageSourceConfig struct {
+	HitBox Rect
+	Damage int
+}
+
 // DamageSource represents an active attack hitbox in the world.
 type DamageSource struct {
 	SourceTag  EntityTag // e.g., TagPlayer, TagEnemy
@@ -115,15 +122,23 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 	screen.DrawImage(ds.debugImage, opRect)
 }
 
-// GameObject is an interface for any interactive entity in the game world.
+// GameObject is an interface for any entity in the game world.
 type GameObject interface {
-	HitBox() Rect // Represents the 'PushBox' or 'HurtBox' for receiving damage
+	GetBounds() Rect // General bounding box for drawing
 	Update()
 	DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM)
 }
 
+// PhysicalObject is anything that participates in collisions and pushing.
+type PhysicalObject interface {
+	GameObject
+	GetPushBox() Rect
+}
+
+// Character is a specialized entity that can take damage and be knocked back.
 type Character interface {
 	GameObject
+	GetHurtBox() Rect
 	TakeDamage(damage int)
 	ApplyKnockback(force Vector, duration int)
 	IsKnockedBack() bool
