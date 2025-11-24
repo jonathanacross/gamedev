@@ -12,6 +12,13 @@ type Level struct {
 	Enemies       []*BlobEnemy
 }
 
+func (level *Level) GetTile(x, y int) *Tile {
+	if x < 0 || x >= level.WidthInTiles || y < 0 || y >= level.HeightInTiles {
+		return nil
+	}
+	return level.Tiles[y][x]
+}
+
 // TileToWorld converts tile coordinates (tx, ty) to the center of the world coordinates.
 func (level *Level) TileToWorld(tx, ty int) Location {
 	// Return the center point of the tile

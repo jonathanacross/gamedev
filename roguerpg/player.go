@@ -1,8 +1,6 @@
 package main
 
 import (
-	"math"
-
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -26,13 +24,6 @@ const (
 	Down
 )
 
-type CollisionAxis int
-
-const (
-	AxisX CollisionAxis = iota
-	AxisY
-)
-
 // AttackFrameConfig holds the Rect offset and damage value for a specific attack frame.
 // Rect is relative to the player's center (Location).
 type AttackFrameConfig struct {
@@ -41,20 +32,15 @@ type AttackFrameConfig struct {
 }
 
 type Player struct {
-	BaseSprite
-	images          map[PlayerState]*ebiten.Image
-	spriteSheet     *SpriteSheet
-	animations      map[PlayerState]map[PlayerDirection]*Animation
-	state           PlayerState
-	direction       PlayerDirection
-	Vx              float64
-	Vy              float64
-	attackHitboxes  map[PlayerDirection]map[int]AttackFrameConfig
-	Health          int
-	MaxHealth       int
-	KnockbackVx     float64
-	KnockbackVy     float64
-	KnockbackFrames int
+	BaseCharacter
+	images         map[PlayerState]*ebiten.Image
+	spriteSheet    *SpriteSheet
+	animations     map[PlayerState]map[PlayerDirection]*Animation
+	state          PlayerState
+	direction      PlayerDirection
+	Vx             float64
+	Vy             float64
+	attackHitboxes map[PlayerDirection]map[int]AttackFrameConfig
 }
 
 func NewPlayer() *Player {
@@ -147,28 +133,30 @@ func NewPlayer() *Player {
 	}
 
 	return &Player{
-		BaseSprite: BaseSprite{
-			Location: Location{
-				X: 0,
-				Y: 0,
+		BaseCharacter: BaseCharacter{
+			BaseSprite: BaseSprite{
+				Location: Location{
+					X: 0,
+					Y: 0,
+				},
+				drawOffset: Location{
+					X: 25,
+					Y: 38,
+				},
+				srcRect:    spriteSheet.Rect(0),
+				hitbox:     hitbox,
+				debugImage: createDebugRectImage(hitbox),
 			},
-			drawOffset: Location{
-				X: 25,
-				Y: 38,
-			},
-			srcRect:    spriteSheet.Rect(0),
-			hitbox:     hitbox,
-			debugImage: createDebugRectImage(hitbox),
+			Health:          8,
+			MaxHealth:       8,
+			KnockbackFrames: 0,
 		},
-		images:          charImages,
-		spriteSheet:     spriteSheet,
-		animations:      animations,
-		state:           Idle,
-		direction:       Down,
-		Health:          8,
-		MaxHealth:       8,
-		attackHitboxes:  attackHitboxes,
-		KnockbackFrames: 0,
+		images:         charImages,
+		spriteSheet:    spriteSheet,
+		animations:     animations,
+		state:          Idle,
+		direction:      Down,
+		attackHitboxes: attackHitboxes,
 	}
 }
 
@@ -188,7 +176,6 @@ func (p *Player) TransitionState(newState PlayerState) {
 	if p.state != newState {
 		p.state = newState
 
-		// Reset the animation for the *new* state
 		if anim := p.GetCurrentAnimation(); anim != nil {
 			anim.Reset()
 		}
@@ -237,18 +224,10 @@ func (c *Player) TakeDamage(damage int) {
 }
 
 func (p *Player) ApplyKnockback(force Vector, duration int) {
-	if p.state == Dead || p.state == Dying {
-		return
+	p.BaseCharacter.ApplyKnockback(force, duration)
+	if p.IsKnockedBack() {
+		p.TransitionState(Hurt)
 	}
-	p.KnockbackVx = force.X
-	p.KnockbackVy = force.Y
-	p.KnockbackFrames = duration
-	// Transition to Hurt state when knocked back
-	p.TransitionState(Hurt)
-}
-
-func (p *Player) IsKnockedBack() bool {
-	return p.KnockbackFrames > 0
 }
 
 func (c *Player) Update(level *Level) {
@@ -257,15 +236,7 @@ func (c *Player) Update(level *Level) {
 		return
 	}
 
-	if c.IsKnockedBack() {
-		c.KnockbackFrames--
-
-		// Apply knockback velocity
-		c.X += c.KnockbackVx
-		c.HandleTileCollisions(level, AxisX)
-		c.Y += c.KnockbackVy
-		c.HandleTileCollisions(level, AxisY)
-
+	if c.UpdateKnockback(level) {
 		animation.Update()
 		c.image = c.images[c.state]
 		c.srcRect = c.spriteSheet.Rect(animation.Frame())
@@ -274,19 +245,16 @@ func (c *Player) Update(level *Level) {
 
 	if c.state == Hurt && animation.IsFinished() {
 		c.TransitionState(Idle)
-		animation.Reset()
 		animation = c.GetCurrentAnimation()
 	}
 
 	if c.state == Attacking && animation.IsFinished() {
 		c.TransitionState(Idle)
-		animation.Reset()
 		animation = c.GetCurrentAnimation()
 	}
 
 	if c.state == Dying && animation.IsFinished() {
 		c.TransitionState(Dead)
-		animation.Reset()
 		animation = c.GetCurrentAnimation()
 		return
 	}
@@ -296,10 +264,8 @@ func (c *Player) Update(level *Level) {
 	c.image = c.images[c.state]
 	c.srcRect = c.spriteSheet.Rect(animation.Frame())
 
-	c.X += c.Vx
-	c.HandleTileCollisions(level, AxisX)
-	c.Y += c.Vy
-	c.HandleTileCollisions(level, AxisY)
+	c.HandleTileCollisions(level, AxisX, &c.Vx)
+	c.HandleTileCollisions(level, AxisY, &c.Vy)
 }
 
 func (p *Player) HandleUserInput() {
@@ -348,7 +314,6 @@ func (p *Player) HandleUserInput() {
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		// If attack is pressed, it takes precedence over Walking/Idle
 		p.TransitionState(Attacking)
-		// Reset movement since attacking is generally stationary
 		moveDir = Vector{X: 0, Y: 0}
 	}
 
@@ -359,65 +324,4 @@ func (p *Player) HandleUserInput() {
 	}
 	p.Vx = moveDir.X
 	p.Vy = moveDir.Y
-}
-
-func (p *Player) resolveCollision(otherRect Rect, axis CollisionAxis) {
-	// TOOD: change HitBox to PushBox
-	playerRect := p.HitBox()
-
-	if !playerRect.Intersects(otherRect) {
-		return
-	}
-
-	if axis == AxisX {
-		overlap := 0.0
-		if p.Vx > 0 { // moving right
-			overlap = playerRect.Right - otherRect.Left
-		} else if p.Vx < 0 { // moving left
-			overlap = playerRect.Left - otherRect.Right
-		}
-
-		if math.Abs(overlap) > 0 {
-			p.X -= overlap
-			p.Vx = 0.0
-		}
-	} else if axis == AxisY {
-		overlap := 0.0
-		if p.Vy > 0 { // moving down
-			overlap = playerRect.Bottom - otherRect.Top
-		} else if p.Vy < 0 { // moving up
-			overlap = playerRect.Top - otherRect.Bottom
-		}
-
-		if math.Abs(overlap) > 0 {
-			p.Y -= overlap
-			p.Vy = 0.0
-		}
-	}
-}
-
-func (p *Player) HandleTileCollisions(level *Level, axis CollisionAxis) {
-	// Only check the tiles near the player to improve performance
-	playerHitBox := p.HitBox()
-	minX := int(math.Floor(playerHitBox.Left/TileSize)) - 1
-	maxX := int(math.Floor(playerHitBox.Right/TileSize)) + 1
-	minY := int(math.Floor(playerHitBox.Top/TileSize)) - 1
-	maxY := int(math.Floor(playerHitBox.Bottom/TileSize)) + 1
-
-	for _, row := range level.Tiles {
-		for _, tile := range row {
-			if !tile.solid {
-				continue
-			}
-
-			// Skip over tiles that are not near the player
-			tileX := int(tile.X / TileSize)
-			tileY := int(tile.Y / TileSize)
-			if tileX < minX || tileX > maxX || tileY < minY || tileY > maxY {
-				continue
-			}
-
-			p.resolveCollision(tile.HitBox(), axis)
-		}
-	}
 }

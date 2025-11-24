@@ -50,7 +50,7 @@ func (g *Game) handlePlayerAttackCollisions() {
 	var hitEnemies []*BlobEnemy
 
 	for _, enemy := range g.level.Enemies {
-		if enemy.IsDead {
+		if enemy.isDead {
 			continue
 		}
 
@@ -81,7 +81,7 @@ func (g *Game) HandleEnemyAttackCollisions() {
 	const enemyKnockbackDuration = 6
 
 	for _, enemy := range g.level.Enemies {
-		if enemy.IsDead {
+		if enemy.isDead {
 			continue
 		}
 
@@ -113,8 +113,8 @@ func (g *Game) Update() error {
 func (g *Game) cleanupDeadEnemies(enemies []*BlobEnemy) []*BlobEnemy {
 	liveEnemies := enemies[:0] // Creates a zero-length slice backed by the original array
 	for _, enemy := range enemies {
-		// For now, we only remove if IsDead is true. You might add a death animation check here later.
-		if !enemy.IsDead {
+		// For now, we only remove if isDead is true. You might add a death animation check here later.
+		if !enemy.isDead {
 			liveEnemies = append(liveEnemies, enemy)
 		}
 	}

@@ -7,8 +7,8 @@ import (
 type BlobEnemyState int
 
 const (
-	BlobIdle   BlobEnemyState = iota // Waiting phase
-	BlobMoving                       // Moving phase (renamed from BlobWalking)
+	BlobIdle BlobEnemyState = iota
+	BlobMoving
 	BlobAttacking
 	BlobHurt
 	BlobDying
@@ -19,12 +19,9 @@ const (
 )
 
 type BlobEnemy struct {
-	BaseSprite
+	BaseCharacter
 	spriteSheet *SpriteSheet
 	animations  map[BlobEnemyState]*Animation
-
-	Health int
-	IsDead bool
 
 	// AI
 	state BlobEnemyState
@@ -33,10 +30,6 @@ type BlobEnemy struct {
 	moveTargetLocation Location
 	currentFrame       int // Frame counter for the current move or wait action
 	waitFrames         int // Total frames to wait when idle
-
-	KnockbackVx     float64
-	KnockbackVy     float64
-	KnockbackFrames int
 }
 
 func NewBlobEnemy() *BlobEnemy {
@@ -59,40 +52,39 @@ func NewBlobEnemy() *BlobEnemy {
 	}
 
 	return &BlobEnemy{
-		BaseSprite: BaseSprite{
-			Location: Location{
-				X: 0,
-				Y: 0,
+		BaseCharacter: BaseCharacter{
+			BaseSprite: BaseSprite{
+				Location: Location{
+					X: 0,
+					Y: 0,
+				},
+				drawOffset: Location{
+					X: 8,
+					Y: 8,
+				},
+				srcRect:    spriteSheet.Rect(0),
+				image:      BlobSpritesImage,
+				hitbox:     hitbox,
+				debugImage: createDebugRectImage(hitbox),
 			},
-			drawOffset: Location{
-				X: 8,
-				Y: 8,
-			},
-			srcRect:    spriteSheet.Rect(0),
-			image:      BlobSpritesImage,
-			hitbox:     hitbox,
-			debugImage: createDebugRectImage(hitbox),
+			Health:          3,
+			isDead:          false,
+			KnockbackFrames: 0,
 		},
-		spriteSheet:     spriteSheet,
-		animations:      animations,
-		state:           BlobIdle,
-		Health:          3,
-		IsDead:          false,
-		waitFrames:      rand.Intn(MaxWaitFrames) + 1,
-		KnockbackFrames: 0,
+		spriteSheet: spriteSheet,
+		animations:  animations,
+		state:       BlobIdle,
+		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
 	}
 }
 
 func (c *BlobEnemy) ApplyKnockback(force Vector, duration int) {
-	if c.IsDead || c.state == BlobDying {
-		return
+	c.BaseCharacter.ApplyKnockback(force, duration)
+
+	if c.IsKnockedBack() && c.state != BlobDying {
+		c.state = BlobHurt
+		c.animations[BlobHurt].Reset()
 	}
-	c.KnockbackVx = force.X
-	c.KnockbackVy = force.Y
-	c.KnockbackFrames = duration
-	// Transition to Hurt state when knocked back
-	c.state = BlobHurt
-	c.animations[BlobHurt].Reset()
 }
 
 func (c *BlobEnemy) IsKnockedBack() bool {
@@ -100,12 +92,13 @@ func (c *BlobEnemy) IsKnockedBack() bool {
 }
 
 func (c *BlobEnemy) TakeDamage(damage int) {
-	if c.IsDead || c.state == BlobDying || c.state == BlobHurt {
+	if c.isDead || c.state == BlobDying || c.state == BlobHurt {
 		return
 	}
 
+	// TODO: consider a state transition like Player that handles animation reset
 	c.state = BlobHurt
-	c.animations[BlobHurt].Reset() // Without this, the animation may be at the end, allowing multiple hits.
+	c.animations[BlobHurt].Reset()
 
 	c.Health -= damage
 	if c.Health <= 0 {
@@ -152,19 +145,15 @@ func (c *BlobEnemy) Update(level *Level) {
 	c.animations[c.state].Update()
 	c.srcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
 
-	if c.IsKnockedBack() {
-		c.KnockbackFrames--
-
-		// Apply knockback force
-		c.X += c.KnockbackVx
-		c.Y += c.KnockbackVy
-
+	if c.UpdateKnockback(level) {
 		// Ensure the BlobHurt animation can finish, even during knockback
 		if c.state == BlobHurt && c.animations[BlobHurt].IsFinished() {
 			c.state = BlobIdle
 		}
 
-		return // Skip AI and movement logic
+		if c.state != BlobDying {
+			return // Skip AI and normal movement logic
+		}
 	}
 
 	// Future extension: Check for Attacking proximity here first (Step 1)
@@ -201,8 +190,19 @@ func (c *BlobEnemy) Update(level *Level) {
 		t := float64(c.currentFrame) / float64(MoveDurationFrames)
 		dx := c.moveTargetLocation.X - c.moveStartLocation.X
 		dy := c.moveTargetLocation.Y - c.moveStartLocation.Y
-		c.X = c.moveStartLocation.X + dx*t
-		c.Y = c.moveStartLocation.Y + dy*t
+
+		// Calculate the target position for this frame
+		nextX := c.moveStartLocation.X + dx*t
+		nextY := c.moveStartLocation.Y + dy*t
+
+		// Calculate the delta (velocity) for *THIS FRAME*
+		// This is the distance to travel from the current position (c.X/c.Y) to the interpolated next position (nextX/nextY)
+		tempVx := nextX - c.X
+		tempVy := nextY - c.Y
+
+		// If a collision occurs, HandleTileCollisions will adjust c.X/c.Y and zero out the temporary velocity (tempVx/tempVy).
+		c.HandleTileCollisions(level, AxisX, &tempVx)
+		c.HandleTileCollisions(level, AxisY, &tempVy)
 
 	case BlobAttacking:
 		// For now, immediately return to idle/exploring state
@@ -215,7 +215,7 @@ func (c *BlobEnemy) Update(level *Level) {
 
 	case BlobDying:
 		if c.animations[BlobDying].IsFinished() {
-			c.IsDead = true
+			c.isDead = true
 		}
 	}
 }

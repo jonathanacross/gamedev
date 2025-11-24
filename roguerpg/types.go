@@ -64,6 +64,13 @@ func (r1 Rect) Intersects(r2 Rect) bool {
 		r1.Top < r2.Bottom && r1.Bottom > r2.Top
 }
 
+type CollisionAxis int
+
+const (
+	AxisX CollisionAxis = iota
+	AxisY
+)
+
 // EntityTag is used to categorize game objects for collision filtering (e.g., friendly fire)
 type EntityTag int
 
@@ -112,8 +119,15 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 type GameObject interface {
 	HitBox() Rect // Represents the 'PushBox' or 'HurtBox' for receiving damage
 	Update()
+	DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM)
+}
+
+type Character interface {
+	GameObject
+	TakeDamage(damage int)
 	ApplyKnockback(force Vector, duration int)
 	IsKnockedBack() bool
+	IsDead() bool
 }
 
 // CalculateKnockbackForce computes a normalized, scaled vector pointing from the attacker to the defender.
