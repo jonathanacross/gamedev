@@ -32,6 +32,10 @@ type BlobEnemy struct {
 	waitFrames         int // Total frames to wait when idle
 }
 
+const (
+	BlobMoveSpeed float64 = 0.5
+)
+
 func NewBlobEnemy() *BlobEnemy {
 
 	animations := map[BlobEnemyState]*Animation{
@@ -178,33 +182,27 @@ func (c *BlobEnemy) Update(level *Level) {
 		}
 
 	case BlobMoving:
-		c.currentFrame++
+		target := Vector{
+			X: c.moveTargetLocation.X - c.X,
+			Y: c.moveTargetLocation.Y - c.Y,
+		}
 
-		if c.currentFrame >= MoveDurationFrames {
-			c.SetLocation(c.moveTargetLocation) // Snap to final position
+		distance := target.Length()
+		if distance <= BlobMoveSpeed {
+			// We are close enough to snap to the target.
+			c.SetLocation(c.moveTargetLocation)
+
+			// Wait for a short time.
 			c.state = BlobIdle
-			// Wait for a random time (up to 1 second)
 			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
 			return
 		}
 
-		// Calculate interpolation factor (t: 0.0 -> 1.0)
-		t := float64(c.currentFrame) / float64(MoveDurationFrames)
-		dx := c.moveTargetLocation.X - c.moveStartLocation.X
-		dy := c.moveTargetLocation.Y - c.moveStartLocation.Y
+		velocity := target.Normalize().Scale(BlobMoveSpeed)
 
-		// Calculate the target position for this frame
-		nextX := c.moveStartLocation.X + dx*t
-		nextY := c.moveStartLocation.Y + dy*t
-
-		// Calculate the delta (velocity) for *THIS FRAME*
-		// This is the distance to travel from the current position (c.X/c.Y) to the interpolated next position (nextX/nextY)
-		tempVx := nextX - c.X
-		tempVy := nextY - c.Y
-
-		// If a collision occurs, HandleTileCollisions will adjust c.X/c.Y and zero out the temporary velocity (tempVx/tempVy).
-		c.HandleTileCollisions(level, AxisX, &tempVx)
-		c.HandleTileCollisions(level, AxisY, &tempVy)
+		// If a collision occurs, HandleTileCollisions will adjust c.X/c.Y and zero out the velocity
+		c.HandleTileCollisions(level, AxisX, &velocity.X)
+		c.HandleTileCollisions(level, AxisY, &velocity.Y)
 
 	case BlobAttacking:
 		// For now, immediately return to idle/exploring state
