@@ -107,7 +107,7 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 		return
 	}
 
-	debugImage := getDebugRectImage(ds.HitBox)
+	debugImage := GetDebugRectImage(ds.HitBox)
 
 	// Draw the Hitbox rectangle
 	hb := ds.HitBox
