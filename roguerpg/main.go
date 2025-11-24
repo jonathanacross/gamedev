@@ -12,7 +12,7 @@ const (
 
 	TileSize = 16
 
-	ShowDebugInfo = true
+	ShowDebugInfo = false
 
 	KnockbackForce    = 3.0
 	KnockbackDuration = 6
@@ -95,7 +95,6 @@ func (g *Game) Update() error {
 		enemy.Update(g.level)
 	}
 	g.HandleEnemyAttackCollisions()
-	g.player.HandleUserInput()
 	g.player.Update(g.level)
 	g.handlePlayerAttackCollisions()
 	g.level.Enemies = g.cleanupDeadEnemies(g.level.Enemies)

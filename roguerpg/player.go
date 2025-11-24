@@ -24,6 +24,8 @@ const (
 	Down
 )
 
+const PlayerSpeed = 2.0
+
 type Player struct {
 	BaseCharacter
 	images         map[PlayerState]*ebiten.Image
@@ -207,7 +209,6 @@ func (c *Player) TakeDamage(damage int) {
 	}
 
 	c.TransitionState(Hurt)
-
 	c.Health -= damage
 	if c.Health < 0 {
 		c.TransitionState(Dying)
@@ -216,62 +217,23 @@ func (c *Player) TakeDamage(damage int) {
 
 func (p *Player) ApplyKnockback(force Vector, duration int) {
 	p.BaseCharacter.ApplyKnockback(force, duration)
+
+	if p.state == Dying || p.state == Dead {
+		return
+	}
+
 	if p.IsKnockedBack() {
 		p.TransitionState(Hurt)
 	}
 }
 
-func (c *Player) Update(level *Level) {
-	animation := c.GetCurrentAnimation()
-	if animation == nil {
-		return
-	}
-
-	if c.UpdateKnockback(level) {
-		animation.Update()
-		c.image = c.images[c.state]
-		c.srcRect = c.spriteSheet.Rect(animation.Frame())
-		return
-	}
-
-	if c.state == Hurt && animation.IsFinished() {
-		c.TransitionState(Idle)
-		animation = c.GetCurrentAnimation()
-	}
-
-	if c.state == Attacking && animation.IsFinished() {
-		c.TransitionState(Idle)
-		animation = c.GetCurrentAnimation()
-	}
-
-	if c.state == Dying && animation.IsFinished() {
-		c.TransitionState(Dead)
-		animation = c.GetCurrentAnimation()
-		return
-	}
-
-	animation.Update()
-
-	c.image = c.images[c.state]
-	c.srcRect = c.spriteSheet.Rect(animation.Frame())
-
-	c.HandleTileCollisions(level, AxisX, &c.Vx)
-	c.HandleTileCollisions(level, AxisY, &c.Vy)
-}
-
-func (p *Player) HandleUserInput() {
-	// If currently in middle of blocking animation, break out
-	if p.state == Attacking || p.state == Hurt || p.state == Dying || p.state == Dead || p.IsKnockedBack() {
-		p.Vx = 0
-		p.Vy = 0
-		return
-	}
-
+// handleMovementInput is the handler for the Idle and Walking states.
+// It checks input, determines the new state, direction, and sets Vx/Vy.
+func (p *Player) handleMovementInput() {
 	moveDir := Vector{X: 0, Y: 0}
-
-	// Handle Movement
 	isMoving := false
 
+	// Handle Movement
 	// Vertical movement
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
 		moveDir.Y = -1
@@ -287,32 +249,103 @@ func (p *Player) HandleUserInput() {
 	// otherwise just changes direction/velocity)
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		moveDir.X = -1
-		p.direction = Left
+		// Only set direction if no vertical movement, or if vertical has zero velocity (e.g., stopping)
+		if moveDir.Y == 0 {
+			p.direction = Left
+		}
 		isMoving = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		moveDir.X = 1
-		p.direction = Right
+		if moveDir.Y == 0 {
+			p.direction = Right
+		}
 		isMoving = true
 	}
 
-	if isMoving {
+	// Handle Attack Input (KeySpace takes precedence over Walking/Idle)
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		p.TransitionState(Attacking)
+	} else if isMoving {
+		// Calculate Velocity and set state to Walking
+		if moveDir.Length() != 0 {
+			moveDir = moveDir.Normalize().Scale(PlayerSpeed)
+		}
 		p.TransitionState(Walking)
 	} else {
+		// No movement or attack input
 		p.TransitionState(Idle)
 	}
 
-	// Handle Attack
-	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		// If attack is pressed, it takes precedence over Walking/Idle
-		p.TransitionState(Attacking)
-		moveDir = Vector{X: 0, Y: 0}
-	}
-
-	// Calculate Velocity
-	if p.state == Walking {
-		walkSpeed := 2.0
-		moveDir = moveDir.Normalize().Scale(walkSpeed)
-	}
+	// Apply velocity based on the final determined moveDir
 	p.Vx = moveDir.X
 	p.Vy = moveDir.Y
+}
+
+// handleState runs the logic for the Player's current state and determines
+// the next state, direction, and velocity (Vx/Vy).
+func (p *Player) handleState(level *Level) {
+	animation := p.GetCurrentAnimation()
+	if animation == nil {
+		p.state = Idle // Should never happen
+		return
+	}
+
+	// 1. ABSOLUTE PRIORITY: Check for terminal state completion
+	// This is the clean way to handle animation-based transitions.
+	if p.state == Dying && animation.IsFinished() {
+		p.TransitionState(Dead)
+		return
+	}
+
+	// Once Dead, stop all logic.
+	if p.state == Dead {
+		p.Vx = 0
+		p.Vy = 0
+		return
+	}
+
+	// If knockback just finished, transition out of Hurt.
+	if p.state == Hurt && !p.IsKnockedBack() && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+
+	// If attack just finished, transition out of Attacking.
+	if p.state == Attacking && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+
+	// 3. Current State Logic
+	switch p.state {
+	case Idle, Walking:
+		// Handle user input which sets new state and velocity (Vx/Vy)
+		p.handleMovementInput()
+
+	case Attacking, Hurt, Dying:
+		// In these states, zero out user-controlled movement.
+		// Note: Knockback velocity is handled in Player.Update()
+		p.Vx = 0
+		p.Vy = 0
+	}
+}
+
+func (c *Player) Update(level *Level) {
+	// Handle Knockback Physics.
+	// This should run first to ensure physics is always applied.
+	c.UpdateKnockback(level)
+
+	// Handle all state transitions.
+	c.handleState(level)
+
+	// Apply Velocity and resolve collisions (uses final Vx and Vy set by handleState or knockback).
+	c.HandleTileCollisions(level, AxisX, &c.Vx)
+	c.HandleTileCollisions(level, AxisY, &c.Vy)
+
+	// Update visuals
+	animation := c.GetCurrentAnimation()
+	if animation == nil {
+		return
+	}
+	animation.Update()
+	c.image = c.images[c.state]
+	c.srcRect = c.spriteSheet.Rect(animation.Frame())
 }
