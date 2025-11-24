@@ -283,15 +283,14 @@ func (p *Player) handleMovementInput() {
 
 // handleState runs the logic for the Player's current state and determines
 // the next state, direction, and velocity (Vx/Vy).
-func (p *Player) handleState(level *Level) {
+func (p *Player) handleState() {
 	animation := p.GetCurrentAnimation()
 	if animation == nil {
 		p.state = Idle // Should never happen
 		return
 	}
 
-	// 1. ABSOLUTE PRIORITY: Check for terminal state completion
-	// This is the clean way to handle animation-based transitions.
+	// Check for terminal state completion.
 	if p.state == Dying && animation.IsFinished() {
 		p.TransitionState(Dead)
 		return
@@ -314,7 +313,6 @@ func (p *Player) handleState(level *Level) {
 		p.TransitionState(Idle)
 	}
 
-	// 3. Current State Logic
 	switch p.state {
 	case Idle, Walking:
 		// Handle user input which sets new state and velocity (Vx/Vy)
@@ -322,7 +320,6 @@ func (p *Player) handleState(level *Level) {
 
 	case Attacking, Hurt, Dying:
 		// In these states, zero out user-controlled movement.
-		// Note: Knockback velocity is handled in Player.Update()
 		p.Vx = 0
 		p.Vy = 0
 	}
@@ -330,11 +327,10 @@ func (p *Player) handleState(level *Level) {
 
 func (c *Player) Update(level *Level) {
 	// Handle Knockback Physics.
-	// This should run first to ensure physics is always applied.
 	c.UpdateKnockback(level)
 
 	// Handle all state transitions.
-	c.handleState(level)
+	c.handleState()
 
 	c.Vx = c.HandleTileCollisions(level, AxisX, c.Vx)
 	c.Vy = c.HandleTileCollisions(level, AxisY, c.Vy)

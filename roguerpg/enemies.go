@@ -14,8 +14,8 @@ const (
 	BlobDying
 
 	// Movement constants
-	MoveDurationFrames = 60 // Fixed 1 second movement (60 frames at 60 FPS)
-	MaxWaitFrames      = 60 // Max 1 second wait (up to 60 frames)
+	BlobMoveSpeed float64 = 0.5
+	MaxWaitFrames int     = 60 // Max 1 second wait (up to 60 frames)
 )
 
 type BlobEnemy struct {
@@ -31,10 +31,6 @@ type BlobEnemy struct {
 	currentFrame       int // Frame counter for the current move or wait action
 	waitFrames         int // Total frames to wait when idle
 }
-
-const (
-	BlobMoveSpeed float64 = 0.5
-)
 
 func NewBlobEnemy() *BlobEnemy {
 
@@ -114,7 +110,7 @@ func (c *BlobEnemy) TakeDamage(damage int) {
 
 // findNewTargetTile attempts to find a random, adjacent, non-solid tile.
 func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
-	// 1. Get current tile coordinates
+	// Get current tile coordinates
 	tx, ty := level.WorldToTile(c.Location())
 
 	// Define the 4 cardinal directions for "adjacent square"
