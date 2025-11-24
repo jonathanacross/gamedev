@@ -121,7 +121,8 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 // GameObject is an interface for any entity in the game world.
 type GameObject interface {
 	GetBounds() Rect // General bounding box for drawing
-	Update()
+	Update(level *Level)
+	Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM)
 	DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM)
 }
 
@@ -129,11 +130,12 @@ type GameObject interface {
 type PhysicalObject interface {
 	GameObject
 	GetPushBox() Rect
+	Location() Location
 }
 
 // Character is a specialized entity that can take damage and be knocked back.
 type Character interface {
-	GameObject
+	PhysicalObject
 	GetHurtBox() Rect
 	TakeDamage(damage int)
 	ApplyKnockback(force Vector, duration int)

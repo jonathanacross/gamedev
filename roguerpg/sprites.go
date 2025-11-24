@@ -154,6 +154,15 @@ type BasePhysical struct {
 	pushBoxOffset Rect // The offset of the physical box relative to Location.
 }
 
+func (bp *BasePhysical) Location() Location {
+	return Location{X: bp.X, Y: bp.Y}
+}
+
+func (bp *BasePhysical) SetLocation(l Location) {
+	bp.X = l.X
+	bp.Y = l.Y
+}
+
 // GetPushBox implements the PhysicalObject interface.
 func (bp *BasePhysical) GetPushBox() Rect {
 	return bp.pushBoxOffset.Offset(bp.X, bp.Y)

@@ -111,7 +111,7 @@ func (c *BlobEnemy) TakeDamage(damage int) {
 // findNewTargetTile attempts to find a random, adjacent, non-solid tile.
 func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 	// 1. Get current tile coordinates
-	tx, ty := level.WorldToTile(c.Location)
+	tx, ty := level.WorldToTile(c.Location())
 
 	// Define the 4 cardinal directions for "adjacent square"
 	directions := []struct{ dx, dy int }{
@@ -132,7 +132,7 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 
 		if !level.IsTileSolid(newTx, newTy) {
 			// Found an open tile. Set up the movement.
-			c.moveStartLocation = c.Location
+			c.moveStartLocation = c.Location()
 			c.moveTargetLocation = level.TileToWorld(newTx, newTy)
 			c.currentFrame = 0 // Reset frame counter for movement
 			return true
@@ -181,7 +181,7 @@ func (c *BlobEnemy) Update(level *Level) {
 		c.currentFrame++
 
 		if c.currentFrame >= MoveDurationFrames {
-			c.Location = c.moveTargetLocation // Snap to final position
+			c.SetLocation(c.moveTargetLocation) // Snap to final position
 			c.state = BlobIdle
 			// Wait for a random time (up to 1 second)
 			c.waitFrames = rand.Intn(MaxWaitFrames) + 1

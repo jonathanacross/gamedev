@@ -420,7 +420,7 @@ func BuildLevel(width, height int) *Level {
 		WidthInTiles:  width,
 		HeightInTiles: height,
 		Tiles:         terrainTiles,
-		Enemies:       []*BlobEnemy{},
+		Enemies:       []Character{},
 	}
 }
 

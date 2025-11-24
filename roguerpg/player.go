@@ -115,10 +115,7 @@ func NewPlayer() *Player {
 	}
 
 	spriteSheet := NewSpriteSheet(48, 64, 8, 6)
-	// TODO: this is really the "pushbox" for the player;
-	// need to make a separate hurtbox for the player, and hitboxes
-	// for attacks/weapons.
-	hitbox := Rect{
+	pushBox := Rect{
 		Left:   -6,
 		Top:    -6,
 		Right:  6,
@@ -139,7 +136,7 @@ func NewPlayer() *Player {
 					},
 					srcRect: spriteSheet.Rect(0),
 				},
-				pushBoxOffset: hitbox,
+				pushBoxOffset: pushBox,
 			},
 			Health:          8,
 			MaxHealth:       8,

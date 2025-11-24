@@ -29,7 +29,7 @@ func NewGame() *Game {
 	level.AddEnemies()
 
 	player := NewPlayer()
-	player.Location = level.FindRandomFloorLocation()
+	player.SetLocation(level.FindRandomFloorLocation())
 	return &Game{
 		level:  level,
 		player: player,
@@ -46,7 +46,7 @@ func (g *Game) handlePlayerAttackCollisions() {
 
 	// Use an array to track enemies that have been hit in this frame
 	// to prevent a single attack frame from hitting one enemy multiple times.
-	var hitEnemies []*BlobEnemy
+	var hitEnemies []Character
 
 	for _, enemy := range g.level.Enemies {
 		if enemy.IsDead() {
@@ -67,7 +67,7 @@ func (g *Game) handlePlayerAttackCollisions() {
 
 			if !alreadyHit {
 				enemy.TakeDamage(damageSource.Damage)
-				force := CalculateKnockbackForce(g.player.Location, enemy.Location, KnockbackForce)
+				force := CalculateKnockbackForce(g.player.Location(), enemy.Location(), KnockbackForce)
 				enemy.ApplyKnockback(force, KnockbackDuration)
 				hitEnemies = append(hitEnemies, enemy)
 			}
@@ -83,7 +83,7 @@ func (g *Game) HandleEnemyAttackCollisions() {
 
 		if enemy.GetPushBox().Intersects(g.player.GetHurtBox()) {
 			g.player.TakeDamage(1)
-			force := CalculateKnockbackForce(enemy.Location, g.player.Location, KnockbackForce)
+			force := CalculateKnockbackForce(enemy.Location(), g.player.Location(), KnockbackForce)
 			g.player.ApplyKnockback(force, KnockbackDuration)
 			break
 		}
@@ -100,13 +100,13 @@ func (g *Game) Update() error {
 	g.handlePlayerAttackCollisions()
 	g.level.Enemies = g.cleanupDeadEnemies(g.level.Enemies)
 
-	g.camera.CenterOn(g.player.Location)
+	g.camera.CenterOn(g.player.Location())
 
 	return nil
 }
 
 // cleanupDeadEnemies iterates through the slice and removes enemies marked for deletion.
-func (g *Game) cleanupDeadEnemies(enemies []*BlobEnemy) []*BlobEnemy {
+func (g *Game) cleanupDeadEnemies(enemies []Character) []Character {
 	liveEnemies := enemies[:0] // Create a zero-length slice backed by the original array
 	for _, enemy := range enemies {
 		if !enemy.IsDead() {
