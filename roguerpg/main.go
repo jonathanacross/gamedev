@@ -55,7 +55,7 @@ func (g *Game) handlePlayerAttackCollisions() {
 
 		// Check for intersection between the DamageSource's HitBox and the enemy's HurtBox (which is its HitBox())
 		// TODO: why don't we need to use damageSource.HitBox()?
-		if damageSource.HitBox.Intersects(enemy.GetPushBox()) {
+		if damageSource.HitBox.Intersects(enemy.GetHurtBox()) {
 			// Check if this enemy has already been hit by this damage source
 			alreadyHit := false
 			for _, hit := range hitEnemies {
@@ -81,7 +81,7 @@ func (g *Game) HandleEnemyAttackCollisions() {
 			continue
 		}
 
-		if enemy.GetPushBox().Intersects(g.player.GetPushBox()) {
+		if enemy.GetPushBox().Intersects(g.player.GetHurtBox()) {
 			g.player.TakeDamage(1)
 			force := CalculateKnockbackForce(enemy.Location, g.player.Location, KnockbackForce)
 			g.player.ApplyKnockback(force, KnockbackDuration)
@@ -123,7 +123,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, row := range g.level.Tiles {
 		for _, tile := range row {
-			if tile.GetPushBox().Intersects(viewRect) {
+			if tile.GetBounds().Intersects(viewRect) {
 				tile.Draw(screen, cameraMatrix)
 				if tile.solid {
 					tile.DrawDebugInfo(screen, cameraMatrix)
@@ -132,7 +132,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 	for _, enemy := range g.level.Enemies {
-		if enemy.GetPushBox().Intersects(viewRect) {
+		if enemy.GetBounds().Intersects(viewRect) {
 			enemy.Draw(screen, cameraMatrix)
 			enemy.DrawDebugInfo(screen, cameraMatrix)
 		}
@@ -149,7 +149,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	DrawHeadsUpDisplay(screen, g.player)
-
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
