@@ -131,6 +131,7 @@ type PhysicalObject interface {
 	GameObject
 	GetPushBox() Rect
 	Location() Location
+	SetLocation(loc Location)
 }
 
 // Character is a specialized entity that can take damage and be knocked back.

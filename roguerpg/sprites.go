@@ -41,7 +41,7 @@ func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.Ge
 		return
 	}
 
-	// Draw the pushbox rectangle
+	// Draw the bounds rectangle
 	hb := bs.GetBounds()
 	debugImage := GetDebugRectImage(hb)
 
@@ -89,9 +89,6 @@ func (bp *BasePhysical) GetPushBox() Rect {
 
 // DrawDebugInfo overrides the BaseSprite version to draw the PushBox.
 func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	// Draw base debug info (Location Dot)
-	bp.BaseSprite.DrawDebugInfo(screen, cameraMatrix)
-
 	if !ShowDebugInfo {
 		return
 	}
@@ -104,6 +101,12 @@ func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 	opRect.GeoM.Translate(pb.Left, pb.Top)
 	opRect.GeoM.Concat(cameraMatrix)
 	screen.DrawImage(debugImage, opRect)
+
+	// Draw the Location Dot
+	opDot := &ebiten.DrawImageOptions{}
+	opDot.GeoM.Translate(bp.X-dotSize/2, bp.Y-dotSize/2)
+	opDot.GeoM.Concat(cameraMatrix)
+	screen.DrawImage(dotImage, opDot)
 }
 
 type Tile struct {

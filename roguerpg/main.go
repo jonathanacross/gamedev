@@ -54,7 +54,6 @@ func (g *Game) handlePlayerAttackCollisions() {
 		}
 
 		// Check for intersection between the DamageSource's HitBox and the enemy's HurtBox (which is its HitBox())
-		// TODO: why don't we need to use damageSource.HitBox()?
 		if damageSource.HitBox.Intersects(enemy.GetHurtBox()) {
 			// Check if this enemy has already been hit by this damage source
 			alreadyHit := false
