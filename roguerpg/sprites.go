@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"sync"
 
 	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -25,6 +26,45 @@ func init() {
 
 	// Convert the resulting image to an *ebiten.Image
 	dotImage = ebiten.NewImageFromImage(ctx.Image())
+}
+
+// DebugRectCacheKey is used to store unique dimensions in the debug image map.
+type DebugRectCacheKey struct {
+	Width  int
+	Height int
+}
+
+// Global cache for debug images (rectangles).
+var debugImageCache = make(map[DebugRectCacheKey]*ebiten.Image)
+
+// Mutex to protect concurrent access to the cache (good practice).
+var debugImageCacheMutex sync.Mutex
+
+// getDebugRectImage checks the cache and creates/stores the image if missing.
+func getDebugRectImage(r Rect) *ebiten.Image {
+	// We only need integers for the cache key.
+	w := int(r.Width())
+	h := int(r.Height())
+
+	// Safety: don't create images for zero/negative dimensions
+	if w <= 0 || h <= 0 {
+		return nil
+	}
+
+	key := DebugRectCacheKey{Width: w, Height: h}
+
+	// Use mutex for thread-safe access
+	debugImageCacheMutex.Lock()
+	defer debugImageCacheMutex.Unlock()
+
+	if img, ok := debugImageCache[key]; ok {
+		return img
+	}
+
+	// If not found, create the image and store it
+	img := createDebugRectImage(r)
+	debugImageCache[key] = img
+	return img
 }
 
 func createDebugRectImage(r Rect) *ebiten.Image {
@@ -55,7 +95,6 @@ type BaseSprite struct {
 	image      *ebiten.Image
 	srcRect    image.Rectangle
 	drawOffset Location
-	debugImage *ebiten.Image
 }
 
 // GetBounds returns the drawing rectangle for the BaseSprite.
@@ -83,17 +122,14 @@ func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.Ge
 		return
 	}
 
-	if bs.debugImage == nil || dotImage == nil {
-		return
-	}
-
 	// Draw the pushbox rectangle
 	hb := bs.GetBounds()
+	debugImage := getDebugRectImage(hb)
 
 	opRect := &ebiten.DrawImageOptions{}
 	opRect.GeoM.Translate(hb.Left, hb.Top)
 	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(bs.debugImage, opRect)
+	screen.DrawImage(debugImage, opRect)
 
 	// Draw the Location Dot
 	opDot := &ebiten.DrawImageOptions{}
@@ -128,17 +164,18 @@ func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 	// Draw base debug info (Location Dot)
 	bp.BaseSprite.DrawDebugInfo(screen, cameraMatrix)
 
-	if !ShowDebugInfo || bp.debugImage == nil {
+	if !ShowDebugInfo {
 		return
 	}
 
 	// Draw the PushBox rectangle
 	pb := bp.GetPushBox()
+	debugImage := getDebugRectImage(pb)
 
 	opRect := &ebiten.DrawImageOptions{}
 	opRect.GeoM.Translate(pb.Left, pb.Top)
 	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(bp.debugImage, opRect)
+	screen.DrawImage(debugImage, opRect)
 }
 
 type Tile struct {
@@ -163,10 +200,13 @@ func NewTile(location Location, image *ebiten.Image, srcRect image.Rectangle, so
 					X: 0,
 					Y: 0,
 				},
-				debugImage: createDebugRectImage(pushBox),
 			},
 			pushBoxOffset: pushBox,
 		},
 		solid: solid,
 	}
+}
+
+func (t *Tile) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	t.BasePhysical.DrawDebugInfo(screen, cameraMatrix)
 }

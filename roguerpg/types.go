@@ -89,18 +89,16 @@ type DamageSourceConfig struct {
 
 // DamageSource represents an active attack hitbox in the world.
 type DamageSource struct {
-	SourceTag  EntityTag // e.g., TagPlayer, TagEnemy
-	HitBox     Rect      // The current world-space hitbox of the attack
-	Damage     int
-	debugImage *ebiten.Image
+	SourceTag EntityTag // e.g., TagPlayer, TagEnemy
+	HitBox    Rect      // The current world-space hitbox of the attack
+	Damage    int
 }
 
 func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource {
 	return &DamageSource{
-		SourceTag:  sourceTag,
-		HitBox:     hitBox,
-		Damage:     damage,
-		debugImage: createDebugRectImage(hitBox),
+		SourceTag: sourceTag,
+		HitBox:    hitBox,
+		Damage:    damage,
 	}
 }
 
@@ -109,9 +107,7 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 		return
 	}
 
-	if ds.debugImage == nil || dotImage == nil {
-		return
-	}
+	debugImage := getDebugRectImage(ds.HitBox)
 
 	// Draw the Hitbox rectangle
 	hb := ds.HitBox
@@ -119,7 +115,7 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 	opRect := &ebiten.DrawImageOptions{}
 	opRect.GeoM.Translate(hb.Left, hb.Top)
 	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(ds.debugImage, opRect)
+	screen.DrawImage(debugImage, opRect)
 }
 
 // GameObject is an interface for any entity in the game world.

@@ -12,7 +12,7 @@ const (
 
 	TileSize = 16
 
-	ShowDebugInfo = false
+	ShowDebugInfo = true
 
 	KnockbackForce    = 3.0
 	KnockbackDuration = 6
