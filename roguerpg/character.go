@@ -67,24 +67,20 @@ func (c *BaseCharacter) CheckAndApplyMovement(level *Level, axis CollisionAxis, 
 				tileRect := tile.GetPushBox()
 				t := 1.0
 
+				// Calculate collision time 't' (Swept AABB logic)
 				if axis == AxisX {
 					if !characterRect.IntersectsY(tileRect) {
 						continue // Skip this tile, no Y-overlap
 					}
-				} else if axis == AxisY {
-					if !characterRect.IntersectsX(tileRect) {
-						continue // Skip this tile, no X-overlap
-					}
-				}
-
-				// Calculate collision time 't' (Swept AABB logic)
-				if axis == AxisX {
 					if v > 0 { // moving right (Right edge hits Left edge)
 						t = (tileRect.Left - characterRect.Right) / v
 					} else if v < 0 { // moving left (Left edge hits Right edge)
 						t = (tileRect.Right - characterRect.Left) / v
 					}
 				} else if axis == AxisY {
+					if !characterRect.IntersectsX(tileRect) {
+						continue // Skip this tile, no X-overlap
+					}
 					if v > 0 { // moving down (Bottom edge hits Top edge)
 						t = (tileRect.Top - characterRect.Bottom) / v
 					} else if v < 0 { // moving up (Top edge hits Bottom edge)
@@ -111,9 +107,8 @@ func (c *BaseCharacter) CheckAndApplyMovement(level *Level, axis CollisionAxis, 
 		moveFraction = math.Max(0.0, hitT-separationEpsilon)
 	}
 
+	// Apply movement to position.
 	moveDistance := v * moveFraction
-
-	// 2. Apply movement to position.
 	if axis == AxisX {
 		c.X += moveDistance
 	} else if axis == AxisY {
@@ -122,7 +117,6 @@ func (c *BaseCharacter) CheckAndApplyMovement(level *Level, axis CollisionAxis, 
 
 	// Return true if a collision was detected before the full movement (hitT < 1.0)
 	return hitT < 1.0
-
 }
 
 // ResolveTileCollision applies the default response (stopping) to a velocity vector.
