@@ -13,6 +13,9 @@ const (
 	TileSize = 16
 
 	ShowDebugInfo = false
+
+	KnockbackForce    = 3.0
+	KnockbackDuration = 6
 )
 
 type Game struct {
@@ -41,16 +44,12 @@ func (g *Game) handlePlayerAttackCollisions() {
 		return // Player is not currently attacking or hitbox is inactive
 	}
 
-	// TODO: put in game constants
-	const knockbackForce = 3.0
-	const knockbackDuration = 6
-
 	// Use an array to track enemies that have been hit in this frame
 	// to prevent a single attack frame from hitting one enemy multiple times.
 	var hitEnemies []*BlobEnemy
 
 	for _, enemy := range g.level.Enemies {
-		if enemy.isDead {
+		if enemy.IsDead() {
 			continue
 		}
 
@@ -68,8 +67,8 @@ func (g *Game) handlePlayerAttackCollisions() {
 
 			if !alreadyHit {
 				enemy.TakeDamage(damageSource.Damage)
-				force := CalculateKnockbackForce(g.player.Location, enemy.Location, knockbackForce)
-				enemy.ApplyKnockback(force, knockbackDuration)
+				force := CalculateKnockbackForce(g.player.Location, enemy.Location, KnockbackForce)
+				enemy.ApplyKnockback(force, KnockbackDuration)
 				hitEnemies = append(hitEnemies, enemy)
 			}
 		}
@@ -77,18 +76,15 @@ func (g *Game) handlePlayerAttackCollisions() {
 }
 
 func (g *Game) HandleEnemyAttackCollisions() {
-	const enemyKnockbackForce = 3.0
-	const enemyKnockbackDuration = 6
-
 	for _, enemy := range g.level.Enemies {
-		if enemy.isDead {
+		if enemy.IsDead() {
 			continue
 		}
 
 		if enemy.HitBox().Intersects(g.player.HitBox()) {
 			g.player.TakeDamage(1)
-			force := CalculateKnockbackForce(enemy.Location, g.player.Location, enemyKnockbackForce)
-			g.player.ApplyKnockback(force, enemyKnockbackDuration)
+			force := CalculateKnockbackForce(enemy.Location, g.player.Location, KnockbackForce)
+			g.player.ApplyKnockback(force, KnockbackDuration)
 			break
 		}
 	}
@@ -111,10 +107,9 @@ func (g *Game) Update() error {
 
 // cleanupDeadEnemies iterates through the slice and removes enemies marked for deletion.
 func (g *Game) cleanupDeadEnemies(enemies []*BlobEnemy) []*BlobEnemy {
-	liveEnemies := enemies[:0] // Creates a zero-length slice backed by the original array
+	liveEnemies := enemies[:0] // Create a zero-length slice backed by the original array
 	for _, enemy := range enemies {
-		// For now, we only remove if isDead is true. You might add a death animation check here later.
-		if !enemy.isDead {
+		if !enemy.IsDead() {
 			liveEnemies = append(liveEnemies, enemy)
 		}
 	}

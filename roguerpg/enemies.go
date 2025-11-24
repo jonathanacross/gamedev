@@ -68,6 +68,7 @@ func NewBlobEnemy() *BlobEnemy {
 				debugImage: createDebugRectImage(hitbox),
 			},
 			Health:          3,
+			MaxHealth:       3,
 			isDead:          false,
 			KnockbackFrames: 0,
 		},
