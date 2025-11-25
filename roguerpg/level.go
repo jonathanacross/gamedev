@@ -10,6 +10,7 @@ type Level struct {
 	HeightInTiles int
 	Tiles         [][]*Tile
 	Enemies       []Character
+	Objects       []GameObject
 }
 
 func (level *Level) GetTile(x, y int) *Tile {

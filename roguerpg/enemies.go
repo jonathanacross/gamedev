@@ -143,7 +143,7 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 	return false
 }
 
-func (c *BlobEnemy) Update(level *Level) {
+func (c *BlobEnemy) Update(level *Level) UpdateResult {
 	c.animations[c.state].Update()
 	c.srcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
 
@@ -154,7 +154,7 @@ func (c *BlobEnemy) Update(level *Level) {
 		}
 
 		if c.state != BlobDying {
-			return // Skip AI and normal movement logic
+			return UpdateResult{} // Skip AI and normal movement logic
 		}
 	}
 
@@ -191,7 +191,7 @@ func (c *BlobEnemy) Update(level *Level) {
 			// Wait for a short time.
 			c.state = BlobIdle
 			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-			return
+			return UpdateResult{}
 		}
 
 		velocity := target.Normalize().Scale(BlobMoveSpeed)
@@ -212,4 +212,11 @@ func (c *BlobEnemy) Update(level *Level) {
 			c.isDead = true
 		}
 	}
+
+	return UpdateResult{}
+}
+
+func (c *BlobEnemy) CanRemove() bool {
+	// TODO: consider if we want to merge this with isdead.
+	return false
 }

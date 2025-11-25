@@ -109,6 +109,25 @@ func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource
 	}
 }
 
+// ActionType defines the different kinds of actions that can be requested.
+type ActionType int
+
+const (
+	ActionDropBomb ActionType = iota
+	ActionExplosion
+)
+
+// Action is the generic struct returned by any GameObject
+// to signal an intent to change the game state.
+type Action struct {
+	Type     ActionType
+	Location Location
+}
+
+type UpdateResult struct {
+	Actions []Action
+}
+
 func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 	if !ShowDebugInfo {
 		return
@@ -128,9 +147,10 @@ func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 // GameObject is an interface for any entity in the game world.
 type GameObject interface {
 	GetBounds() Rect // General bounding box for drawing
-	Update(level *Level)
+	Update(level *Level) UpdateResult
 	Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM)
 	DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM)
+	CanRemove() bool // indicate object can be removed from the game
 }
 
 // PhysicalObject is anything that participates in collisions and pushing.

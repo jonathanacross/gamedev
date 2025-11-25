@@ -36,6 +36,8 @@ type Player struct {
 	Vx             float64
 	Vy             float64
 	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig
+
+	shouldDropBomb bool
 }
 
 func NewPlayer() *Player {
@@ -150,6 +152,7 @@ func NewPlayer() *Player {
 		state:          Idle,
 		direction:      Down,
 		attackHitboxes: attackHitboxes,
+		shouldDropBomb: false,
 	}
 }
 
@@ -232,6 +235,7 @@ func (p *Player) ApplyKnockback(force Vector, duration int) {
 func (p *Player) handleMovementInput() {
 	moveDir := Vector{X: 0, Y: 0}
 	isMoving := false
+	p.shouldDropBomb = false
 
 	// Handle Movement
 	// Vertical movement
@@ -274,6 +278,10 @@ func (p *Player) handleMovementInput() {
 	} else {
 		// No movement or attack input
 		p.TransitionState(Idle)
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyB) {
+		p.shouldDropBomb = true
 	}
 
 	// Apply velocity based on the final determined moveDir
@@ -325,7 +333,7 @@ func (p *Player) handleState() {
 	}
 }
 
-func (c *Player) Update(level *Level) {
+func (c *Player) Update(level *Level) UpdateResult {
 	// Handle Knockback Physics.
 	c.UpdateKnockback(level)
 
@@ -337,10 +345,13 @@ func (c *Player) Update(level *Level) {
 
 	// Update visuals
 	animation := c.GetCurrentAnimation()
-	if animation == nil {
-		return
-	}
 	animation.Update()
 	c.image = c.images[c.state]
 	c.srcRect = c.spriteSheet.Rect(animation.Frame())
+
+	// Return any actions back to the game
+	if c.shouldDropBomb {
+		return UpdateResult{Actions: []Action{{Type: ActionDropBomb, Location: c.Location()}}}
+	}
+	return UpdateResult{}
 }

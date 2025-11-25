@@ -90,20 +90,44 @@ func (g *Game) HandleEnemyAttackCollisions() {
 }
 
 func (g *Game) Update() error {
+	var actions []Action
+
+	for _, object := range g.level.Objects {
+		result := object.Update(g.level)
+		actions = append(actions, result.Actions...)
+	}
 	for _, enemy := range g.level.Enemies {
-		enemy.Update(g.level)
+		result := enemy.Update(g.level)
+		actions = append(actions, result.Actions...)
 	}
 	g.HandleEnemyAttackCollisions()
-	g.player.Update(g.level)
+	playerResult := g.player.Update(g.level)
+	actions = append(actions, playerResult.Actions...)
 	g.handlePlayerAttackCollisions()
 	g.level.Enemies = g.cleanupDeadEnemies(g.level.Enemies)
+	g.level.Objects = g.cleanupObjects(g.level.Objects)
+
+	g.executeActions(actions)
 
 	g.camera.CenterOn(g.player.Location())
 
 	return nil
 }
 
-// cleanupDeadEnemies iterates through the slice and removes enemies marked for deletion.
+func (g *Game) executeActions(actions []Action) {
+	for _, action := range actions {
+		switch action.Type {
+		case ActionDropBomb:
+			newBomb := NewBomb(action.Location)
+			g.level.Objects = append(g.level.Objects, newBomb)
+		case ActionExplosion:
+			NewBombExplosion := NewBombExplosion(action.Location)
+			g.level.Objects = append(g.level.Objects, NewBombExplosion)
+		default:
+		}
+	}
+}
+
 func (g *Game) cleanupDeadEnemies(enemies []Character) []Character {
 	liveEnemies := enemies[:0] // Create a zero-length slice backed by the original array
 	for _, enemy := range enemies {
@@ -113,6 +137,17 @@ func (g *Game) cleanupDeadEnemies(enemies []Character) []Character {
 	}
 	// Return the newly filtered slice.
 	return liveEnemies
+}
+
+func (g *Game) cleanupObjects(objects []GameObject) []GameObject {
+	liveObjects := objects[:0] // Create a zero-length slice backed by the original array
+	for _, object := range objects {
+		if !object.CanRemove() {
+			liveObjects = append(liveObjects, object)
+		}
+	}
+	// Return the newly filtered slice.
+	return liveObjects
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -129,6 +164,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
+	for _, object := range g.level.Objects {
+		if object.GetBounds().Intersects(viewRect) {
+			object.Draw(screen, cameraMatrix)
+			object.DrawDebugInfo(screen, cameraMatrix)
+		}
+	}
+
 	for _, enemy := range g.level.Enemies {
 		if enemy.GetBounds().Intersects(viewRect) {
 			enemy.Draw(screen, cameraMatrix)
