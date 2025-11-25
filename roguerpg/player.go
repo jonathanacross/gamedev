@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -24,7 +26,10 @@ const (
 	Down
 )
 
-const PlayerSpeed = 2.0
+const (
+	PlayerSpeed  = 2.0
+	BombCooldown = 750 * time.Millisecond
+)
 
 type Player struct {
 	BaseCharacter
@@ -37,7 +42,8 @@ type Player struct {
 	Vy             float64
 	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig
 
-	shouldDropBomb bool
+	shouldDropBomb    bool
+	bombCooldownTimer *Timer
 }
 
 func NewPlayer() *Player {
@@ -146,13 +152,14 @@ func NewPlayer() *Player {
 			MaxHealth:       8,
 			KnockbackFrames: 0,
 		},
-		images:         charImages,
-		spriteSheet:    spriteSheet,
-		animations:     animations,
-		state:          Idle,
-		direction:      Down,
-		attackHitboxes: attackHitboxes,
-		shouldDropBomb: false,
+		images:            charImages,
+		spriteSheet:       spriteSheet,
+		animations:        animations,
+		state:             Idle,
+		direction:         Down,
+		attackHitboxes:    attackHitboxes,
+		shouldDropBomb:    false,
+		bombCooldownTimer: NewTimer(BombCooldown),
 	}
 }
 
@@ -206,15 +213,15 @@ func (p *Player) GetActiveDamageSource() *DamageSource {
 	return nil
 }
 
-func (c *Player) TakeDamage(damage int) {
-	if c.state == Dead || c.state == Dying || c.state == Hurt {
+func (p *Player) TakeDamage(damage int) {
+	if p.state == Dead || p.state == Dying || p.state == Hurt {
 		return
 	}
 
-	c.TransitionState(Hurt)
-	c.Health -= damage
-	if c.Health < 0 {
-		c.TransitionState(Dying)
+	p.TransitionState(Hurt)
+	p.Health -= damage
+	if p.Health < 0 {
+		p.TransitionState(Dying)
 	}
 }
 
@@ -235,7 +242,6 @@ func (p *Player) ApplyKnockback(force Vector, duration int) {
 func (p *Player) handleMovementInput() {
 	moveDir := Vector{X: 0, Y: 0}
 	isMoving := false
-	p.shouldDropBomb = false
 
 	// Handle Movement
 	// Vertical movement
@@ -280,7 +286,8 @@ func (p *Player) handleMovementInput() {
 		p.TransitionState(Idle)
 	}
 
-	if ebiten.IsKeyPressed(ebiten.KeyB) {
+	if ebiten.IsKeyPressed(ebiten.KeyB) && p.bombCooldownTimer.IsReady() {
+		p.bombCooldownTimer.Reset()
 		p.shouldDropBomb = true
 	}
 
@@ -333,25 +340,32 @@ func (p *Player) handleState() {
 	}
 }
 
-func (c *Player) Update(level *Level) UpdateResult {
+func (p *Player) Update(level *Level) UpdateResult {
+	p.shouldDropBomb = false
+
 	// Handle Knockback Physics.
-	c.UpdateKnockback(level)
+	p.UpdateKnockback(level)
 
 	// Handle all state transitions.
-	c.handleState()
+	p.handleState()
 
-	c.Vx = c.HandleTileCollisions(level, AxisX, c.Vx)
-	c.Vy = c.HandleTileCollisions(level, AxisY, c.Vy)
+	p.Vx = p.HandleTileCollisions(level, AxisX, p.Vx)
+	p.Vy = p.HandleTileCollisions(level, AxisY, p.Vy)
 
 	// Update visuals
-	animation := c.GetCurrentAnimation()
+	animation := p.GetCurrentAnimation()
 	animation.Update()
-	c.image = c.images[c.state]
-	c.srcRect = c.spriteSheet.Rect(animation.Frame())
+	p.image = p.images[p.state]
+	p.srcRect = p.spriteSheet.Rect(animation.Frame())
 
 	// Return any actions back to the game
-	if c.shouldDropBomb {
-		return UpdateResult{Actions: []Action{{Type: ActionDropBomb, Location: c.Location()}}}
+	p.bombCooldownTimer.Update()
+	if p.shouldDropBomb {
+		return UpdateResult{Actions: []Action{{Type: ActionDropBomb, Location: p.Location()}}}
 	}
 	return UpdateResult{}
+}
+
+func (p *Player) CanRemove() bool {
+	return false
 }

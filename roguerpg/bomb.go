@@ -58,7 +58,7 @@ type BombExplosion struct {
 
 func NewBombExplosion(location Location) *BombExplosion {
 	animation := NewAnimation([]int{0, 1, 2, 3, 4, 5}, 5, false)
-	spriteSheet := NewSpriteSheet(32, 32, 6, 1)
+	spriteSheet := NewSpriteSheet(48, 48, 6, 1)
 
 	return &BombExplosion{
 		BaseSprite: BaseSprite{
@@ -66,8 +66,8 @@ func NewBombExplosion(location Location) *BombExplosion {
 			image:    BombExplosionSpritesImage,
 			srcRect:  spriteSheet.Rect(0),
 			drawOffset: Location{
-				X: 16,
-				Y: 16,
+				X: 24,
+				Y: 24,
 			},
 		},
 		spriteSheet: spriteSheet,
