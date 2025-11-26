@@ -39,72 +39,65 @@ func NewGame() *Game {
 	}
 }
 
-// handlePlayerAttackCollisions checks any damage source hits enemies
-// TODO: also handle player getting hit.
-func (g *Game) handleDamageSource(damageSource *DamageSource) {
-	// Use an array to track enemies that have been hit in this frame
-	// to prevent a single attack frame from hitting one enemy multiple times.
-	var hitEnemies []Character
-
-	for _, enemy := range g.level.Enemies {
-		if enemy.IsDead() {
+// checkDamageAgainstTargets checks a damage source against a list of characters (enemies or player)
+// and applies damage and knockback, returning the characters that were hit.
+func (g *Game) checkDamageAgainstTargets(damageSource *DamageSource, targets []Character) (hitCharacters []Character) {
+	for _, target := range targets {
+		if target.IsDead() {
 			continue
 		}
 
-		if damageSource.HitBox.Intersects(enemy.GetHurtBox()) {
-			// Check if this enemy has already been hit by this damage source
-			alreadyHit := false
-			for _, hit := range hitEnemies {
-				if hit == enemy {
-					alreadyHit = true
-					break
-				}
+		if damageSource.HitBox.Intersects(target.GetHurtBox()) {
+			// Apply damage and knockback
+			target.TakeDamage(damageSource.Damage)
+
+			// The attacker's location for knockback calculation is the center of the HitBox.
+			// This is better than the Character location for area-of-effect attacks (like bombs).
+			attackerLoc := Location{
+				X: (damageSource.HitBox.Left + damageSource.HitBox.Right) / 2,
+				Y: (damageSource.HitBox.Top + damageSource.HitBox.Bottom) / 2,
 			}
 
-			if !alreadyHit {
-				enemy.TakeDamage(damageSource.Damage)
-				force := CalculateKnockbackForce(g.player.Location(), enemy.Location(), KnockbackForce)
-				enemy.ApplyKnockback(force, KnockbackDuration)
-				hitEnemies = append(hitEnemies, enemy)
-			}
+			force := CalculateKnockbackForce(attackerLoc, target.Location(), KnockbackForce)
+			target.ApplyKnockback(force, KnockbackDuration)
+			hitCharacters = append(hitCharacters, target)
 		}
 	}
+	return hitCharacters
 }
 
-func (g *Game) HandleEnemyAttackCollisions() {
-	for _, enemy := range g.level.Enemies {
-		if enemy.IsDead() {
-			continue
-		}
-
-		if enemy.GetPushBox().Intersects(g.player.GetHurtBox()) {
-			g.player.TakeDamage(1)
-			force := CalculateKnockbackForce(enemy.Location(), g.player.Location(), KnockbackForce)
-			g.player.ApplyKnockback(force, KnockbackDuration)
-			break
-		}
+// handleDamageSource checks if a damage source hits the player or any enemy,
+// depending on its SourceTag.
+func (g *Game) handleDamageSource(damageSource *DamageSource) {
+	if damageSource.SourceTag == TagPlayer {
+		// Player attack hits enemies
+		g.checkDamageAgainstTargets(damageSource, g.level.Enemies)
+	} else if damageSource.SourceTag == TagEnemy {
+		// Enemy attack hits the player
+		// We only check the player here.
+		g.checkDamageAgainstTargets(damageSource, []Character{g.player})
 	}
+
+	// TODO: Handle other tags like TagBomb, which could hit both the player and enemies.
 }
 
 func (g *Game) Update() error {
 	var actions []Action
 	for _, object := range g.level.Objects {
-		result := object.Update(g.level)
+		result := object.Update(g.level, g.player)
 		actions = append(actions, result.Actions...)
 	}
 	for _, enemy := range g.level.Enemies {
-		result := enemy.Update(g.level)
+		result := enemy.Update(g.level, g.player)
 		actions = append(actions, result.Actions...)
 	}
-	playerResult := g.player.Update(g.level)
+	playerResult := g.player.Update(g.level, g.player)
 	actions = append(actions, playerResult.Actions...)
 	g.executeActions(actions)
 
 	for _, ds := range g.damageSources {
 		g.handleDamageSource(ds)
 	}
-
-	g.HandleEnemyAttackCollisions()
 
 	g.level.Enemies = g.cleanupDeadEnemies(g.level.Enemies)
 	g.level.Objects = g.cleanupObjects(g.level.Objects)

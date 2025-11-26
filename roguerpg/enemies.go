@@ -37,7 +37,7 @@ func NewBlobEnemy() *BlobEnemy {
 	animations := map[BlobEnemyState]*Animation{
 		BlobIdle:      NewAnimation([]int{0, 1, 2}, 20, true),
 		BlobMoving:    NewAnimation([]int{0, 1, 2}, 20, true),
-		BlobAttacking: NewAnimation([]int{0, 1, 2}, 20, true),
+		BlobAttacking: NewAnimation([]int{15, 16, 17, 18}, 15, false),
 		BlobHurt:      NewAnimation([]int{5, 6, 5, 6}, 10, false),
 		BlobDying:     NewAnimation([]int{5, 6, 10, 11, 12, 13, 14}, 10, false),
 	}
@@ -143,9 +143,18 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 	return false
 }
 
-func (c *BlobEnemy) Update(level *Level) UpdateResult {
+func (c *BlobEnemy) isNearPlayer(playerLoc Location) bool {
+	dist := Vector{
+		X: playerLoc.X - c.X,
+		Y: playerLoc.Y - c.Y,
+	}
+	return dist.Length() <= 24
+}
+
+func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 	c.animations[c.state].Update()
 	c.srcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
+	var actions []Action
 
 	if c.UpdateKnockback(level) {
 		// Ensure the BlobHurt animation can finish, even during knockback
@@ -154,53 +163,68 @@ func (c *BlobEnemy) Update(level *Level) UpdateResult {
 		}
 
 		if c.state != BlobDying {
-			return UpdateResult{} // Skip AI and normal movement logic
+			return UpdateResult{Actions: actions} // Skip AI and normal movement logic
 		}
 	}
 
-	// Future extension: Check for Attacking proximity here first (Step 1)
-	// if c.IsNearPlayer(level.Player) {
-	//     c.state = BlobAttacking
-	// }
-
 	switch c.state {
 	case BlobIdle:
-		c.waitFrames--
-
-		if c.waitFrames <= 0 {
-			// Wait time is over. Look for a new target tile.
-			if c.findNewTargetTile(level) {
-				c.state = BlobMoving
-			} else {
-				// Enemy is cornered or blocked. Wait again.
-				c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+		if c.isNearPlayer(player.Location()) {
+			c.state = BlobAttacking
+			c.animations[BlobAttacking].Reset()
+		} else {
+			c.waitFrames--
+			if c.waitFrames <= 0 {
+				// Wait time is over. Look for a new target tile.
+				if c.findNewTargetTile(level) {
+					c.state = BlobMoving
+				} else {
+					// Enemy is cornered or blocked. Wait again.
+					c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+				}
 			}
 		}
 
 	case BlobMoving:
-		target := Vector{
-			X: c.moveTargetLocation.X - c.X,
-			Y: c.moveTargetLocation.Y - c.Y,
+		if c.isNearPlayer(player.Location()) {
+			c.state = BlobAttacking
+			c.animations[BlobAttacking].Reset()
+		} else {
+			target := Vector{
+				X: c.moveTargetLocation.X - c.X,
+				Y: c.moveTargetLocation.Y - c.Y,
+			}
+
+			distance := target.Length()
+			if distance <= BlobMoveSpeed {
+				// We are close enough to snap to the target.
+				c.SetLocation(c.moveTargetLocation)
+
+				// Wait for a short time.
+				c.state = BlobIdle
+				c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+				return UpdateResult{Actions: actions}
+			}
+
+			velocity := target.Normalize().Scale(BlobMoveSpeed)
+			c.HandleTileCollisions(level, AxisX, velocity.X)
+			c.HandleTileCollisions(level, AxisY, velocity.Y)
 		}
-
-		distance := target.Length()
-		if distance <= BlobMoveSpeed {
-			// We are close enough to snap to the target.
-			c.SetLocation(c.moveTargetLocation)
-
-			// Wait for a short time.
-			c.state = BlobIdle
-			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-			return UpdateResult{}
-		}
-
-		velocity := target.Normalize().Scale(BlobMoveSpeed)
-		c.HandleTileCollisions(level, AxisX, velocity.X)
-		c.HandleTileCollisions(level, AxisY, velocity.Y)
 
 	case BlobAttacking:
-		// For now, immediately return to idle/exploring state
-		c.state = BlobIdle
+		hitBox := c.GetHurtBox()
+		if c.animations[BlobAttacking].Frame() != 0 {
+			ds := NewDamageSource(TagEnemy, hitBox, 1)
+			actions = append(actions, Action{
+				Type:         ActionCreateDamageSource,
+				DamageSource: ds,
+			})
+		}
+
+		if c.animations[BlobAttacking].IsFinished() {
+			c.state = BlobIdle
+			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+		}
 
 	case BlobHurt:
 		if c.animations[BlobHurt].IsFinished() {
@@ -213,7 +237,7 @@ func (c *BlobEnemy) Update(level *Level) UpdateResult {
 		}
 	}
 
-	return UpdateResult{}
+	return UpdateResult{Actions: actions}
 }
 
 func (c *BlobEnemy) CanRemove() bool {

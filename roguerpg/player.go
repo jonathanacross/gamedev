@@ -340,7 +340,7 @@ func (p *Player) handleState() {
 	}
 }
 
-func (p *Player) Update(level *Level) UpdateResult {
+func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	p.shouldDropBomb = false
 
 	// Handle Knockback Physics.

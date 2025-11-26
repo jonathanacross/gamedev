@@ -34,7 +34,7 @@ func NewBomb(location Location) *Bomb {
 	}
 }
 
-func (b *Bomb) Update(level *Level) UpdateResult {
+func (b *Bomb) Update(level *Level, _ *Player) UpdateResult {
 	b.animation.Update()
 	b.srcRect = b.spriteSheet.Rect(b.animation.Frame())
 
@@ -82,7 +82,7 @@ func NewBombExplosion(location Location) *BombExplosion {
 	}
 }
 
-func (b *BombExplosion) Update(level *Level) UpdateResult {
+func (b *BombExplosion) Update(level *Level, _ *Player) UpdateResult {
 	b.animation.Update()
 	b.srcRect = b.spriteSheet.Rect(b.animation.Frame())
 	if b.animation.IsFinished() {
