@@ -113,15 +113,17 @@ func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource
 type ActionType int
 
 const (
-	ActionDropBomb ActionType = iota
+	ActionCreateDamageSource ActionType = iota
+	ActionDropBomb
 	ActionExplosion
 )
 
 // Action is the generic struct returned by any GameObject
 // to signal an intent to change the game state.
 type Action struct {
-	Type     ActionType
-	Location Location
+	Type         ActionType
+	Location     Location
+	DamageSource *DamageSource // only populated for ActionCreateDamageSource
 }
 
 type UpdateResult struct {

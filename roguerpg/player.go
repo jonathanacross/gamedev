@@ -187,7 +187,7 @@ func (p *Player) TransitionState(newState PlayerState) {
 
 // GetActiveDamageSource returns the current attack's DamageSource if the player is attacking
 // and the current frame has an active hitbox, otherwise returns nil.
-func (p *Player) GetActiveDamageSource() *DamageSource {
+func (p *Player) getActiveDamageSource() *DamageSource {
 	if p.state != Attacking {
 		return nil
 	}
@@ -359,11 +359,23 @@ func (p *Player) Update(level *Level) UpdateResult {
 	p.srcRect = p.spriteSheet.Rect(animation.Frame())
 
 	// Return any actions back to the game
+	actions := []Action{}
+	if ds := p.getActiveDamageSource(); ds != nil {
+		actions = append(actions, Action{
+			Type:         ActionCreateDamageSource,
+			Location:     p.Location(),
+			DamageSource: ds,
+		})
+	}
 	p.bombCooldownTimer.Update()
 	if p.shouldDropBomb {
-		return UpdateResult{Actions: []Action{{Type: ActionDropBomb, Location: p.Location()}}}
+		actions = append(actions, Action{
+			Type:         ActionDropBomb,
+			Location:     p.Location(),
+			DamageSource: nil,
+		})
 	}
-	return UpdateResult{}
+	return UpdateResult{Actions: actions}
 }
 
 func (p *Player) CanRemove() bool {

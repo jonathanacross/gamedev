@@ -19,9 +19,10 @@ const (
 )
 
 type Game struct {
-	level  *Level
-	player *Player
-	camera *Camera
+	level         *Level
+	player        *Player
+	camera        *Camera
+	damageSources []*DamageSource // current damage sources; saved here for debug drawing
 }
 
 func NewGame() *Game {
@@ -31,19 +32,16 @@ func NewGame() *Game {
 	player := NewPlayer()
 	player.SetLocation(level.FindRandomFloorLocation())
 	return &Game{
-		level:  level,
-		player: player,
-		camera: NewCamera(ScreenWidth, ScreenHeight),
+		level:         level,
+		player:        player,
+		camera:        NewCamera(ScreenWidth, ScreenHeight),
+		damageSources: []*DamageSource{},
 	}
 }
 
-// handlePlayerAttackCollisions checks if the player's active attack hits any enemies.
-func (g *Game) handlePlayerAttackCollisions() {
-	damageSource := g.player.GetActiveDamageSource()
-	if damageSource == nil {
-		return // Player is not currently attacking or hitbox is inactive
-	}
-
+// handlePlayerAttackCollisions checks any damage source hits enemies
+// TODO: also handle player getting hit.
+func (g *Game) handleDamageSource(damageSource *DamageSource) {
 	// Use an array to track enemies that have been hit in this frame
 	// to prevent a single attack frame from hitting one enemy multiple times.
 	var hitEnemies []Character
@@ -53,7 +51,6 @@ func (g *Game) handlePlayerAttackCollisions() {
 			continue
 		}
 
-		// Check for intersection between the DamageSource's HitBox and the enemy's HurtBox (which is its HitBox())
 		if damageSource.HitBox.Intersects(enemy.GetHurtBox()) {
 			// Check if this enemy has already been hit by this damage source
 			alreadyHit := false
@@ -91,7 +88,6 @@ func (g *Game) HandleEnemyAttackCollisions() {
 
 func (g *Game) Update() error {
 	var actions []Action
-
 	for _, object := range g.level.Objects {
 		result := object.Update(g.level)
 		actions = append(actions, result.Actions...)
@@ -100,14 +96,18 @@ func (g *Game) Update() error {
 		result := enemy.Update(g.level)
 		actions = append(actions, result.Actions...)
 	}
-	g.HandleEnemyAttackCollisions()
 	playerResult := g.player.Update(g.level)
 	actions = append(actions, playerResult.Actions...)
-	g.handlePlayerAttackCollisions()
+	g.executeActions(actions)
+
+	for _, ds := range g.damageSources {
+		g.handleDamageSource(ds)
+	}
+
+	g.HandleEnemyAttackCollisions()
+
 	g.level.Enemies = g.cleanupDeadEnemies(g.level.Enemies)
 	g.level.Objects = g.cleanupObjects(g.level.Objects)
-
-	g.executeActions(actions)
 
 	g.camera.CenterOn(g.player.Location())
 
@@ -115,8 +115,11 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) executeActions(actions []Action) {
+	g.damageSources = []*DamageSource{}
 	for _, action := range actions {
 		switch action.Type {
+		case ActionCreateDamageSource:
+			g.damageSources = append(g.damageSources, action.DamageSource)
 		case ActionDropBomb:
 			newBomb := NewBomb(action.Location)
 			g.level.Objects = append(g.level.Objects, newBomb)
@@ -164,6 +167,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
+
 	for _, object := range g.level.Objects {
 		if object.GetBounds().Intersects(viewRect) {
 			object.Draw(screen, cameraMatrix)
@@ -181,9 +185,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.player.Draw(screen, cameraMatrix)
 	g.player.DrawDebugInfo(screen, cameraMatrix)
 
-	// Draw active player attack hitbox for debugging
 	if ShowDebugInfo {
-		if ds := g.player.GetActiveDamageSource(); ds != nil {
+		for _, ds := range g.damageSources {
 			ds.DrawDebugInfo(screen, cameraMatrix)
 		}
 	}
