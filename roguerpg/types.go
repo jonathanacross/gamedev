@@ -115,6 +115,8 @@ type ActionType int
 const (
 	ActionCreateDamageSource ActionType = iota
 	ActionDropBomb
+	ActionThrowBoomerang
+	ActionReturnBoomerang
 	ActionExplosion
 )
 
@@ -123,6 +125,7 @@ const (
 type Action struct {
 	Type         ActionType
 	Location     Location
+	Direction    Vector
 	DamageSource *DamageSource // only populated for ActionCreateDamageSource
 }
 

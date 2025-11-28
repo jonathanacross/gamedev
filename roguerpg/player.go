@@ -44,6 +44,9 @@ type Player struct {
 
 	shouldDropBomb    bool
 	bombCooldownTimer *Timer
+
+	shouldThrowBoomerang bool
+	hasBoomerang         bool
 }
 
 func NewPlayer() *Player {
@@ -152,14 +155,16 @@ func NewPlayer() *Player {
 			MaxHealth:       8,
 			KnockbackFrames: 0,
 		},
-		images:            charImages,
-		spriteSheet:       spriteSheet,
-		animations:        animations,
-		state:             Idle,
-		direction:         Down,
-		attackHitboxes:    attackHitboxes,
-		shouldDropBomb:    false,
-		bombCooldownTimer: NewTimer(BombCooldown),
+		images:               charImages,
+		spriteSheet:          spriteSheet,
+		animations:           animations,
+		state:                Idle,
+		direction:            Down,
+		attackHitboxes:       attackHitboxes,
+		shouldDropBomb:       false,
+		bombCooldownTimer:    NewTimer(BombCooldown),
+		shouldThrowBoomerang: false,
+		hasBoomerang:         true,
 	}
 }
 
@@ -237,6 +242,10 @@ func (p *Player) ApplyKnockback(force Vector, duration int) {
 	}
 }
 
+func (p *Player) ReturnBoomerang() {
+	p.hasBoomerang = true
+}
+
 // handleMovementInput is the handler for the Idle and Walking states.
 // It checks input, determines the new state, direction, and sets Vx/Vy.
 func (p *Player) handleMovementInput() {
@@ -290,6 +299,10 @@ func (p *Player) handleMovementInput() {
 		p.bombCooldownTimer.Reset()
 		p.shouldDropBomb = true
 	}
+	if ebiten.IsKeyPressed(ebiten.KeyV) && p.hasBoomerang {
+		p.shouldThrowBoomerang = true
+		p.hasBoomerang = false
+	}
 
 	// Apply velocity based on the final determined moveDir
 	p.Vx = moveDir.X
@@ -340,8 +353,23 @@ func (p *Player) handleState() {
 	}
 }
 
+func (p *Player) getDirectionVector() Vector {
+	switch p.direction {
+	case Left:
+		return Vector{X: -1, Y: 0}
+	case Right:
+		return Vector{X: 1, Y: 0}
+	case Up:
+		return Vector{X: 0, Y: -1}
+	case Down:
+		return Vector{X: 0, Y: 1}
+	}
+	return Vector{X: 0, Y: 0}
+}
+
 func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	p.shouldDropBomb = false
+	p.shouldThrowBoomerang = false
 
 	// Handle Knockback Physics.
 	p.UpdateKnockback(level)
@@ -364,6 +392,7 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 		actions = append(actions, Action{
 			Type:         ActionCreateDamageSource,
 			Location:     p.Location(),
+			Direction:    p.getDirectionVector(),
 			DamageSource: ds,
 		})
 	}
@@ -372,6 +401,15 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 		actions = append(actions, Action{
 			Type:         ActionDropBomb,
 			Location:     p.Location(),
+			Direction:    p.getDirectionVector(),
+			DamageSource: nil,
+		})
+	}
+	if p.shouldThrowBoomerang {
+		actions = append(actions, Action{
+			Type:         ActionThrowBoomerang,
+			Location:     p.Location(),
+			Direction:    p.getDirectionVector(),
 			DamageSource: nil,
 		})
 	}

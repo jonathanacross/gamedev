@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -117,6 +118,11 @@ func (g *Game) executeActions(actions []Action) {
 		case ActionDropBomb:
 			newBomb := NewBomb(action.Location)
 			g.level.Objects = append(g.level.Objects, newBomb)
+		case ActionThrowBoomerang:
+			newBoomerang := NewBoomerang(action.Location, action.Direction, rand.IntN(3)+1)
+			g.level.Objects = append(g.level.Objects, newBoomerang)
+		case ActionReturnBoomerang:
+			g.player.ReturnBoomerang()
 		case ActionExplosion:
 			NewBombExplosion := NewBombExplosion(action.Location)
 			g.level.Objects = append(g.level.Objects, NewBombExplosion)

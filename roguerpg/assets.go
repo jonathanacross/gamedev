@@ -24,6 +24,7 @@ var PlayerAttackSwordSpritesImage = loadImage("assets/player_attack_sword.png")
 var BlobSpritesImage = loadImage("assets/blob.png")
 var BombSpritesImage = loadImage("assets/bomb.png")
 var BombExplosionSpritesImage = loadImage("assets/explosion.png")
+var BoomerangSpritesImage = loadImage("assets/boomerang.png")
 
 var HealthHeartImage = loadImage("assets/heart.png")
 
