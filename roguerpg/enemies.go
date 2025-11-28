@@ -144,10 +144,7 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 }
 
 func (c *BlobEnemy) isNearPlayer(playerLoc Location) bool {
-	dist := Vector{
-		X: playerLoc.X - c.X,
-		Y: playerLoc.Y - c.Y,
-	}
+	dist := Vector(playerLoc).Minus(Vector(c.Location()))
 	return dist.Length() <= 24
 }
 
@@ -190,10 +187,7 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 			c.state = BlobAttacking
 			c.animations[BlobAttacking].Reset()
 		} else {
-			target := Vector{
-				X: c.moveTargetLocation.X - c.X,
-				Y: c.moveTargetLocation.Y - c.Y,
-			}
+			target := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
 
 			distance := target.Length()
 			if distance <= BlobMoveSpeed {

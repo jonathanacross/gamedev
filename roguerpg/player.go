@@ -33,11 +33,12 @@ const (
 
 type Player struct {
 	BaseCharacter
-	images         map[PlayerState]*ebiten.Image
-	spriteSheet    *SpriteSheet
-	animations     map[PlayerState]map[PlayerDirection]*Animation
-	state          PlayerState
-	direction      PlayerDirection
+	images      map[PlayerState]*ebiten.Image
+	spriteSheet *SpriteSheet
+	animations  map[PlayerState]map[PlayerDirection]*Animation
+	state       PlayerState
+	direction   PlayerDirection
+	// TODO: make this into a vector
 	Vx             float64
 	Vy             float64
 	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig

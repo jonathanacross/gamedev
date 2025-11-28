@@ -33,7 +33,7 @@ func NewBoomerang(location Location, direction Vector, level int) *Boomerang {
 		initialVelocity = 4.0
 		targetDist = 8.0 * TileSize
 	}
-	accel := initialVelocity * initialVelocity / (2 * targetDist) // TODO: fix computation
+	accel := initialVelocity * initialVelocity / (2 * targetDist)
 
 	return &Boomerang{
 		BaseSprite: BaseSprite{
@@ -71,8 +71,7 @@ func (b *Boomerang) Update(level *Level, player *Player) UpdateResult {
 		}
 	} else {
 		b.velocity += b.accel
-		// TODO: create 'Location' and Minus functions so we can make this nicer
-		bToPlayer := Vector{X: player.X - b.X, Y: player.Y - b.Y}
+		bToPlayer := Vector(player.Location()).Minus(Vector(b.Location))
 		b.direction = bToPlayer.Normalize()
 		v := b.direction.Normalize().Scale(b.velocity)
 		b.X += v.X
@@ -82,8 +81,8 @@ func (b *Boomerang) Update(level *Level, player *Player) UpdateResult {
 			b.finished = true
 			action := Action{
 				Type:         ActionReturnBoomerang,
-				Location:     Location{X: 0.0, Y: 0.0},
-				Direction:    Vector{X: 0.0, Y: 0.0},
+				Location:     Location(ZeroVector()),
+				Direction:    ZeroVector(),
 				DamageSource: nil,
 			}
 			return UpdateResult{Actions: []Action{action}}

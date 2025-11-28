@@ -6,14 +6,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Location struct {
-	X float64
-	Y float64
-}
+type Location Vector
 
 type Vector struct {
 	X float64
 	Y float64
+}
+
+func ZeroVector() Vector {
+	return Vector{X: 0, Y: 0}
+}
+
+func (v Vector) Minus(other Vector) Vector {
+	return Vector{
+		X: v.X - other.X,
+		Y: v.Y - other.Y,
+	}
+}
+
+func (v Vector) Plus(other Vector) Vector {
+	return Vector{
+		X: v.X + other.X,
+		Y: v.Y + other.Y,
+	}
 }
 
 func (v Vector) Length() float64 {
