@@ -65,3 +65,14 @@ func (level *Level) AddEnemies() {
 		level.Enemies = append(level.Enemies, enemy)
 	}
 }
+
+func (level *Level) AddObjects() {
+	numChests := 5
+	for range numChests {
+		chest := NewChest(level.FindRandomFloorLocation())
+		level.Objects = append(level.Objects, chest)
+	}
+	upstairs := NewStairs(level.FindRandomFloorLocation(), true)
+	downstairs := NewStairs(level.FindRandomFloorLocation(), false)
+	level.Objects = append(level.Objects, upstairs, downstairs)
+}

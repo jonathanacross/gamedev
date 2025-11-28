@@ -27,6 +27,7 @@ type Game struct {
 
 func NewGame() *Game {
 	level := BuildLevel(70, 50)
+	level.AddObjects()
 	level.AddEnemies()
 
 	player := NewPlayer()

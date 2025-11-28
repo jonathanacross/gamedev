@@ -15,6 +15,7 @@ var assets embed.FS
 
 var TerrainTileset = loadImage("assets/terrain.png")
 var WallBlobTileset = loadImage("assets/walls_blob.png")
+var DungeonObjectsTileset = loadImage("assets/dungeon_objects.png")
 var PlayerIdleSpritesImage = loadImage("assets/player_idle.png")
 var PlayerWalkSpritesImage = loadImage("assets/player_walk.png")
 var PlayerHurtSpritesImage = loadImage("assets/player_hurt.png")
