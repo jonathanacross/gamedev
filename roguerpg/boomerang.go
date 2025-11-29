@@ -21,15 +21,15 @@ func NewBoomerang(location Location, direction Vector, level int) *Boomerang {
 
 	switch level {
 	case 1:
-		animation = NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 10, true)
+		animation = NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 5, true)
 		initialVelocity = 2.0
 		targetDist = 4.0 * TileSize
 	case 2:
-		animation = NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 10, true)
+		animation = NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 4, true)
 		initialVelocity = 3.0
 		targetDist = 6.0 * TileSize
 	case 3:
-		animation = NewAnimation([]int{16, 17, 18, 19, 20, 21, 22, 23}, 10, true)
+		animation = NewAnimation([]int{16, 17, 18, 19, 20, 21, 22, 23}, 3, true)
 		initialVelocity = 4.0
 		targetDist = 8.0 * TileSize
 	}
