@@ -11,7 +11,8 @@ type PlayerState int
 const (
 	Idle PlayerState = iota
 	Walking
-	Attacking
+	AttackingSword
+	AttackingShield
 	Hurt
 	Dying
 	Dead
@@ -30,6 +31,11 @@ const (
 	PlayerSpeed  = 2.0
 	BombCooldown = 750 * time.Millisecond
 )
+
+type PlayerAnimationKey struct {
+	State     PlayerState
+	Direction PlayerDirection
+}
 
 type Player struct {
 	BaseCharacter
@@ -93,11 +99,17 @@ func NewPlayer() *Player {
 			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 10, true),
 			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 10, true),
 		},
-		Attacking: {
+		AttackingSword: {
 			Left:  NewAnimation([]int{8, 9, 10, 11}, 6, false),
 			Right: NewAnimation([]int{40, 41, 42, 43}, 6, false),
 			Up:    NewAnimation([]int{24, 25, 26, 27}, 6, false),
 			Down:  NewAnimation([]int{0, 1, 2, 3}, 6, false),
+		},
+		AttackingShield: {
+			Left:  NewAnimation([]int{8, 9}, 6, false),
+			Right: NewAnimation([]int{40, 41}, 6, false),
+			Up:    NewAnimation([]int{24, 25}, 6, false),
+			Down:  NewAnimation([]int{0, 1}, 6, false),
 		},
 		Hurt: {
 			Left:  NewAnimation([]int{8, 9, 10, 11}, 10, false),
@@ -120,12 +132,13 @@ func NewPlayer() *Player {
 	}
 
 	charImages := map[PlayerState]*ebiten.Image{
-		Idle:      PlayerIdleSpritesImage,
-		Walking:   PlayerWalkSpritesImage,
-		Attacking: PlayerAttackSwordSpritesImage,
-		Hurt:      PlayerHurtSpritesImage,
-		Dying:     PlayerDeathSpritesImage,
-		Dead:      PlayerDeathSpritesImage,
+		Idle:            PlayerIdleSpritesImage,
+		Walking:         PlayerWalkSpritesImage,
+		AttackingSword:  PlayerAttackSwordSpritesImage,
+		AttackingShield: PlayerAttackShieldSpritesImage,
+		Hurt:            PlayerHurtSpritesImage,
+		Dying:           PlayerDeathSpritesImage,
+		Dead:            PlayerDeathSpritesImage,
 	}
 
 	spriteSheet := NewSpriteSheet(48, 64, 8, 6)
@@ -194,7 +207,7 @@ func (p *Player) TransitionState(newState PlayerState) {
 // GetActiveDamageSource returns the current attack's DamageSource if the player is attacking
 // and the current frame has an active hitbox, otherwise returns nil.
 func (p *Player) getActiveDamageSource() *DamageSource {
-	if p.state != Attacking {
+	if p.state != AttackingSword && p.state != AttackingShield {
 		return nil
 	}
 
@@ -284,7 +297,7 @@ func (p *Player) handleMovementInput() {
 
 	// Handle Attack Input (KeySpace takes precedence over Walking/Idle)
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		p.TransitionState(Attacking)
+		p.TransitionState(AttackingSword)
 	} else if isMoving {
 		// Calculate Velocity and set state to Walking
 		if moveDir.Length() != 0 {
@@ -303,6 +316,9 @@ func (p *Player) handleMovementInput() {
 	if ebiten.IsKeyPressed(ebiten.KeyV) && p.hasBoomerang {
 		p.shouldThrowBoomerang = true
 		p.hasBoomerang = false
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyS) {
+		p.TransitionState(AttackingShield)
 	}
 
 	// Apply velocity based on the final determined moveDir
@@ -338,7 +354,10 @@ func (p *Player) handleState() {
 	}
 
 	// If attack just finished, transition out of Attacking.
-	if p.state == Attacking && animation.IsFinished() {
+	if p.state == AttackingSword && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+	if p.state == AttackingShield && animation.IsFinished() {
 		p.TransitionState(Idle)
 	}
 
@@ -347,7 +366,7 @@ func (p *Player) handleState() {
 		// Handle user input which sets new state and velocity (Vx/Vy)
 		p.handleMovementInput()
 
-	case Attacking, Hurt, Dying:
+	case AttackingSword, AttackingShield, Hurt, Dying:
 		// In these states, zero out user-controlled movement.
 		p.Vx = 0
 		p.Vy = 0
