@@ -260,12 +260,23 @@ func (p *Player) UseBoomerang() *Action {
 	return nil
 }
 
+func (p *Player) IsActive() bool {
+	// Input should be blocked if the player is Hurt, Dying, or Dead.
+	// We allow input only when Idle, Walking, or Attacking (to allow chaining/canceling).
+	return p.state != Hurt && p.state != Dying && p.state != Dead
+}
+
 // handleState runs the logic for the Player's current state and determines
 // the next state, direction, and velocity (Vx/Vy).
 func (p *Player) handleState() {
 	animation := p.GetCurrentAnimation()
 	if animation == nil {
 		p.state = Idle // Should never happen
+		return
+	}
+
+	if p.Health <= 0 && p.state != Dying && p.state != Dead {
+		p.TransitionState(Dying)
 		return
 	}
 
@@ -325,13 +336,17 @@ func (p *Player) handleState() {
 }
 
 func (p *Player) TransitionState(newState PlayerState) {
-	if p.state != newState {
-		p.state = newState
-
-		if anim := p.GetCurrentAnimation(); anim != nil {
-			anim.Reset()
-		}
+	if p.state == newState {
+		return
 	}
+
+	p.state = newState
+
+	if anim := p.GetCurrentAnimation(); anim != nil {
+		anim.Reset()
+	}
+
+	p.BaseCharacter.isDead = (newState == Dead)
 }
 
 // GetActiveDamageSource returns the current attack's DamageSource if the player is attacking
@@ -369,9 +384,6 @@ func (p *Player) TakeDamage(damage int) {
 
 	p.TransitionState(Hurt)
 	p.Health -= damage
-	if p.Health < 0 {
-		p.TransitionState(Dying)
-	}
 }
 
 func (p *Player) ApplyKnockback(force Vector, duration int) {

@@ -56,6 +56,22 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	moveDir := Vector{X: 0, Y: 0}
 	isMoving := false
 
+	// --- Handle State Transition Input (Global to MainGameState) ---
+
+	// Open Weapon Selector Menu
+	if ebiten.IsKeyPressed(ebiten.KeyTab) {
+		// This remains an action to modify the global game state stack
+		action := Action{
+			Type:      ActionPushState,
+			GameState: NewWeaponSelector(),
+		}
+		actions = append(actions, action)
+	}
+
+	if !player.IsActive() {
+		return actions
+	}
+
 	// --- Handle Movement Input ---
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
 		moveDir.Y = -1
@@ -117,18 +133,6 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 		if boomerangAction := player.UseBoomerang(); boomerangAction != nil {
 			actions = append(actions, *boomerangAction)
 		}
-	}
-
-	// --- Handle State Transition Input (Global to MainGameState) ---
-
-	// Open Weapon Selector Menu
-	if ebiten.IsKeyPressed(ebiten.KeyTab) {
-		// This remains an action to modify the global game state stack
-		action := Action{
-			Type:      ActionPushState,
-			GameState: NewWeaponSelector(),
-		}
-		actions = append(actions, action)
 	}
 
 	return actions
