@@ -26,8 +26,9 @@ var BlobSpritesImage = loadImage("assets/blob.png")
 var BombSpritesImage = loadImage("assets/bomb.png")
 var BombExplosionSpritesImage = loadImage("assets/explosion.png")
 var BoomerangSpritesImage = loadImage("assets/boomerang.png")
-
 var HealthHeartImage = loadImage("assets/heart.png")
+var WeaponSelectWindowImage = loadImage("assets/weapon_select_window.png")
+var UiIconsImage = loadImage("assets/ui_icons.png")
 
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)

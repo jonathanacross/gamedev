@@ -128,7 +128,9 @@ func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource
 type ActionType int
 
 const (
-	ActionCreateDamageSource ActionType = iota
+	ActionPushState ActionType = iota
+	ActionPopState
+	ActionCreateDamageSource
 	ActionDropBomb
 	ActionThrowBoomerang
 	ActionReturnBoomerang
@@ -137,10 +139,12 @@ const (
 
 // Action is the generic struct returned by any GameObject
 // to signal an intent to change the game state.
+// TODO:make all fields besides Type into pointers, so we can skip setting them.
 type Action struct {
 	Type         ActionType
 	Location     Location
 	Direction    Vector
+	GameState    GameState     // only used for ActionPushState
 	DamageSource *DamageSource // only populated for ActionCreateDamageSource
 }
 
@@ -202,4 +206,14 @@ func CalculateKnockbackForce(attackerLoc Location, defenderLoc Location, speed f
 		return Vector{X: 0, Y: 0}
 	}
 	return direction.Normalize().Scale(speed)
+}
+
+type GameState interface {
+	// Update handles input and logic, using the global context.
+	// It returns Actions that modify the main Game struct (e.g., PushState, PopState).
+	Update(context *GameContext) []Action
+
+	// Draw renders the state. We pass the camera matrix since some states (like MainGame)
+	// need to translate world coordinates, while others ignore it.
+	Draw(screen *ebiten.Image, context *GameContext)
 }

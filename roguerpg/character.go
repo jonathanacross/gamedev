@@ -11,6 +11,7 @@ type BaseCharacter struct {
 	MaxHealth int
 
 	// Knockback fields
+	// TODO: make this a vector
 	KnockbackVx     float64
 	KnockbackVy     float64
 	KnockbackFrames int
