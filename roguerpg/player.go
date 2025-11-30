@@ -39,15 +39,13 @@ type PlayerAnimationKey struct {
 
 type Player struct {
 	BaseCharacter
-	images      map[PlayerState]*ebiten.Image
-	spriteSheet *SpriteSheet
-	animations  map[PlayerState]map[PlayerDirection]*Animation
-	state       PlayerState
-	direction   PlayerDirection
-	// TODO: make this into a vector
-	Vx             float64
-	Vy             float64
-	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig
+	images         map[PlayerState]*ebiten.Image
+	spriteSheet    *SpriteSheet
+	animations     map[PlayerState]map[PlayerDirection]*Animation
+	state          PlayerState
+	direction      PlayerDirection
+	Velocity       Vector
+	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig // Defines hitboxes for specific animation frames
 
 	bombCooldownTimer *Timer
 	hasBoomerang      bool
@@ -189,10 +187,23 @@ func (p *Player) GetCurrentAnimation() *Animation {
 	return animation
 }
 
-func (p *Player) Move(direction PlayerDirection) {
-	// Only set direction if player is not attacking
+func (p *Player) Move(moveVector Vector) {
+	// Don't change direction or velocity if attacking
 	if p.state != AttackingSword && p.state != AttackingShield {
-		p.direction = direction
+		// Determine facing direction from the move vector.
+		// Prioritize vertical direction for diagonal movement.
+		if moveVector.Y < 0 {
+			p.direction = Up
+		} else if moveVector.Y > 0 {
+			p.direction = Down
+		} else if moveVector.X < 0 {
+			p.direction = Left
+		} else if moveVector.X > 0 {
+			p.direction = Right
+		}
+
+		// Set velocity based on the move vector, normalized and scaled.
+		p.Velocity = moveVector.Normalize().Scale(PlayerSpeed)
 	}
 	p.TransitionState(Walking)
 }
@@ -288,8 +299,7 @@ func (p *Player) handleState() {
 
 	// Once Dead, stop all logic.
 	if p.state == Dead {
-		p.Vx = 0
-		p.Vy = 0
+		p.Velocity = Vector{}
 		return
 	}
 
@@ -313,25 +323,14 @@ func (p *Player) handleState() {
 	switch p.state {
 	case Idle:
 		// Idle means no velocity from movement input
-		p.Vx = 0
-		p.Vy = 0
+		p.Velocity = Vector{}
 	case Walking:
-		// The movement command will have set the direction and state,
-		// but the velocity needs to be calculated based on the stored direction.
-		dirVector := p.getDirectionVector()
-		// Normalize and scale the vector to PlayerSpeed
-		p.Vx = dirVector.X * PlayerSpeed
-		p.Vy = dirVector.Y * PlayerSpeed
+		// The Move() command has already set the velocity for this frame.
+		// If StopMoving() is not called, the player will continue with this velocity.
 
-		// If no movement command was issued this frame (i.e., we are still Walking)
-		// but the velocity is zero (which shouldn't happen if the command system is working)
-		// we rely on the external caller (MainGameState) to call StopMoving.
-		// If the external caller fails, we stay Walking with a velocity based on the last direction.
-
-	case AttackingSword, AttackingShield, Hurt, Dying:
-		// In these states, zero out user-controlled movement.
-		p.Vx = 0
-		p.Vy = 0
+	case AttackingSword, AttackingShield, Hurt, Dying, Dead:
+		// In these states, zero out user-controlled movement. Knockback is handled separately.
+		p.Velocity = Vector{}
 	}
 }
 
@@ -424,8 +423,8 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	// Handle all state transitions.
 	p.handleState()
 
-	p.Vx = p.HandleTileCollisions(level, AxisX, p.Vx)
-	p.Vy = p.HandleTileCollisions(level, AxisY, p.Vy)
+	p.Velocity.X = p.HandleTileCollisions(level, AxisX, p.Velocity.X)
+	p.Velocity.Y = p.HandleTileCollisions(level, AxisY, p.Velocity.Y)
 
 	// Update visuals
 	animation := p.GetCurrentAnimation()

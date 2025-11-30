@@ -53,7 +53,6 @@ func (s *MainGameState) handleDamageSource(ctx *GameContext, damageSource *Damag
 func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	var actions []Action
 	player := ctx.player
-	moveDir := Vector{X: 0, Y: 0}
 	isMoving := false
 
 	// --- Handle State Transition Input (Global to MainGameState) ---
@@ -73,39 +72,28 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	}
 
 	// --- Handle Movement Input ---
+	var moveVector Vector
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		moveDir.Y = -1
-		player.Move(Up) // Command: Set state to Walking and direction
+		moveVector.Y = -1
 		isMoving = true
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		moveDir.Y = 1
-		player.Move(Down) // Command: Set state to Walking and direction
+		moveVector.Y = 1
 		isMoving = true
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		moveDir.X = -1
-		if moveDir.Y == 0 { // Prefer horizontal direction if no vertical is pressed
-			player.Move(Left)
-		} else {
-			// If moving diagonally, just ensure we are in Walking state
-			player.TransitionState(Walking)
-		}
+		moveVector.X = -1
 		isMoving = true
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		moveDir.X = 1
-		if moveDir.Y == 0 {
-			player.Move(Right)
-		} else {
-			player.TransitionState(Walking)
-		}
+		moveVector.X = 1
 		isMoving = true
 	}
 
-	// If no movement keys were pressed this frame, stop the player.
 	if !isMoving {
 		player.StopMoving()
+	} else {
+		player.Move(moveVector)
 	}
 
 	// --- Handle Attack/Item Input (Take precedence over movement commands) ---
