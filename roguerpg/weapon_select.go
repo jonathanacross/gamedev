@@ -36,7 +36,7 @@ func (w *WeaponSelector) Draw(screen *ebiten.Image, context *GameContext) {
 func (w *WeaponSelector) Update(context *GameContext) []Action {
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return []Action{
-			Action{
+			{
 				Type:         ActionPopState,
 				GameState:    nil,
 				Location:     Location{},

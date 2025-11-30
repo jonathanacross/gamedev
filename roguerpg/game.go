@@ -148,6 +148,8 @@ func (mg *MainGameState) Update(ctx *GameContext) []Action {
 			result := enemy.Update(ctx.level, ctx.player)
 			actions = append(actions, result.Actions...)
 		}
+		result := enemy.Update(ctx.level, ctx.player)
+		actions = append(actions, result.Actions...)
 	}
 
 	// Update Player (handles state transitions, knockback, and physics)
@@ -172,6 +174,7 @@ func (g *MainGameState) Draw(screen *ebiten.Image, ctx *GameContext) {
 		}
 	}
 
+	// TODO: update drawing of objects/enemies/player so they are drawn based on sorted y coordinate
 	for _, object := range ctx.level.Objects {
 		if object.GetBounds().Intersects(viewRect) {
 			object.Draw(screen, cameraMatrix)
