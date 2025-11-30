@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -52,9 +50,97 @@ func (s *MainGameState) handleDamageSource(ctx *GameContext, damageSource *Damag
 	// TODO: Handle other tags like TagBomb, which could hit both the player and enemies.
 }
 
+func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
+	var actions []Action
+	player := ctx.player
+	moveDir := Vector{X: 0, Y: 0}
+	isMoving := false
+
+	// --- Handle Movement Input ---
+	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		moveDir.Y = -1
+		player.Move(Up) // Command: Set state to Walking and direction
+		isMoving = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyDown) {
+		moveDir.Y = 1
+		player.Move(Down) // Command: Set state to Walking and direction
+		isMoving = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		moveDir.X = -1
+		if moveDir.Y == 0 { // Prefer horizontal direction if no vertical is pressed
+			player.Move(Left)
+		} else {
+			// If moving diagonally, just ensure we are in Walking state
+			player.TransitionState(Walking)
+		}
+		isMoving = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		moveDir.X = 1
+		if moveDir.Y == 0 {
+			player.Move(Right)
+		} else {
+			player.TransitionState(Walking)
+		}
+		isMoving = true
+	}
+
+	// If no movement keys were pressed this frame, stop the player.
+	if !isMoving {
+		player.StopMoving()
+	}
+
+	// --- Handle Attack/Item Input (Take precedence over movement commands) ---
+
+	// Sword Attack
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		player.AttackSword()
+	}
+
+	// Shield Attack
+	if ebiten.IsKeyPressed(ebiten.KeyS) {
+		player.AttackShield()
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyB) {
+		// Call the new method and collect the resulting action if it's not nil
+		if bombAction := player.UseBomb(); bombAction != nil {
+			actions = append(actions, *bombAction)
+		}
+	}
+
+	// Boomerang
+	if ebiten.IsKeyPressed(ebiten.KeyV) {
+		// Call the new method and collect the resulting action if it's not nil
+		if boomerangAction := player.UseBoomerang(); boomerangAction != nil {
+			actions = append(actions, *boomerangAction)
+		}
+	}
+
+	// --- Handle State Transition Input (Global to MainGameState) ---
+
+	// Open Weapon Selector Menu
+	if ebiten.IsKeyPressed(ebiten.KeyTab) {
+		// This remains an action to modify the global game state stack
+		action := Action{
+			Type:      ActionPushState,
+			GameState: NewWeaponSelector(),
+		}
+		actions = append(actions, action)
+	}
+
+	return actions
+}
+
 func (mg *MainGameState) Update(ctx *GameContext) []Action {
 
 	var actions []Action
+
+	// Handle Input (New Step)
+	inputActions := mg.handleInput(ctx)
+	actions = append(actions, inputActions...)
 
 	// Update Game Objects
 	for _, object := range ctx.level.Objects {
@@ -72,22 +158,9 @@ func (mg *MainGameState) Update(ctx *GameContext) []Action {
 		}
 	}
 
-	// Update Player
+	// Update Player (handles state transitions, knockback, and physics)
 	playerResult := ctx.player.Update(ctx.level, ctx.player)
 	actions = append(actions, playerResult.Actions...)
-
-	// TODO: remap keys
-	if ebiten.IsKeyPressed(ebiten.KeyTab) {
-		fmt.Println("Tab pressed")
-		action := Action{
-			Type:         ActionPushState,
-			Location:     Location{X: 0, Y: 0},
-			Direction:    ZeroVector(),
-			GameState:    NewWeaponSelector(),
-			DamageSource: nil,
-		}
-		actions = append(actions, action)
-	}
 
 	return actions
 }

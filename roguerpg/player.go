@@ -49,11 +49,8 @@ type Player struct {
 	Vy             float64
 	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig
 
-	shouldDropBomb    bool
 	bombCooldownTimer *Timer
-
-	shouldThrowBoomerang bool
-	hasBoomerang         bool
+	hasBoomerang      bool
 }
 
 func NewPlayer() *Player {
@@ -169,16 +166,14 @@ func NewPlayer() *Player {
 			MaxHealth:       8,
 			KnockbackFrames: 0,
 		},
-		images:               charImages,
-		spriteSheet:          spriteSheet,
-		animations:           animations,
-		state:                Idle,
-		direction:            Down,
-		attackHitboxes:       attackHitboxes,
-		shouldDropBomb:       false,
-		bombCooldownTimer:    NewTimer(BombCooldown),
-		shouldThrowBoomerang: false,
-		hasBoomerang:         true,
+		images:            charImages,
+		spriteSheet:       spriteSheet,
+		animations:        animations,
+		state:             Idle,
+		direction:         Down,
+		attackHitboxes:    attackHitboxes,
+		bombCooldownTimer: NewTimer(BombCooldown),
+		hasBoomerang:      true,
 	}
 }
 
@@ -192,6 +187,141 @@ func (p *Player) GetCurrentAnimation() *Animation {
 		return nil
 	}
 	return animation
+}
+
+func (p *Player) Move(direction PlayerDirection) {
+	// Only set direction if player is not attacking
+	if p.state != AttackingSword && p.state != AttackingShield {
+		p.direction = direction
+	}
+	p.TransitionState(Walking)
+}
+
+func (p *Player) StopMoving() {
+	// If currently Walking, transition to Idle
+	if p.state == Walking {
+		p.TransitionState(Idle)
+	}
+}
+
+func (p *Player) AttackSword() {
+	// Only start attack if Idle or Walking
+	if p.state == Idle || p.state == Walking {
+		p.TransitionState(AttackingSword)
+	}
+}
+
+func (p *Player) AttackShield() {
+	// Only start attack if Idle or Walking
+	if p.state == Idle || p.state == Walking {
+		p.TransitionState(AttackingShield)
+	}
+}
+
+func (p *Player) UseBomb() *Action {
+	// Optional: Block item use while attacking
+	if p.state == AttackingSword || p.state == AttackingShield {
+		return nil
+	}
+
+	if p.bombCooldownTimer.IsReady() {
+		p.bombCooldownTimer.Reset()
+
+		// Calculate the bomb's spawn location based on player's direction
+		loc := Vector(p.Location()).Plus(p.getDirectionVector().Scale(float64(TileSize)))
+
+		return &Action{
+			Type:      ActionDropBomb,
+			Location:  Location(loc),
+			Direction: p.getDirectionVector(),
+		}
+	}
+	return nil
+}
+
+func (p *Player) UseBoomerang() *Action {
+	// Optional: Block item use while attacking
+	if p.state == AttackingSword || p.state == AttackingShield {
+		return nil
+	}
+
+	if p.hasBoomerang {
+		p.hasBoomerang = false
+
+		// Calculate boomerang spawn location
+		loc := Vector(p.Location()).Plus(p.getDirectionVector().Scale(float64(TileSize)))
+
+		return &Action{
+			Type:      ActionThrowBoomerang,
+			Location:  Location(loc),
+			Direction: p.getDirectionVector(),
+		}
+	}
+	return nil
+}
+
+// handleState runs the logic for the Player's current state and determines
+// the next state, direction, and velocity (Vx/Vy).
+func (p *Player) handleState() {
+	animation := p.GetCurrentAnimation()
+	if animation == nil {
+		p.state = Idle // Should never happen
+		return
+	}
+
+	// Check for terminal state completion.
+	if p.state == Dying && animation.IsFinished() {
+		p.TransitionState(Dead)
+		return
+	}
+
+	// Once Dead, stop all logic.
+	if p.state == Dead {
+		p.Vx = 0
+		p.Vy = 0
+		return
+	}
+
+	// If knockback just finished, transition out of Hurt.
+	if p.state == Hurt && !p.IsKnockedBack() && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+
+	// If attack just finished, transition out of Attacking.
+	if p.state == AttackingSword && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+	if p.state == AttackingShield && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+
+	// Crucially, we no longer call handleMovementInput() here.
+	// Movement is now controlled by external command methods (e.g., p.Move()).
+
+	// The Player's internal state handles movement physics based on its state:
+	switch p.state {
+	case Idle:
+		// Idle means no velocity from movement input
+		p.Vx = 0
+		p.Vy = 0
+	case Walking:
+		// The movement command will have set the direction and state,
+		// but the velocity needs to be calculated based on the stored direction.
+		dirVector := p.getDirectionVector()
+		// Normalize and scale the vector to PlayerSpeed
+		p.Vx = dirVector.X * PlayerSpeed
+		p.Vy = dirVector.Y * PlayerSpeed
+
+		// If no movement command was issued this frame (i.e., we are still Walking)
+		// but the velocity is zero (which shouldn't happen if the command system is working)
+		// we rely on the external caller (MainGameState) to call StopMoving.
+		// If the external caller fails, we stay Walking with a velocity based on the last direction.
+
+	case AttackingSword, AttackingShield, Hurt, Dying:
+		// In these states, zero out user-controlled movement.
+		p.Vx = 0
+		p.Vy = 0
+	}
 }
 
 func (p *Player) TransitionState(newState PlayerState) {
@@ -260,119 +390,7 @@ func (p *Player) ReturnBoomerang() {
 	p.hasBoomerang = true
 }
 
-// handleMovementInput is the handler for the Idle and Walking states.
-// It checks input, determines the new state, direction, and sets Vx/Vy.
-func (p *Player) handleMovementInput() {
-	moveDir := Vector{X: 0, Y: 0}
-	isMoving := false
-
-	// Handle Movement
-	// Vertical movement
-	if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		moveDir.Y = -1
-		p.direction = Up
-		isMoving = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		moveDir.Y = 1
-		p.direction = Down
-		isMoving = true
-	}
-
-	// Horizontal movement (updates state if no vertical was pressed,
-	// otherwise just changes direction/velocity)
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		moveDir.X = -1
-		// Only set direction if no vertical movement, or if vertical has zero velocity (e.g., stopping)
-		if moveDir.Y == 0 {
-			p.direction = Left
-		}
-		isMoving = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		moveDir.X = 1
-		if moveDir.Y == 0 {
-			p.direction = Right
-		}
-		isMoving = true
-	}
-
-	// Handle Attack Input (KeySpace takes precedence over Walking/Idle)
-	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		p.TransitionState(AttackingSword)
-	} else if isMoving {
-		// Calculate Velocity and set state to Walking
-		if moveDir.Length() != 0 {
-			moveDir = moveDir.Normalize().Scale(PlayerSpeed)
-		}
-		p.TransitionState(Walking)
-	} else {
-		// No movement or attack input
-		p.TransitionState(Idle)
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyB) && p.bombCooldownTimer.IsReady() {
-		p.bombCooldownTimer.Reset()
-		p.shouldDropBomb = true
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyV) && p.hasBoomerang {
-		p.shouldThrowBoomerang = true
-		p.hasBoomerang = false
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		p.TransitionState(AttackingShield)
-	}
-
-	// Apply velocity based on the final determined moveDir
-	p.Vx = moveDir.X
-	p.Vy = moveDir.Y
-}
-
-// handleState runs the logic for the Player's current state and determines
-// the next state, direction, and velocity (Vx/Vy).
-func (p *Player) handleState() {
-	animation := p.GetCurrentAnimation()
-	if animation == nil {
-		p.state = Idle // Should never happen
-		return
-	}
-
-	// Check for terminal state completion.
-	if p.state == Dying && animation.IsFinished() {
-		p.TransitionState(Dead)
-		return
-	}
-
-	// Once Dead, stop all logic.
-	if p.state == Dead {
-		p.Vx = 0
-		p.Vy = 0
-		return
-	}
-
-	// If knockback just finished, transition out of Hurt.
-	if p.state == Hurt && !p.IsKnockedBack() && animation.IsFinished() {
-		p.TransitionState(Idle)
-	}
-
-	// If attack just finished, transition out of Attacking.
-	if p.state == AttackingSword && animation.IsFinished() {
-		p.TransitionState(Idle)
-	}
-	if p.state == AttackingShield && animation.IsFinished() {
-		p.TransitionState(Idle)
-	}
-
-	switch p.state {
-	case Idle, Walking:
-		// Handle user input which sets new state and velocity (Vx/Vy)
-		p.handleMovementInput()
-
-	case AttackingSword, AttackingShield, Hurt, Dying:
-		// In these states, zero out user-controlled movement.
-		p.Vx = 0
-		p.Vy = 0
-	}
-}
-
+// TODO: move this, and Direction, to utility function
 func (p *Player) getDirectionVector() Vector {
 	switch p.direction {
 	case Left:
@@ -388,9 +406,6 @@ func (p *Player) getDirectionVector() Vector {
 }
 
 func (p *Player) Update(level *Level, _ *Player) UpdateResult {
-	p.shouldDropBomb = false
-	p.shouldThrowBoomerang = false
-
 	// Handle Knockback Physics.
 	p.UpdateKnockback(level)
 
@@ -406,6 +421,8 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	p.image = p.images[p.state]
 	p.srcRect = p.spriteSheet.Rect(animation.Frame())
 
+	p.bombCooldownTimer.Update()
+
 	// Return any actions back to the game
 	actions := []Action{}
 	if ds := p.getActiveDamageSource(); ds != nil {
@@ -414,23 +431,6 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 			Location:     p.Location(),
 			Direction:    p.getDirectionVector(),
 			DamageSource: ds,
-		})
-	}
-	p.bombCooldownTimer.Update()
-	if p.shouldDropBomb {
-		actions = append(actions, Action{
-			Type:         ActionDropBomb,
-			Location:     p.Location(),
-			Direction:    p.getDirectionVector(),
-			DamageSource: nil,
-		})
-	}
-	if p.shouldThrowBoomerang {
-		actions = append(actions, Action{
-			Type:         ActionThrowBoomerang,
-			Location:     p.Location(),
-			Direction:    p.getDirectionVector(),
-			DamageSource: nil,
 		})
 	}
 	return UpdateResult{Actions: actions}
