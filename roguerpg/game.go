@@ -62,7 +62,7 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 		// This remains an action to modify the global game state stack
 		action := Action{
 			Type:      ActionPushState,
-			GameState: NewWeaponSelector(),
+			GameState: WeaponSelectorInstance,
 		}
 		actions = append(actions, action)
 	}
