@@ -19,12 +19,11 @@ const (
 	KnockbackDuration = 6
 )
 
-// TODO: make these fields capital
 type GameContext struct {
-	level         *Level
-	player        *Player
-	camera        *Camera
-	damageSources []*DamageSource // current damage sources; saved here for debug drawing
+	Level         *Level
+	Player        *Player
+	Camera        *Camera
+	DamageSources []*DamageSource // current damage sources; saved here for debug drawing
 }
 
 type Game struct {
@@ -42,10 +41,10 @@ func NewGame() *Game {
 
 	return &Game{
 		GameContext: GameContext{
-			level:         level,
-			player:        player,
-			camera:        NewCamera(ScreenWidth, ScreenHeight),
-			damageSources: []*DamageSource{},
+			Level:         level,
+			Player:        player,
+			Camera:        NewCamera(ScreenWidth, ScreenHeight),
+			DamageSources: []*DamageSource{},
 		},
 		StateStack: []GameState{&MainGameState{}},
 	}
@@ -64,15 +63,15 @@ func (g *Game) Update() error {
 	// Global Game-World Updates
 	if mainState, ok := activeState.(*MainGameState); ok {
 		// Access level, player, camera via the embedded Context field
-		for _, ds := range g.damageSources {
+		for _, ds := range g.DamageSources {
 			// Note: The handleDamageSource function itself would need access to g.Context.Level/g.Context.Player,
 			// or you would pass the context to it as well.
 			mainState.handleDamageSource(ctx, ds)
 		}
 
-		g.level.Enemies = g.cleanupDeadEnemies(g.level.Enemies)
-		g.level.Objects = g.cleanupObjects(g.level.Objects)
-		g.camera.CenterOn(g.player.Location())
+		g.Level.Enemies = g.cleanupDeadEnemies(g.Level.Enemies)
+		g.Level.Objects = g.cleanupObjects(g.Level.Objects)
+		g.Camera.CenterOn(g.Player.Location())
 	}
 
 	return nil
@@ -86,7 +85,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) executeActions(actions []Action) {
-	g.damageSources = []*DamageSource{}
+	g.DamageSources = []*DamageSource{}
 	for _, action := range actions {
 		switch action.Type {
 		case ActionPushState:
@@ -94,18 +93,18 @@ func (g *Game) executeActions(actions []Action) {
 		case ActionPopState:
 			g.StateStack = g.StateStack[:len(g.StateStack)-1]
 		case ActionCreateDamageSource:
-			g.damageSources = append(g.damageSources, action.DamageSource)
+			g.DamageSources = append(g.DamageSources, action.DamageSource)
 		case ActionDropBomb:
 			newBomb := NewBomb(action.Location)
-			g.level.Objects = append(g.level.Objects, newBomb)
+			g.Level.Objects = append(g.Level.Objects, newBomb)
 		case ActionThrowBoomerang:
 			newBoomerang := NewBoomerang(action.Location, action.Direction, rand.IntN(3)+1)
-			g.level.Objects = append(g.level.Objects, newBoomerang)
+			g.Level.Objects = append(g.Level.Objects, newBoomerang)
 		case ActionReturnBoomerang:
-			g.player.ReturnBoomerang()
+			g.Player.ReturnBoomerang()
 		case ActionExplosion:
 			NewBombExplosion := NewBombExplosion(action.Location)
-			g.level.Objects = append(g.level.Objects, NewBombExplosion)
+			g.Level.Objects = append(g.Level.Objects, NewBombExplosion)
 		default:
 		}
 	}

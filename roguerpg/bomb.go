@@ -41,10 +41,8 @@ func (b *Bomb) Update(level *Level, _ *Player) UpdateResult {
 	if b.animation.IsFinished() {
 		b.exploded = true
 		return UpdateResult{Actions: []Action{{
-			Type:         ActionExplosion,
-			Location:     b.Location,
-			Direction:    ZeroVector(),
-			DamageSource: nil,
+			Type:     ActionExplosion,
+			Location: b.Location,
 		}}}
 	}
 	return UpdateResult{}
@@ -98,7 +96,6 @@ func (b *BombExplosion) Update(level *Level, _ *Player) UpdateResult {
 		return UpdateResult{Actions: []Action{{
 			Type:         ActionCreateDamageSource,
 			Location:     b.Location,
-			Direction:    ZeroVector(),
 			DamageSource: ds}}}
 	}
 	return UpdateResult{}

@@ -41,10 +41,10 @@ func (g *MainGameState) checkDamageAgainstTargets(damageSource *DamageSource, ta
 func (s *MainGameState) handleDamageSource(ctx *GameContext, damageSource *DamageSource) {
 	if damageSource.SourceTag == TagPlayer {
 		// Player attack hits enemies
-		s.checkDamageAgainstTargets(damageSource, ctx.level.Enemies)
+		s.checkDamageAgainstTargets(damageSource, ctx.Level.Enemies)
 	} else if damageSource.SourceTag == TagEnemy {
 		// Enemy attack hits the player
-		s.checkDamageAgainstTargets(damageSource, []Character{ctx.player})
+		s.checkDamageAgainstTargets(damageSource, []Character{ctx.Player})
 	}
 
 	// TODO: Handle other tags like TagBomb, which could hit both the player and enemies.
@@ -52,7 +52,7 @@ func (s *MainGameState) handleDamageSource(ctx *GameContext, damageSource *Damag
 
 func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	var actions []Action
-	player := ctx.player
+	player := ctx.Player
 	isMoving := false
 
 	// --- Handle State Transition Input (Global to MainGameState) ---
@@ -135,35 +135,35 @@ func (mg *MainGameState) Update(ctx *GameContext) []Action {
 	actions = append(actions, inputActions...)
 
 	// Update Game Objects
-	for _, object := range ctx.level.Objects {
-		result := object.Update(ctx.level, ctx.player)
+	for _, object := range ctx.Level.Objects {
+		result := object.Update(ctx.Level, ctx.Player)
 		actions = append(actions, result.Actions...)
 	}
 
 	// Update Enemies
-	for _, enemy := range ctx.level.Enemies {
+	for _, enemy := range ctx.Level.Enemies {
 		// Only update enemies if they are not currently being knocked back,
 		// otherwise, the knockback movement should be prioritized.
 		if !enemy.IsKnockedBack() {
-			result := enemy.Update(ctx.level, ctx.player)
+			result := enemy.Update(ctx.Level, ctx.Player)
 			actions = append(actions, result.Actions...)
 		}
-		result := enemy.Update(ctx.level, ctx.player)
+		result := enemy.Update(ctx.Level, ctx.Player)
 		actions = append(actions, result.Actions...)
 	}
 
 	// Update Player (handles state transitions, knockback, and physics)
-	playerResult := ctx.player.Update(ctx.level, ctx.player)
+	playerResult := ctx.Player.Update(ctx.Level, ctx.Player)
 	actions = append(actions, playerResult.Actions...)
 
 	return actions
 }
 
 func (g *MainGameState) Draw(screen *ebiten.Image, ctx *GameContext) {
-	cameraMatrix := ctx.camera.WorldToScreen()
-	viewRect := ctx.camera.GetViewRect()
+	cameraMatrix := ctx.Camera.WorldToScreen()
+	viewRect := ctx.Camera.GetViewRect()
 
-	for _, row := range ctx.level.Tiles {
+	for _, row := range ctx.Level.Tiles {
 		for _, tile := range row {
 			if tile.GetBounds().Intersects(viewRect) {
 				tile.Draw(screen, cameraMatrix)
@@ -175,28 +175,28 @@ func (g *MainGameState) Draw(screen *ebiten.Image, ctx *GameContext) {
 	}
 
 	// TODO: update drawing of objects/enemies/player so they are drawn based on sorted y coordinate
-	for _, object := range ctx.level.Objects {
+	for _, object := range ctx.Level.Objects {
 		if object.GetBounds().Intersects(viewRect) {
 			object.Draw(screen, cameraMatrix)
 			object.DrawDebugInfo(screen, cameraMatrix)
 		}
 	}
 
-	for _, enemy := range ctx.level.Enemies {
+	for _, enemy := range ctx.Level.Enemies {
 		if enemy.GetBounds().Intersects(viewRect) {
 			enemy.Draw(screen, cameraMatrix)
 			enemy.DrawDebugInfo(screen, cameraMatrix)
 		}
 	}
 
-	ctx.player.Draw(screen, cameraMatrix)
-	ctx.player.DrawDebugInfo(screen, cameraMatrix)
+	ctx.Player.Draw(screen, cameraMatrix)
+	ctx.Player.DrawDebugInfo(screen, cameraMatrix)
 
 	if ShowDebugInfo {
-		for _, ds := range ctx.damageSources {
+		for _, ds := range ctx.DamageSources {
 			ds.DrawDebugInfo(screen, cameraMatrix)
 		}
 	}
 
-	DrawHeadsUpDisplay(screen, ctx.player)
+	DrawHeadsUpDisplay(screen, ctx.Player)
 }

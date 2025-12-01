@@ -37,11 +37,7 @@ func (w *WeaponSelector) Update(context *GameContext) []Action {
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return []Action{
 			{
-				Type:         ActionPopState,
-				GameState:    nil,
-				Location:     Location{},
-				Direction:    ZeroVector(),
-				DamageSource: nil,
+				Type: ActionPopState,
 			},
 		}
 	}

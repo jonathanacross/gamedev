@@ -139,7 +139,7 @@ const (
 
 // Action is the generic struct returned by any GameObject
 // to signal an intent to change the game state.
-// TODO:make all fields besides Type into pointers, so we can skip setting them.
+// Various other fields are populated depending on the ActionType.
 type Action struct {
 	Type         ActionType
 	Location     Location

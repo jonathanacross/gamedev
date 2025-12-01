@@ -80,10 +80,7 @@ func (b *Boomerang) Update(level *Level, player *Player) UpdateResult {
 		if bToPlayer.Length() <= 6 {
 			b.finished = true
 			action := Action{
-				Type:         ActionReturnBoomerang,
-				Location:     Location(ZeroVector()),
-				Direction:    ZeroVector(),
-				DamageSource: nil,
+				Type: ActionReturnBoomerang,
 			}
 			return UpdateResult{Actions: []Action{action}}
 		}
