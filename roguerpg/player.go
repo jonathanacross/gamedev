@@ -49,6 +49,9 @@ type Player struct {
 
 	bombCooldownTimer *Timer
 	hasBoomerang      bool
+
+	primaryWeapon   WeaponType
+	secondaryWeapon WeaponType
 }
 
 func NewPlayer() *Player {
@@ -172,6 +175,8 @@ func NewPlayer() *Player {
 		attackHitboxes:    attackHitboxes,
 		bombCooldownTimer: NewTimer(BombCooldown),
 		hasBoomerang:      true,
+		primaryWeapon:     WeaponSword,
+		secondaryWeapon:   WeaponBoomerang,
 	}
 }
 
@@ -231,9 +236,9 @@ func (p *Player) AttackShield() {
 
 func (p *Player) UseBomb() *Action {
 	// Optional: Block item use while attacking
-	if p.state == AttackingSword || p.state == AttackingShield {
-		return nil
-	}
+	// if p.state == AttackingSword || p.state == AttackingShield {
+	// 	return nil
+	// }
 
 	if p.bombCooldownTimer.IsReady() {
 		p.bombCooldownTimer.Reset()
@@ -252,9 +257,9 @@ func (p *Player) UseBomb() *Action {
 
 func (p *Player) UseBoomerang() *Action {
 	// Optional: Block item use while attacking
-	if p.state == AttackingSword || p.state == AttackingShield {
-		return nil
-	}
+	// if p.state == AttackingSword || p.state == AttackingShield {
+	// 	return nil
+	// }
 
 	if p.hasBoomerang {
 		p.hasBoomerang = false
@@ -269,6 +274,44 @@ func (p *Player) UseBoomerang() *Action {
 		}
 	}
 	return nil
+}
+
+func (p *Player) PrimaryAttack() *Action {
+	switch p.primaryWeapon {
+	case WeaponSword:
+		p.AttackSword()
+		return nil
+	case WeaponBomb:
+		return p.UseBomb()
+	case WeaponBoomerang:
+		return p.UseBoomerang()
+	case WeaponShield:
+		p.AttackShield()
+		return nil
+	default:
+		return nil
+	}
+}
+
+func (p *Player) SecondaryAttack() *Action {
+	switch p.secondaryWeapon {
+	case WeaponSword:
+		p.AttackSword()
+		return nil
+	case WeaponBomb:
+		return p.UseBomb()
+	case WeaponBoomerang:
+		return p.UseBoomerang()
+	case WeaponShield:
+		p.AttackShield()
+		return nil
+	default:
+		return nil
+	}
+}
+
+func (p *Player) SwitchWeapon(weapon WeaponType) {
+	p.secondaryWeapon = weapon
 }
 
 func (p *Player) IsActive() bool {

@@ -99,27 +99,15 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	// --- Handle Attack/Item Input (Take precedence over movement commands) ---
 
 	// Sword Attack
-	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		player.AttackSword()
-	}
-
-	// Shield Attack
-	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		player.AttackShield()
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyB) {
-		// Call the new method and collect the resulting action if it's not nil
-		if bombAction := player.UseBomb(); bombAction != nil {
-			actions = append(actions, *bombAction)
+	if ebiten.IsKeyPressed(ebiten.KeyX) {
+		if action := player.PrimaryAttack(); action != nil {
+			actions = append(actions, *action)
 		}
 	}
 
-	// Boomerang
-	if ebiten.IsKeyPressed(ebiten.KeyV) {
-		// Call the new method and collect the resulting action if it's not nil
-		if boomerangAction := player.UseBoomerang(); boomerangAction != nil {
-			actions = append(actions, *boomerangAction)
+	if ebiten.IsKeyPressed(ebiten.KeyZ) {
+		if action := player.SecondaryAttack(); action != nil {
+			actions = append(actions, *action)
 		}
 	}
 

@@ -135,6 +135,7 @@ const (
 	ActionThrowBoomerang
 	ActionReturnBoomerang
 	ActionExplosion
+	ActionSwitchWeapon
 )
 
 // Action is the generic struct returned by any GameObject
@@ -146,6 +147,7 @@ type Action struct {
 	Direction    Vector
 	GameState    GameState     // only used for ActionPushState
 	DamageSource *DamageSource // only populated for ActionCreateDamageSource
+	WeaponType   WeaponType    // only used for ActionSwitchWeapon
 }
 
 type UpdateResult struct {

@@ -105,6 +105,8 @@ func (g *Game) executeActions(actions []Action) {
 		case ActionExplosion:
 			NewBombExplosion := NewBombExplosion(action.Location)
 			g.Level.Objects = append(g.Level.Objects, NewBombExplosion)
+		case ActionSwitchWeapon:
+			g.Player.SwitchWeapon(action.WeaponType)
 		default:
 		}
 	}

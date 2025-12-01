@@ -11,19 +11,21 @@ const (
 	WeaponNone WeaponType = iota
 	WeaponSword
 	WeaponBoomerang
-	WeaponBomb
 	WeaponShield
+	WeaponBomb
 	WeaponArrows
 	WeaponWand
+)
 
-	UiIconSelect    = 0
-	UiIconSword     = 1
-	UiIconBoomerang = 2
-	UiIconShield    = 4
-	UiIconBomb      = 3
-	UiIconArrows    = 5
-	UiIconWand      = 6
-	UiIconEmpty     = 7
+const (
+	UiIconSelect = iota
+	UiIconSword
+	UiIconBoomerang
+	UiIconShield
+	UiIconBomb
+	UiIconArrows
+	UiIconWand
+	UiIconEmpty
 )
 
 type WeaponSlot struct {
@@ -92,7 +94,10 @@ func (w *WeaponSelector) Update(context *GameContext) []Action {
 	numWeapons := len(w.weaponTable)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		return []Action{{Type: ActionPopState}}
+		return []Action{
+			{Type: ActionPopState},
+			{Type: ActionSwitchWeapon, WeaponType: w.weaponTable[w.weaponIndex].Type},
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		w.weaponIndex = (w.weaponIndex + 1) % numWeapons
