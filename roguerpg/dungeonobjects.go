@@ -1,6 +1,9 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+)
 
 type Stairs struct {
 	BasePhysical
@@ -39,6 +42,14 @@ func NewStairs(location Location, isUpstairs bool) *Stairs {
 }
 
 func (s *Stairs) Update(level *Level, p *Player) UpdateResult {
+	// Check for player interaction
+	if p.GetPushBox().Intersects(s.GetPushBox()) && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		if s.IsUpstairs && level.UpLevel != nil {
+			return UpdateResult{Actions: []Action{{Type: ActionGoUpLevel}}}
+		} else if !s.IsUpstairs && level.DownLevel != nil {
+			return UpdateResult{Actions: []Action{{Type: ActionGoDownLevel}}}
+		}
+	}
 	return UpdateResult{}
 }
 
@@ -98,7 +109,7 @@ func (c *Chest) Update(level *Level, p *Player) UpdateResult {
 	case ChestClosed:
 		c.srcRect = c.spriteSheet.Rect(ChestClosedIdx)
 		// Check for player interaction
-		if p.GetPushBox().Intersects(c.GetPushBox()) && ebiten.IsKeyPressed(ebiten.KeyEnter) {
+		if p.GetPushBox().Intersects(c.GetPushBox()) && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 			c.State = ChestOpening
 		}
 

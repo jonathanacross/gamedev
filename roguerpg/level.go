@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 )
@@ -11,6 +12,8 @@ type Level struct {
 	Tiles         [][]*Tile
 	Enemies       []Character
 	Objects       []GameObject
+	DownLevel     *Level
+	UpLevel       *Level
 }
 
 func (level *Level) GetTile(x, y int) *Tile {
@@ -57,7 +60,8 @@ func (level *Level) FindRandomFloorLocation() Location {
 	}
 }
 
-func (level *Level) AddEnemies() {
+func (level *Level) AddEnemies(depth int) {
+	// TODO: scale type of enemies based on depth
 	numEnemies := 25
 	for range numEnemies {
 		enemy := NewBlobEnemy()
@@ -66,13 +70,38 @@ func (level *Level) AddEnemies() {
 	}
 }
 
-func (level *Level) AddObjects() {
-	numChests := 5
-	for range numChests {
-		chest := NewChest(level.FindRandomFloorLocation())
-		level.Objects = append(level.Objects, chest)
+func (level *Level) AddObjects(isFirstLevel bool, isFinalLevel bool) {
+	if !isFinalLevel {
+		// no chests on final level
+		numChests := 2
+		for range numChests {
+			chest := NewChest(level.FindRandomFloorLocation())
+			level.Objects = append(level.Objects, chest)
+		}
+
+		downstairs := NewStairs(level.FindRandomFloorLocation(), false)
+		level.Objects = append(level.Objects, downstairs)
 	}
-	upstairs := NewStairs(level.FindRandomFloorLocation(), true)
-	downstairs := NewStairs(level.FindRandomFloorLocation(), false)
-	level.Objects = append(level.Objects, upstairs, downstairs)
+	if !isFirstLevel {
+		upstairs := NewStairs(level.FindRandomFloorLocation(), true)
+		level.Objects = append(level.Objects, upstairs)
+	}
+}
+
+func (level *Level) GetUpstairsLocation() (Location, error) {
+	for _, obj := range level.Objects {
+		if stairs, ok := obj.(*Stairs); ok && stairs.IsUpstairs {
+			return stairs.Location(), nil
+		}
+	}
+	return Location{}, fmt.Errorf("no upstairs found in level")
+}
+
+func (level *Level) GetDownstairsLocation() (Location, error) {
+	for _, obj := range level.Objects {
+		if stairs, ok := obj.(*Stairs); ok && !stairs.IsUpstairs {
+			return stairs.Location(), nil
+		}
+	}
+	return Location{}, fmt.Errorf("no downstairs found in level")
 }

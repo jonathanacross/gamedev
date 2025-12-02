@@ -421,6 +421,9 @@ func BuildLevel(width, height int) *Level {
 		HeightInTiles: height,
 		Tiles:         terrainTiles,
 		Enemies:       []Character{},
+		Objects:       []GameObject{},
+		DownLevel:     nil,
+		UpLevel:       nil,
 	}
 }
 

@@ -31,17 +31,39 @@ type Game struct {
 	StateStack []GameState
 }
 
-func NewGame() *Game {
-	level := BuildLevel(70, 50)
-	level.AddObjects()
-	level.AddEnemies()
+func buildLevels() []*Level {
+	levels := []*Level{}
+	numLevels := 5
+	for i := range numLevels {
+		level := BuildLevel(70, 50)
+		isFirstLevel := (i == 0)
+		isFinalLevel := (i == numLevels-1)
+		level.AddObjects(isFirstLevel, isFinalLevel)
+		level.AddEnemies(i)
 
+		levels = append(levels, level)
+	}
+
+	// Link levels
+	for i := range numLevels {
+		if i > 0 {
+			levels[i].UpLevel = levels[i-1]
+		}
+		if i < numLevels-1 {
+			levels[i].DownLevel = levels[i+1]
+		}
+	}
+	return levels
+}
+
+func NewGame() *Game {
+	levels := buildLevels()
 	player := NewPlayer()
-	player.SetLocation(level.FindRandomFloorLocation())
+	player.SetLocation(levels[0].FindRandomFloorLocation())
 
 	return &Game{
 		GameContext: GameContext{
-			Level:         level,
+			Level:         levels[0],
 			Player:        player,
 			Camera:        NewCamera(ScreenWidth, ScreenHeight),
 			DamageSources: []*DamageSource{},
@@ -84,6 +106,30 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 }
 
+func (g *Game) GoDownLevel() {
+	if g.Level.DownLevel != nil {
+		g.Level = g.Level.DownLevel
+		newLoc, err := g.Level.GetUpstairsLocation()
+		if err != nil {
+			log.Printf("Error finding upstairs location: %v", err)
+			return
+		}
+		g.Player.SetLocation(newLoc)
+	}
+}
+
+func (g *Game) GoUpLevel() {
+	if g.Level.UpLevel != nil {
+		g.Level = g.Level.UpLevel
+		newLoc, err := g.Level.GetDownstairsLocation()
+		if err != nil {
+			log.Printf("Error finding downstairs location: %v", err)
+			return
+		}
+		g.Player.SetLocation(newLoc)
+	}
+}
+
 func (g *Game) executeActions(actions []Action) {
 	g.DamageSources = []*DamageSource{}
 	for _, action := range actions {
@@ -107,6 +153,10 @@ func (g *Game) executeActions(actions []Action) {
 			g.Level.Objects = append(g.Level.Objects, NewBombExplosion)
 		case ActionSwitchWeapon:
 			g.Player.SwitchWeapon(action.WeaponType)
+		case ActionGoUpLevel:
+			g.GoUpLevel()
+		case ActionGoDownLevel:
+			g.GoDownLevel()
 		default:
 		}
 	}

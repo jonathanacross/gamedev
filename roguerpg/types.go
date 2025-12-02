@@ -136,6 +136,8 @@ const (
 	ActionReturnBoomerang
 	ActionExplosion
 	ActionSwitchWeapon
+	ActionGoUpLevel
+	ActionGoDownLevel
 )
 
 // Action is the generic struct returned by any GameObject
