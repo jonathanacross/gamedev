@@ -189,6 +189,14 @@ type PhysicalObject interface {
 	SetLocation(loc Location)
 }
 
+// An object that the player can interact with.
+type Interactable interface {
+	PhysicalObject
+	// Interact is called by MainGameState when the player presses the
+	// interaction key while overlapping the object's PushBox.
+	Interact(level *Level, player *Player) []Action
+}
+
 // Character is a specialized entity that can take damage and be knocked back.
 type Character interface {
 	PhysicalObject

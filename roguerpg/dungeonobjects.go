@@ -1,10 +1,6 @@
 package main
 
-import (
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
-)
-
+// Stairs that lead up or down between levels.  Implements Interactable.
 type Stairs struct {
 	BasePhysical
 
@@ -41,15 +37,17 @@ func NewStairs(location Location, isUpstairs bool) *Stairs {
 	return s
 }
 
-func (s *Stairs) Update(level *Level, p *Player) UpdateResult {
-	// Check for player interaction
-	if p.GetPushBox().Intersects(s.GetPushBox()) && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		if s.IsUpstairs && level.UpLevel != nil {
-			return UpdateResult{Actions: []Action{{Type: ActionGoUpLevel}}}
-		} else if !s.IsUpstairs && level.DownLevel != nil {
-			return UpdateResult{Actions: []Action{{Type: ActionGoDownLevel}}}
-		}
+func (s *Stairs) Interact(level *Level, p *Player) []Action {
+	if s.IsUpstairs && level.UpLevel != nil {
+		return []Action{{Type: ActionGoUpLevel}}
+	} else if !s.IsUpstairs && level.DownLevel != nil {
+		return []Action{{Type: ActionGoDownLevel}}
 	}
+
+	return []Action{}
+}
+
+func (s *Stairs) Update(level *Level, p *Player) UpdateResult {
 	return UpdateResult{}
 }
 
@@ -68,6 +66,7 @@ const (
 	ChestOpenIdx   = 7
 )
 
+// An openable chest.  Implements Interactable.
 type Chest struct {
 	BasePhysical
 	State ChestState
@@ -104,14 +103,17 @@ func NewChest(location Location) *Chest {
 	}
 }
 
+func (c *Chest) Interact(level *Level, p *Player) []Action {
+	if c.State == ChestClosed {
+		c.State = ChestOpening
+	}
+	return []Action{}
+}
+
 func (c *Chest) Update(level *Level, p *Player) UpdateResult {
 	switch c.State {
 	case ChestClosed:
 		c.srcRect = c.spriteSheet.Rect(ChestClosedIdx)
-		// Check for player interaction
-		if p.GetPushBox().Intersects(c.GetPushBox()) && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-			c.State = ChestOpening
-		}
 
 	case ChestOpening:
 		c.openAnimation.Update()

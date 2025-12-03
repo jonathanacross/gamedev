@@ -54,6 +54,7 @@ func (s *MainGameState) handleDamageSource(ctx *GameContext, damageSource *Damag
 func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	var actions []Action
 	player := ctx.Player
+	level := ctx.Level
 	isMoving := false
 
 	// --- Handle State Transition Input (Global to MainGameState) ---
@@ -106,9 +107,27 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 		}
 	}
 
+	// Secondary Attack
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		if action := player.SecondaryAttack(); action != nil {
 			actions = append(actions, *action)
+		}
+	}
+
+	// Interact with objects
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		playerPushBox := player.GetPushBox()
+
+		// Check all objects for interaction
+		for _, object := range ctx.Level.Objects {
+			if interactable, ok := object.(Interactable); ok {
+				if playerPushBox.Intersects(interactable.GetPushBox()) {
+					interactionActions := interactable.Interact(level, player)
+					actions = append(actions, interactionActions...)
+					// Only interact with one object at a time
+					break
+				}
+			}
 		}
 	}
 
