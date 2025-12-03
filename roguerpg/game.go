@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // struct to handle the main game logic
@@ -58,7 +59,7 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	// --- Handle State Transition Input (Global to MainGameState) ---
 
 	// Open Weapon Selector Menu
-	if ebiten.IsKeyPressed(ebiten.KeyTab) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		// This remains an action to modify the global game state stack
 		action := Action{
 			Type:      ActionPushState,
@@ -99,13 +100,13 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	// --- Handle Attack/Item Input (Take precedence over movement commands) ---
 
 	// Sword Attack
-	if ebiten.IsKeyPressed(ebiten.KeyX) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyX) {
 		if action := player.PrimaryAttack(); action != nil {
 			actions = append(actions, *action)
 		}
 	}
 
-	if ebiten.IsKeyPressed(ebiten.KeyZ) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		if action := player.SecondaryAttack(); action != nil {
 			actions = append(actions, *action)
 		}
@@ -130,12 +131,6 @@ func (mg *MainGameState) Update(ctx *GameContext) []Action {
 
 	// Update Enemies
 	for _, enemy := range ctx.Level.Enemies {
-		// Only update enemies if they are not currently being knocked back,
-		// otherwise, the knockback movement should be prioritized.
-		if !enemy.IsKnockedBack() {
-			result := enemy.Update(ctx.Level, ctx.Player)
-			actions = append(actions, result.Actions...)
-		}
 		result := enemy.Update(ctx.Level, ctx.Player)
 		actions = append(actions, result.Actions...)
 	}

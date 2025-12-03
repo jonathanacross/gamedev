@@ -93,7 +93,7 @@ func (w *WeaponSelector) drawIcon(screen *ebiten.Image, index int, x float64, y 
 func (w *WeaponSelector) Update(context *GameContext) []Action {
 	numWeapons := len(w.weaponTable)
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		return []Action{
 			{Type: ActionPopState},
 			{Type: ActionSwitchWeapon, WeaponType: w.weaponTable[w.weaponIndex].Type},
