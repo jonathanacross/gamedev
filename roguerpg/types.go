@@ -93,6 +93,15 @@ const (
 	AxisY
 )
 
+type Direction int
+
+const (
+	Left Direction = iota
+	Right
+	Up
+	Down
+)
+
 // EntityTag is used to categorize game objects for collision filtering (e.g., friendly fire)
 type EntityTag int
 

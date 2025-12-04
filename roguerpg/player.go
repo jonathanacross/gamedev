@@ -18,15 +18,6 @@ const (
 	Dead
 )
 
-type PlayerDirection int
-
-const (
-	Left PlayerDirection = iota
-	Right
-	Up
-	Down
-)
-
 const (
 	PlayerSpeed  = 2.0
 	BombCooldown = 750 * time.Millisecond
@@ -34,18 +25,18 @@ const (
 
 type PlayerAnimationKey struct {
 	State     PlayerState
-	Direction PlayerDirection
+	Direction Direction
 }
 
 type Player struct {
 	BaseCharacter
 	images         map[PlayerState]*ebiten.Image
 	spriteSheet    *SpriteSheet
-	animations     map[PlayerState]map[PlayerDirection]*Animation
+	animations     map[PlayerState]map[Direction]*Animation
 	state          PlayerState
-	direction      PlayerDirection
+	direction      Direction
 	Velocity       Vector
-	attackHitboxes map[PlayerDirection]map[int]DamageSourceConfig // Defines hitboxes for specific animation frames
+	attackHitboxes map[Direction]map[int]DamageSourceConfig // Defines hitboxes for specific animation frames
 
 	bombCooldownTimer *Timer
 	hasBoomerang      bool
@@ -56,7 +47,7 @@ type Player struct {
 
 func NewPlayer() *Player {
 	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
-	attackHitboxes := make(map[PlayerDirection]map[int]DamageSourceConfig)
+	attackHitboxes := make(map[Direction]map[int]DamageSourceConfig)
 
 	baseDmg := 1
 
@@ -84,7 +75,7 @@ func NewPlayer() *Player {
 		2: {HitBox: Rect{Left: -16, Top: -35, Right: 16, Bottom: -15}, Damage: baseDmg},
 	}
 
-	animations := map[PlayerState]map[PlayerDirection]*Animation{
+	animations := map[PlayerState]map[Direction]*Animation{
 		Idle: {
 			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 10, true),
 			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 10, true),

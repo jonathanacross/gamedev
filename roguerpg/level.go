@@ -64,7 +64,13 @@ func (level *Level) AddEnemies(depth int) {
 	// TODO: scale type of enemies based on depth
 	numEnemies := 25
 	for range numEnemies {
-		enemy := NewBlobEnemy()
+		var enemy Character
+		enemyType := rand.Intn(2)
+		if enemyType == 0 {
+			enemy = NewBatEnemy()
+		} else {
+			enemy = NewBlobEnemy()
+		}
 		enemy.SetLocation(level.FindRandomFloorLocation())
 		level.Enemies = append(level.Enemies, enemy)
 	}
