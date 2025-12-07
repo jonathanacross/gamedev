@@ -16,8 +16,8 @@ const (
 	GoblinWalking
 
 	// Movement constants
-	GoblinMoveSpeed         float64 = 0.8
-	GoblinVelocityFrequency float64 = 0.05
+	GoblinWalkSpeed  float64 = 0.6
+	GoblinTurnFrames int     = 60 * 3 // every 3 seconds
 )
 
 type GoblinEnemy struct {
@@ -26,11 +26,21 @@ type GoblinEnemy struct {
 	animations  map[GoblinEnemyState]map[Direction]*Animation
 
 	// AI
-	state              GoblinEnemyState
-	direction          Direction
-	moveStartLocation  Location
-	moveTargetLocation Location
-	moveTimeCounter    float64
+	state    GoblinEnemyState
+	velocity Vector
+
+	direction       Direction
+	turnTimeCounter int
+}
+
+func getRandomVelocity() Vector {
+	velocities := []Vector{
+		{X: 1, Y: 0},
+		{X: -1, Y: 0},
+		{X: 0, Y: 1},
+		{X: 0, Y: -1},
+	}
+	return velocities[rand.Intn(len(velocities))]
 }
 
 func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
@@ -53,10 +63,10 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 		GoblinDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 7*framesPerState, directionOffsets, 10, false),
 	}
 
-	animations[GoblinIdle][Up].SetRandomFrame()
-	animations[GoblinIdle][Down].SetRandomFrame()
-	animations[GoblinIdle][Left].SetRandomFrame()
-	animations[GoblinIdle][Right].SetRandomFrame()
+	animations[GoblinWalking][Up].SetRandomFrame()
+	animations[GoblinWalking][Down].SetRandomFrame()
+	animations[GoblinWalking][Left].SetRandomFrame()
+	animations[GoblinWalking][Right].SetRandomFrame()
 
 	spriteSheet := NewSpriteSheet(64, 64, ssColumns, ssRows)
 	hitbox := Rect{
@@ -85,12 +95,12 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 			isDead:          false,
 			KnockbackFrames: 0,
 		},
-		spriteSheet:        spriteSheet,
-		animations:         animations,
-		state:              GoblinIdle,
-		direction:          Left,
-		moveStartLocation:  startLoc,
-		moveTargetLocation: startLoc,
+		spriteSheet:     spriteSheet,
+		animations:      animations,
+		state:           GoblinWalking,
+		direction:       Left,
+		velocity:        getRandomVelocity(),
+		turnTimeCounter: rand.Intn(GoblinTurnFrames),
 	}
 }
 
@@ -135,44 +145,6 @@ func GetDirection(dirVector Vector) Direction {
 	}
 }
 
-// findNewTargetTile attempts to find a random, adjacent, non-solid tile.
-func (c *GoblinEnemy) findNewTargetTile(level *Level) bool {
-	// Get current tile coordinates
-	tx, ty := level.WorldToTile(c.Location())
-
-	// Define a set of nearby squares to check
-	nearbySquares := []Point{}
-	radius := 3
-	for dx := -radius; dx <= radius; dx++ {
-		for dy := -radius; dy <= radius; dy++ {
-			nearbySquares = append(nearbySquares, Point{dx, dy})
-		}
-	}
-
-	// Shuffle nearbySquares to pick a random one first
-	rand.Shuffle(len(nearbySquares), func(i, j int) {
-		nearbySquares[i], nearbySquares[j] = nearbySquares[j], nearbySquares[i]
-	})
-
-	for _, offset := range nearbySquares {
-		newTx := tx + offset.X
-		newTy := ty + offset.Y
-
-		if !level.IsTileSolid(newTx, newTy) {
-			// Found an open tile. Set up the movement.
-			c.moveStartLocation = c.Location()
-			c.moveTargetLocation = level.TileToWorld(newTx, newTy)
-
-			dirVector := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
-			c.direction = GetDirection(dirVector)
-			return true
-		}
-	}
-
-	// No adjacent open tile found
-	return false
-}
-
 func (c *GoblinEnemy) isNearPlayer(playerLoc Location) bool {
 	dist := Vector(playerLoc).Minus(Vector(c.Location()))
 	return dist.Length() <= TileSize
@@ -180,41 +152,23 @@ func (c *GoblinEnemy) isNearPlayer(playerLoc Location) bool {
 
 // updateMovement handles the movement logic and target finding.
 func (c *GoblinEnemy) updateMovement(level *Level) {
-	c.moveTimeCounter += GoblinVelocityFrequency
-	if c.moveTimeCounter > 2*math.Pi {
-		c.moveTimeCounter -= 2 * math.Pi
+	c.turnTimeCounter++
+	if c.turnTimeCounter >= GoblinTurnFrames {
+		c.turnTimeCounter = 0
+		c.velocity = c.velocity.Rotate(math.Pi / 2)
 	}
 
-	// Calculate Speed
-	speedMultiplier := (math.Sin(c.moveTimeCounter) + 1.0) * 0.5
-	currentSpeed := speedMultiplier * GoblinMoveSpeed
-
-	// Calculate Movement Vector
-	targetVector := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
-	distance := targetVector.Length()
-
-	if distance <= currentSpeed {
-		// Arrival at Target: find a new place to go
-		c.findNewTargetTile(level)
-		c.moveTimeCounter = 0.0
-
-	} else {
-		// Continue Movement
-		velocity := targetVector.Normalize().Scale(currentSpeed)
-
-		// Apply movement and handle collisions
-		// We use the BaseCharacter's collision handler, which modifies c.X/c.Y
-		velocity.X = c.HandleTileCollisions(level, AxisX, velocity.X)
-		velocity.Y = c.HandleTileCollisions(level, AxisY, velocity.Y)
-
-		// Update Direction for Animation
-		c.direction = GetDirection(velocity)
-		// if velocity.X < 0 {
-		// 	c.direction = Left
-		// } else if velocity.X > 0 {
-		// 	c.direction = Right
-		// }
+	// Apply movement and handle collisions
+	// Use the BaseCharacter's collision handler, which modifies c.X/c.Y
+	var v Vector
+	v.X = c.HandleTileCollisions(level, AxisX, c.velocity.X)
+	v.Y = c.HandleTileCollisions(level, AxisY, c.velocity.Y)
+	if v.Length() < 0.01 {
+		// Turn immediately if we run into something; don't reset the turn counter, though
+		c.velocity = c.velocity.Rotate(math.Pi / 2)
 	}
+
+	c.direction = GetDirection(v)
 }
 
 func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
@@ -230,7 +184,7 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 	if c.UpdateKnockback(level) {
 		// Allow GoblinHurt animation to finish during knockback
 		if c.state == GoblinHurt && c.animations[GoblinHurt][c.direction].IsFinished() {
-			c.state = GoblinIdle
+			c.state = GoblinWalking
 		}
 
 		if c.state != GoblinDying {
@@ -252,14 +206,14 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 			return UpdateResult{Actions: actions} // Wait for hurt anim to finish
 		}
 
-		// Hurt animation finished, return to flying state
-		c.state = GoblinIdle
+		// Hurt animation finished, return to walking
+		c.state = GoblinWalking
 	}
 
 	// Core AI Logic
 	c.updateMovement(level)
 
-	if c.isNearPlayer(player.Location()) && c.state == GoblinIdle {
+	if c.isNearPlayer(player.Location()) && c.state == GoblinWalking {
 		ds := NewDamageSource(TagEnemy, c.GetHurtBox(), 1)
 		actions = append(actions, Action{
 			Type:         ActionCreateDamageSource,

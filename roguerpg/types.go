@@ -50,6 +50,15 @@ func (v Vector) Scale(scalar float64) Vector {
 	}
 }
 
+func (v Vector) Rotate(angleRadians float64) Vector {
+	s := math.Sin(angleRadians)
+	c := math.Cos(angleRadians)
+	return Vector{
+		X: v.X*c + v.Y*s,
+		Y: -v.X*s + v.Y*c,
+	}
+}
+
 type Rect struct {
 	Left   float64
 	Top    float64
