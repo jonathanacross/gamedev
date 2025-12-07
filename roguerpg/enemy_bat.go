@@ -32,25 +32,23 @@ type BatEnemy struct {
 
 func NewBatEnemy(startLoc Location) *BatEnemy {
 
+	ssColumns := 8
+	ssRows := 8
+	directionOffsets := map[Direction]int{
+		Right: 0,
+		Left:  ssColumns,
+	}
+	framesPerState := ssColumns * len(directionOffsets)
 	animations := map[BatEnemyState]map[Direction]*Animation{
-		BatFlying: {
-			Left:  NewAnimation([]int{0, 1, 2, 3, 4}, 10, true),
-			Right: NewAnimation([]int{6, 7, 8, 9, 10}, 10, true),
-		},
-		BatHurt: {
-			Left:  NewAnimation([]int{24, 25, 24, 25}, 10, false),
-			Right: NewAnimation([]int{30, 31, 30, 31}, 10, false),
-		},
-		BatDying: {
-			Left:  NewAnimation([]int{24, 25, 36, 37, 38, 39, 40, 41}, 6, false),
-			Right: NewAnimation([]int{30, 31, 42, 43, 44, 45, 46, 47}, 6, false),
-		},
+		BatFlying: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 0*framesPerState, directionOffsets, 10, true),
+		BatHurt:   NewDirectionAnimationMap([]int{0, 1, 0, 1}, 2*framesPerState, directionOffsets, 10, false),
+		BatDying:  NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 3*framesPerState, directionOffsets, 6, false),
 	}
 
 	animations[BatFlying][Left].SetRandomFrame()
 	animations[BatFlying][Right].SetRandomFrame()
 
-	spriteSheet := NewSpriteSheet(16, 16, 6, 8)
+	spriteSheet := NewSpriteSheet(16, 16, ssColumns, ssRows)
 	hitbox := Rect{
 		Left:   -6,
 		Top:    -6,

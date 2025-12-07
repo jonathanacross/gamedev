@@ -75,49 +75,23 @@ func NewPlayer() *Player {
 		2: {HitBox: Rect{Left: -16, Top: -35, Right: 16, Bottom: -15}, Damage: baseDmg},
 	}
 
+	ssColumns := 8
+	ssRows := 6
+	directionOffsets := map[Direction]int{
+		Left:  8,
+		Right: 40,
+		Up:    24,
+		Down:  0,
+	}
+
 	animations := map[PlayerState]map[Direction]*Animation{
-		Idle: {
-			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 10, true),
-			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 10, true),
-			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 10, true),
-			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 10, true),
-		},
-		Walking: {
-			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 10, true),
-			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 10, true),
-			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 10, true),
-			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 10, true),
-		},
-		AttackingSword: {
-			Left:  NewAnimation([]int{8, 9, 10, 11}, 6, false),
-			Right: NewAnimation([]int{40, 41, 42, 43}, 6, false),
-			Up:    NewAnimation([]int{24, 25, 26, 27}, 6, false),
-			Down:  NewAnimation([]int{0, 1, 2, 3}, 6, false),
-		},
-		AttackingShield: {
-			Left:  NewAnimation([]int{8, 9}, 6, false),
-			Right: NewAnimation([]int{40, 41}, 6, false),
-			Up:    NewAnimation([]int{24, 25}, 6, false),
-			Down:  NewAnimation([]int{0, 1}, 6, false),
-		},
-		Hurt: {
-			Left:  NewAnimation([]int{8, 9, 10, 11}, 10, false),
-			Right: NewAnimation([]int{40, 41, 42, 43}, 10, false),
-			Up:    NewAnimation([]int{24, 25, 26, 27}, 10, false),
-			Down:  NewAnimation([]int{0, 1, 2, 3}, 10, false),
-		},
-		Dying: {
-			Left:  NewAnimation([]int{8, 9, 10, 11, 12, 13, 14, 15}, 8, false),
-			Right: NewAnimation([]int{40, 41, 42, 43, 44, 45, 46, 47}, 8, false),
-			Up:    NewAnimation([]int{24, 25, 26, 27, 28, 29, 30, 31}, 8, false),
-			Down:  NewAnimation([]int{0, 1, 2, 3, 4, 5, 6, 7}, 8, false),
-		},
-		Dead: {
-			Left:  NewAnimation([]int{15}, 100, true),
-			Right: NewAnimation([]int{47}, 100, true),
-			Up:    NewAnimation([]int{31}, 100, true),
-			Down:  NewAnimation([]int{7}, 100, true),
-		},
+		Idle:            NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
+		Walking:         NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
+		AttackingSword:  NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
+		AttackingShield: NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
+		Hurt:            NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
+		Dying:           NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
+		Dead:            NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
 	}
 
 	charImages := map[PlayerState]*ebiten.Image{
@@ -130,7 +104,7 @@ func NewPlayer() *Player {
 		Dead:            PlayerDeathSpritesImage,
 	}
 
-	spriteSheet := NewSpriteSheet(48, 64, 8, 6)
+	spriteSheet := NewSpriteSheet(48, 64, ssColumns, ssRows)
 	pushBox := Rect{
 		Left:   -6,
 		Top:    -6,

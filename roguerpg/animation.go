@@ -24,6 +24,19 @@ func NewAnimation(frames []int, speed int, looping bool) *Animation {
 	}
 }
 
+// Creates a map of animations for each direction with the given frames and offsets
+func NewDirectionAnimationMap(frames []int, stateStartFrame int, directionOffsets map[Direction]int, speed int, looping bool) map[Direction]*Animation {
+	animations := map[Direction]*Animation{}
+	for direction, dirOffset := range directionOffsets {
+		offsetFrames := make([]int, len(frames))
+		for i := range frames {
+			offsetFrames[i] = frames[i] + dirOffset + stateStartFrame
+		}
+		animations[direction] = NewAnimation(offsetFrames, speed, looping)
+	}
+	return animations
+}
+
 func (a *Animation) Update() {
 	if a.isFinished && !a.looping {
 		return

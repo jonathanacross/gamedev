@@ -33,34 +33,24 @@ type GoblinEnemy struct {
 	moveTimeCounter    float64
 }
 
-func NewDirectionAnimationMap(frames []int, stateStartFrame int, directionOffsets map[Direction]int, speed int, looping bool) map[Direction]*Animation {
-	animations := map[Direction]*Animation{}
-	for direction, dirOffset := range directionOffsets {
-		offsetFrames := make([]int, len(frames))
-		for i := range frames {
-			offsetFrames[i] = frames[i] + dirOffset + stateStartFrame
-		}
-		animations[direction] = NewAnimation(offsetFrames, speed, looping)
-	}
-	return animations
-}
-
 func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
-
+	ssColumns := 8
+	ssRows := 32
 	directionOffsets := map[Direction]int{
 		Down:  0,
 		Up:    8,
 		Left:  16,
 		Right: 24,
 	}
+	framesPerState := ssColumns * len(directionOffsets)
 
 	animations := map[GoblinEnemyState]map[Direction]*Animation{
-		GoblinIdle:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*32, directionOffsets, 10, true),
-		GoblinWalking:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*32, directionOffsets, 10, true),
-		GoblinRunning:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 2*32, directionOffsets, 10, true),
-		GoblinAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 3*32, directionOffsets, 10, false),
-		GoblinHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 6*32, directionOffsets, 10, false),
-		GoblinDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 7*32, directionOffsets, 10, false),
+		GoblinIdle:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*framesPerState, directionOffsets, 10, true),
+		GoblinWalking:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
+		GoblinRunning:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 2*framesPerState, directionOffsets, 10, true),
+		GoblinAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 3*framesPerState, directionOffsets, 10, false),
+		GoblinHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 6*framesPerState, directionOffsets, 10, false),
+		GoblinDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 7*framesPerState, directionOffsets, 10, false),
 	}
 
 	animations[GoblinIdle][Up].SetRandomFrame()
@@ -68,7 +58,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 	animations[GoblinIdle][Left].SetRandomFrame()
 	animations[GoblinIdle][Right].SetRandomFrame()
 
-	spriteSheet := NewSpriteSheet(64, 64, 8, 32)
+	spriteSheet := NewSpriteSheet(64, 64, ssColumns, ssRows)
 	hitbox := Rect{
 		Left:   -6,
 		Top:    -6,
