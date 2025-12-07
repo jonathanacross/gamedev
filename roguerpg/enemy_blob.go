@@ -32,7 +32,7 @@ type BlobEnemy struct {
 	waitFrames         int // Total frames to wait when idle
 }
 
-func NewBlobEnemy() *BlobEnemy {
+func NewBlobEnemy(startLoc Location) *BlobEnemy {
 
 	animations := map[BlobEnemyState]*Animation{
 		BlobIdle:      NewAnimation([]int{0, 1, 2}, 20, true),
@@ -55,10 +55,7 @@ func NewBlobEnemy() *BlobEnemy {
 		BaseCharacter: BaseCharacter{
 			BasePhysical: BasePhysical{
 				BaseSprite: BaseSprite{
-					Location: Location{
-						X: 0,
-						Y: 0,
-					},
+					Location: startLoc,
 					drawOffset: Location{
 						X: 8,
 						Y: 8,
@@ -145,7 +142,7 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 
 func (c *BlobEnemy) isNearPlayer(playerLoc Location) bool {
 	dist := Vector(playerLoc).Minus(Vector(c.Location()))
-	return dist.Length() <= 24
+	return dist.Length() <= 3*TileSize
 }
 
 func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {

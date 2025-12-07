@@ -7,15 +7,13 @@ import (
 type BatEnemyState int
 
 const (
-	BatIdle BatEnemyState = iota
-	BatMoving
-	BatAttacking
+	BatFlying BatEnemyState = iota
 	BatHurt
 	BatDying
 
 	// Movement constants
-	BatMoveSpeed     float64 = 0.5
-	BatMaxWaitFrames int     = 60 // Max 1 second wait (up to 60 frames)
+	BatMoveSpeed     float64 = 0.8
+	BatMaxWaitFrames int     = 90 // Max 1 second wait (up to 60 frames)
 )
 
 type BatAnimationKey struct {
@@ -38,20 +36,12 @@ type BatEnemy struct {
 	waitFrames         int // Total frames to wait when idle
 }
 
-func NewBatEnemy() *BatEnemy {
+func NewBatEnemy(startLoc Location) *BatEnemy {
 
 	animations := map[BatEnemyState]map[Direction]*Animation{
-		BatIdle: {
+		BatFlying: {
 			Left:  NewAnimation([]int{0, 1, 2, 3, 4}, 10, true),
 			Right: NewAnimation([]int{6, 7, 8, 9, 10}, 10, true),
-		},
-		BatMoving: {
-			Left:  NewAnimation([]int{0, 1, 2, 3, 4}, 10, true),
-			Right: NewAnimation([]int{6, 7, 8, 9, 10}, 10, true),
-		},
-		BatAttacking: {
-			Left:  NewAnimation([]int{12, 13, 14}, 10, true),
-			Right: NewAnimation([]int{18, 19, 20}, 10, true),
 		},
 		BatHurt: {
 			Left:  NewAnimation([]int{24, 25, 24, 25}, 10, false),
@@ -63,8 +53,8 @@ func NewBatEnemy() *BatEnemy {
 		},
 	}
 
-	animations[BatIdle][Left].SetRandomFrame()
-	animations[BatIdle][Right].SetRandomFrame()
+	animations[BatFlying][Left].SetRandomFrame()
+	animations[BatFlying][Right].SetRandomFrame()
 
 	spriteSheet := NewSpriteSheet(16, 16, 6, 8)
 	hitbox := Rect{
@@ -78,10 +68,7 @@ func NewBatEnemy() *BatEnemy {
 		BaseCharacter: BaseCharacter{
 			BasePhysical: BasePhysical{
 				BaseSprite: BaseSprite{
-					Location: Location{
-						X: 0,
-						Y: 0,
-					},
+					Location: startLoc,
 					drawOffset: Location{
 						X: 8,
 						Y: 8,
@@ -96,11 +83,13 @@ func NewBatEnemy() *BatEnemy {
 			isDead:          false,
 			KnockbackFrames: 0,
 		},
-		spriteSheet: spriteSheet,
-		animations:  animations,
-		state:       BatIdle,
-		direction:   Left,
-		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
+		spriteSheet:        spriteSheet,
+		animations:         animations,
+		state:              BatFlying,
+		direction:          Left,
+		moveStartLocation:  startLoc,
+		moveTargetLocation: startLoc,
+		waitFrames:         rand.Intn(BatMaxWaitFrames) + 1,
 	}
 }
 
@@ -137,28 +126,35 @@ func (c *BatEnemy) findNewTargetTile(level *Level) bool {
 	// Get current tile coordinates
 	tx, ty := level.WorldToTile(c.Location())
 
-	// Define the 4 cardinal directions for "adjacent square"
-	directions := []struct{ dx, dy int }{
-		{0, 1},  // Down
-		{0, -1}, // Up
-		{1, 0},  // Right
-		{-1, 0}, // Left
+	// Define a set of nearby squares to check
+	nearbySquares := []Point{}
+	radius := 3
+	for dx := -radius; dx <= radius; dx++ {
+		for dy := -radius; dy <= radius; dy++ {
+			nearbySquares = append(nearbySquares, Point{dx, dy})
+		}
 	}
 
-	// Shuffle directions to pick a random one first
-	rand.Shuffle(len(directions), func(i, j int) {
-		directions[i], directions[j] = directions[j], directions[i]
+	// Shuffle nearbySquares to pick a random one first
+	rand.Shuffle(len(nearbySquares), func(i, j int) {
+		nearbySquares[i], nearbySquares[j] = nearbySquares[j], nearbySquares[i]
 	})
 
-	for _, dir := range directions {
-		newTx := tx + dir.dx
-		newTy := ty + dir.dy
+	for _, offset := range nearbySquares {
+		newTx := tx + offset.X
+		newTy := ty + offset.Y
 
 		if !level.IsTileSolid(newTx, newTy) {
 			// Found an open tile. Set up the movement.
 			c.moveStartLocation = c.Location()
 			c.moveTargetLocation = level.TileToWorld(newTx, newTy)
 			c.currentFrame = 0 // Reset frame counter for movement
+
+			if c.moveTargetLocation.X < c.Location().X {
+				c.direction = Left
+			} else if c.moveTargetLocation.X > c.Location().X {
+				c.direction = Right
+			}
 			return true
 		}
 	}
@@ -169,90 +165,115 @@ func (c *BatEnemy) findNewTargetTile(level *Level) bool {
 
 func (c *BatEnemy) isNearPlayer(playerLoc Location) bool {
 	dist := Vector(playerLoc).Minus(Vector(c.Location()))
-	return dist.Length() <= 24
+	return dist.Length() <= TileSize
 }
 
-func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
-	c.animations[c.state][c.direction].Update()
-	c.srcRect = c.spriteSheet.Rect(c.animations[c.state][c.direction].Frame())
-	var actions []Action
+// updateActionState handles the transition between BatAttacking and BatFlying
+// func (c *BatEnemy) updateActionState(playerLoc Location) {
+// 	isPlayerNear := c.isNearPlayer(playerLoc)
 
-	if c.UpdateKnockback(level) {
-		// Ensure the BatHurt animation can finish, even during knockback
-		if c.state == BatHurt && c.animations[BatHurt][c.direction].IsFinished() {
-			c.state = BatIdle
-		}
+// 	if isPlayerNear {
+// 		// Priority 1: Start Attack if near player and not already attacking
+// 		if c.state != BatAttacking {
+// 			c.state = BatAttacking
+// 			c.animations[BatAttacking][c.direction].Reset()
+// 		}
+// 	} else if c.state == BatAttacking && c.animations[BatAttacking][c.direction].IsFinished() {
+// 		// Priority 2: Finish Attack animation, return to flying
+// 		c.state = BatFlying
+// 	} else if c.state != BatAttacking {
+// 		// Priority 3: Maintain flying state if not near player and not currently finishing an attack
+// 		c.state = BatFlying
+// 	}
+// 	// Note: If c.state is BatAttacking but the animation isn't finished, we stay in BatAttacking.
+// 	// If c.state is BatHurt/BatDying, this function is skipped by the caller.
+// }
 
-		if c.state != BatDying {
-			return UpdateResult{Actions: actions} // Skip AI and normal movement logic
-		}
-	}
+// updateMovement handles the movement logic and target finding.
+func (c *BatEnemy) updateMovement(level *Level) {
+	// Check if movement is currently active
+	targetVector := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
+	isMovingActive := targetVector.Length() > BatMoveSpeed
 
-	switch c.state {
-	case BatIdle:
-		if c.isNearPlayer(player.Location()) {
-			c.state = BatAttacking
-			c.animations[BatAttacking][c.direction].Reset()
+	if isMovingActive {
+		// Execute movement
+		distance := targetVector.Length()
+
+		if distance <= BatMoveSpeed {
+			// We are close enough to snap to the target.
+			c.SetLocation(c.moveTargetLocation)
+
+			// --- FIX: Invalidate the target to end the movement loop ---
+			c.moveTargetLocation = c.Location()
+			// -----------------------------------------------------------
+
+			// Movement finished, start waiting.
+			c.waitFrames = rand.Intn(BatMaxWaitFrames) + 1
 		} else {
-			c.waitFrames--
-			if c.waitFrames <= 0 {
-				// Wait time is over. Look for a new target tile.
-				if c.findNewTargetTile(level) {
-					c.state = BatMoving
-				} else {
-					// Enemy is cornered or blocked. Wait again.
-					c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-				}
-			}
-		}
-
-	case BatMoving:
-		if c.isNearPlayer(player.Location()) {
-			c.state = BatAttacking
-			c.animations[BatAttacking][c.direction].Reset()
-		} else {
-			target := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
-
-			distance := target.Length()
-			if distance <= BatMoveSpeed {
-				// We are close enough to snap to the target.
-				c.SetLocation(c.moveTargetLocation)
-
-				// Wait for a short time.
-				c.state = BatIdle
-				c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-				return UpdateResult{Actions: actions}
-			}
-
-			velocity := target.Normalize().Scale(BatMoveSpeed)
+			// Continue movement
+			velocity := targetVector.Normalize().Scale(BatMoveSpeed)
 			c.HandleTileCollisions(level, AxisX, velocity.X)
 			c.HandleTileCollisions(level, AxisY, velocity.Y)
 		}
+	} else {
+		// Idle/Wait logic
+		c.waitFrames--
+		if c.waitFrames <= 0 {
+			// Wait time is over. Look for a new target tile.
+			if !c.findNewTargetTile(level) {
+				// Enemy is cornered or blocked. Wait again.
+				c.waitFrames = rand.Intn(BatMaxWaitFrames) + 1
+			}
+			// If a new target is found, isMovingActive will be true on the next frame.
+		}
+	}
+}
 
-	case BatAttacking:
-		hitBox := c.GetHurtBox()
-		if c.animations[BatAttacking][c.direction].Frame() != 0 {
-			ds := NewDamageSource(TagEnemy, hitBox, 1)
-			actions = append(actions, Action{
-				Type:         ActionCreateDamageSource,
-				DamageSource: ds,
-			})
+func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
+	var actions []Action
+
+	// Animation Update
+	// The current animation is determined by the previous frame's state/direction.
+	currentAnim := c.animations[c.state][c.direction]
+	currentAnim.Update()
+	c.srcRect = c.spriteSheet.Rect(currentAnim.Frame())
+
+	// Priority State Checks (Dying, Knockback/Hurt)
+	if c.UpdateKnockback(level) {
+		// Allow BatHurt animation to finish during knockback
+		if c.state == BatHurt && c.animations[BatHurt][c.direction].IsFinished() {
+			c.state = BatFlying
 		}
 
-		if c.animations[BatAttacking][c.direction].IsFinished() {
-			c.state = BatIdle
-			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+		if c.state != BatDying {
+			return UpdateResult{Actions: actions}
 		}
+	}
 
-	case BatHurt:
-		if c.animations[BatHurt][c.direction].IsFinished() {
-			c.state = BatIdle
-		}
-
-	case BatDying:
+	// Handle Dying state which overrides all AI
+	if c.state == BatDying {
 		if c.animations[BatDying][c.direction].IsFinished() {
 			c.isDead = true
 		}
+		return UpdateResult{Actions: actions}
+	}
+
+	// Handle Hurt state which overrides AI while animation plays
+	if c.state == BatHurt {
+		if !c.animations[BatHurt][c.direction].IsFinished() {
+			return UpdateResult{Actions: actions} // Wait for hurt anim to finish
+		}
+	}
+
+	// Core AI Logic
+	c.updateMovement(level)
+
+	if c.isNearPlayer(player.Location()) && c.state == BatFlying {
+		ds := NewDamageSource(TagEnemy, c.GetHurtBox(), 1)
+		actions = append(actions, Action{
+			Type:         ActionCreateDamageSource,
+			DamageSource: ds,
+		})
 	}
 
 	return UpdateResult{Actions: actions}
