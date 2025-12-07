@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"math/rand"
 )
 
@@ -12,8 +13,8 @@ const (
 	BatDying
 
 	// Movement constants
-	BatMoveSpeed     float64 = 0.8
-	BatMaxWaitFrames int     = 90 // Max 1 second wait (up to 60 frames)
+	BatMoveSpeed         float64 = 0.8
+	BatVelocityFrequency float64 = 0.05
 )
 
 type BatAnimationKey struct {
@@ -32,8 +33,7 @@ type BatEnemy struct {
 
 	moveStartLocation  Location
 	moveTargetLocation Location
-	currentFrame       int // Frame counter for the current move or wait action
-	waitFrames         int // Total frames to wait when idle
+	moveTimeCounter    float64 // Timer to drive sine wave movement
 }
 
 func NewBatEnemy(startLoc Location) *BatEnemy {
@@ -89,7 +89,6 @@ func NewBatEnemy(startLoc Location) *BatEnemy {
 		direction:          Left,
 		moveStartLocation:  startLoc,
 		moveTargetLocation: startLoc,
-		waitFrames:         rand.Intn(BatMaxWaitFrames) + 1,
 	}
 }
 
@@ -148,7 +147,6 @@ func (c *BatEnemy) findNewTargetTile(level *Level) bool {
 			// Found an open tile. Set up the movement.
 			c.moveStartLocation = c.Location()
 			c.moveTargetLocation = level.TileToWorld(newTx, newTy)
-			c.currentFrame = 0 // Reset frame counter for movement
 
 			if c.moveTargetLocation.X < c.Location().X {
 				c.direction = Left
@@ -168,63 +166,40 @@ func (c *BatEnemy) isNearPlayer(playerLoc Location) bool {
 	return dist.Length() <= TileSize
 }
 
-// updateActionState handles the transition between BatAttacking and BatFlying
-// func (c *BatEnemy) updateActionState(playerLoc Location) {
-// 	isPlayerNear := c.isNearPlayer(playerLoc)
-
-// 	if isPlayerNear {
-// 		// Priority 1: Start Attack if near player and not already attacking
-// 		if c.state != BatAttacking {
-// 			c.state = BatAttacking
-// 			c.animations[BatAttacking][c.direction].Reset()
-// 		}
-// 	} else if c.state == BatAttacking && c.animations[BatAttacking][c.direction].IsFinished() {
-// 		// Priority 2: Finish Attack animation, return to flying
-// 		c.state = BatFlying
-// 	} else if c.state != BatAttacking {
-// 		// Priority 3: Maintain flying state if not near player and not currently finishing an attack
-// 		c.state = BatFlying
-// 	}
-// 	// Note: If c.state is BatAttacking but the animation isn't finished, we stay in BatAttacking.
-// 	// If c.state is BatHurt/BatDying, this function is skipped by the caller.
-// }
-
 // updateMovement handles the movement logic and target finding.
 func (c *BatEnemy) updateMovement(level *Level) {
-	// Check if movement is currently active
+	c.moveTimeCounter += BatVelocityFrequency
+	if c.moveTimeCounter > 2*math.Pi {
+		c.moveTimeCounter -= 2 * math.Pi
+	}
+
+	// Calculate Speed
+	speedMultiplier := (math.Sin(c.moveTimeCounter) + 1.0) * 0.5
+	currentSpeed := speedMultiplier * BatMoveSpeed
+
+	// Calculate Movement Vector
 	targetVector := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
-	isMovingActive := targetVector.Length() > BatMoveSpeed
+	distance := targetVector.Length()
 
-	if isMovingActive {
-		// Execute movement
-		distance := targetVector.Length()
+	if distance <= currentSpeed {
+		// Arrival at Target: find a new place to go
+		c.findNewTargetTile(level)
+		c.moveTimeCounter = 0.0
 
-		if distance <= BatMoveSpeed {
-			// We are close enough to snap to the target.
-			c.SetLocation(c.moveTargetLocation)
-
-			// --- FIX: Invalidate the target to end the movement loop ---
-			c.moveTargetLocation = c.Location()
-			// -----------------------------------------------------------
-
-			// Movement finished, start waiting.
-			c.waitFrames = rand.Intn(BatMaxWaitFrames) + 1
-		} else {
-			// Continue movement
-			velocity := targetVector.Normalize().Scale(BatMoveSpeed)
-			c.HandleTileCollisions(level, AxisX, velocity.X)
-			c.HandleTileCollisions(level, AxisY, velocity.Y)
-		}
 	} else {
-		// Idle/Wait logic
-		c.waitFrames--
-		if c.waitFrames <= 0 {
-			// Wait time is over. Look for a new target tile.
-			if !c.findNewTargetTile(level) {
-				// Enemy is cornered or blocked. Wait again.
-				c.waitFrames = rand.Intn(BatMaxWaitFrames) + 1
-			}
-			// If a new target is found, isMovingActive will be true on the next frame.
+		// Continue Movement
+		velocity := targetVector.Normalize().Scale(currentSpeed)
+
+		// Apply movement and handle collisions
+		// We use the BaseCharacter's collision handler, which modifies c.X/c.Y
+		velocity.X = c.HandleTileCollisions(level, AxisX, velocity.X)
+		velocity.Y = c.HandleTileCollisions(level, AxisY, velocity.Y)
+
+		// Update Direction for Animation
+		if velocity.X < 0 {
+			c.direction = Left
+		} else if velocity.X > 0 {
+			c.direction = Right
 		}
 	}
 }
@@ -263,6 +238,9 @@ func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
 		if !c.animations[BatHurt][c.direction].IsFinished() {
 			return UpdateResult{Actions: actions} // Wait for hurt anim to finish
 		}
+
+		// Hurt animation finished, return to flying state
+		c.state = BatFlying
 	}
 
 	// Core AI Logic
