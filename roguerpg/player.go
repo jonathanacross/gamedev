@@ -54,25 +54,25 @@ func NewPlayer() *Player {
 	// Setup Hitboxes for specific frames of the attack animation.
 	// The key (int) is the index within the animation array.
 
-	// Downward swing: Attack box is in front (down) of the player
+	// Downward swing
 	attackHitboxes[Down] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: -8, Top: 10, Right: 8, Bottom: 30}, Damage: baseDmg},   // Frame 1 (sword out)
-		2: {HitBox: Rect{Left: -16, Top: 15, Right: 16, Bottom: 35}, Damage: baseDmg}, // Frame 2 (full extension)
+		1: {HitBox: Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
+		2: {HitBox: Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
 	}
-	// Left swing: Attack box is to the left
+	// Left swing
 	attackHitboxes[Left] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: -30, Top: -8, Right: -10, Bottom: 8}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: -35, Top: -16, Right: -15, Bottom: 16}, Damage: baseDmg},
+		1: {HitBox: Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseDmg},
+		2: {HitBox: Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseDmg},
 	}
-	// Right swing: Attack box is to the right
+	// Right swing
 	attackHitboxes[Right] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: 10, Top: -8, Right: 30, Bottom: 8}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: 15, Top: -16, Right: 35, Bottom: 16}, Damage: baseDmg},
+		1: {HitBox: Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseDmg},
+		2: {HitBox: Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseDmg},
 	}
-	// Upward swing: Attack box is above the player
+	// Upward swing
 	attackHitboxes[Up] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: -8, Top: -30, Right: 8, Bottom: -10}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: -16, Top: -35, Right: 16, Bottom: -15}, Damage: baseDmg},
+		1: {HitBox: Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseDmg},
+		2: {HitBox: Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseDmg},
 	}
 
 	ssColumns := 8

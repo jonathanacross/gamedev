@@ -50,10 +50,10 @@ func NewBatEnemy(startLoc Location) *BatEnemy {
 
 	spriteSheet := NewSpriteSheet(16, 16, ssColumns, ssRows)
 	hitbox := Rect{
-		Left:   -6,
-		Top:    -6,
-		Right:  6,
-		Bottom: 6,
+		Left:   -9,
+		Top:    -4,
+		Right:  9,
+		Bottom: 4,
 	}
 
 	return &BatEnemy{

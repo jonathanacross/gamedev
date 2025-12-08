@@ -70,10 +70,10 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 
 	spriteSheet := NewSpriteSheet(64, 64, ssColumns, ssRows)
 	hitbox := Rect{
-		Left:   -6,
-		Top:    -6,
-		Right:  6,
-		Bottom: 6,
+		Left:   -7,
+		Top:    -7,
+		Right:  7,
+		Bottom: 7,
 	}
 
 	return &GoblinEnemy{
