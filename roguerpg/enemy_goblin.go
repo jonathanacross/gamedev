@@ -23,8 +23,9 @@ const (
 
 type GoblinEnemy struct {
 	BaseCharacter
-	spriteSheet *SpriteSheet
-	animations  map[GoblinEnemyState]map[Direction]*Animation
+	spriteSheet    *SpriteSheet
+	animations     map[GoblinEnemyState]map[Direction]*Animation
+	attackHitboxes map[Direction]map[int]DamageSourceConfig
 
 	// AI
 	state           GoblinEnemyState
@@ -75,6 +76,30 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 		Right:  7,
 		Bottom: 7,
 	}
+	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
+	attackHitboxes := make(map[Direction]map[int]DamageSourceConfig)
+	baseDmg := 1
+
+	attackHitboxes[Up] = map[int]DamageSourceConfig{
+		2: {HitBox: Rect{Left: 3, Top: -24, Right: 13, Bottom: 4}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
+	}
+	attackHitboxes[Down] = map[int]DamageSourceConfig{
+		2: {HitBox: Rect{Left: -13, Top: -4, Right: -3, Bottom: 24}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
+	}
+	attackHitboxes[Left] = map[int]DamageSourceConfig{
+		2: {HitBox: Rect{Left: -25, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
+	}
+	attackHitboxes[Right] = map[int]DamageSourceConfig{
+		2: {HitBox: Rect{Left: -6, Top: 0, Right: 25, Bottom: 10}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
+	}
 
 	return &GoblinEnemy{
 		BaseCharacter: BaseCharacter{
@@ -97,6 +122,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 		},
 		spriteSheet:     spriteSheet,
 		animations:      animations,
+		attackHitboxes:  attackHitboxes,
 		state:           GoblinWalking,
 		direction:       Left,
 		velocity:        getRandomVelocity(),
@@ -207,6 +233,31 @@ func (c *GoblinEnemy) updateWalk(level *Level, player *Player) {
 	c.direction = GetDirection(v)
 }
 
+func (c *GoblinEnemy) getActiveDamageSource() *DamageSource {
+	if c.state != GoblinAttacking {
+		return nil
+	}
+
+	anim := c.animations[GoblinAttacking][c.direction]
+	if anim == nil {
+		return nil
+	}
+
+	animIndex := anim.frameIndex
+
+	// Check if we have an attack config for the current direction and animation frame index
+	if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
+		if config, ok := dirConfigs[animIndex]; ok {
+			// Found an active hitbox config! Create the world-space DamageSource.
+			worldHitbox := config.HitBox.Offset(c.X, c.Y)
+
+			return NewDamageSource(TagEnemy, worldHitbox, config.Damage)
+		}
+	}
+
+	return nil
+}
+
 func (c *GoblinEnemy) updateAttack(level *Level, player *Player) {
 	if (c.velocity.X < 0 && c.X <= player.X-TileSize) ||
 		(c.velocity.X > 0 && c.X >= player.X+TileSize) ||
@@ -271,8 +322,7 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 		c.updateAttack(level, player)
 	}
 
-	if c.isNearPlayer(player.Location()) && c.state == GoblinAttacking {
-		ds := NewDamageSource(TagEnemy, c.GetHurtBox(), 1)
+	if ds := c.getActiveDamageSource(); ds != nil {
 		actions = append(actions, Action{
 			Type:         ActionCreateDamageSource,
 			DamageSource: ds,
