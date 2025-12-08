@@ -171,11 +171,6 @@ func GetDirection(dirVector Vector) Direction {
 	}
 }
 
-func (c *GoblinEnemy) isNearPlayer(playerLoc Location) bool {
-	dist := Vector(playerLoc).Minus(Vector(c.Location()))
-	return dist.Length() <= TileSize
-}
-
 func (c *GoblinEnemy) shouldAttackPlayer(player *Player) bool {
 	// Player should be near the goblin, and aligned either horizontally or vertically
 	dist := Vector(player.Location()).Minus(Vector(c.Location()))
@@ -233,29 +228,36 @@ func (c *GoblinEnemy) updateWalk(level *Level, player *Player) {
 	c.direction = GetDirection(v)
 }
 
-func (c *GoblinEnemy) getActiveDamageSource() *DamageSource {
-	if c.state != GoblinAttacking {
-		return nil
-	}
+func (c *GoblinEnemy) isNearPlayer(playerLoc Location) bool {
+	dist := Vector(playerLoc).Minus(Vector(c.Location()))
+	return dist.Length() <= TileSize
+}
 
-	anim := c.animations[GoblinAttacking][c.direction]
-	if anim == nil {
-		return nil
-	}
+func (c *GoblinEnemy) getActiveDamageSources(player *Player) []*DamageSource {
+	sources := []*DamageSource{}
 
-	animIndex := anim.frameIndex
+	if c.state == GoblinAttacking {
+		anim := c.animations[GoblinAttacking][c.direction]
+		if anim == nil {
+			return nil
+		}
 
-	// Check if we have an attack config for the current direction and animation frame index
-	if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
-		if config, ok := dirConfigs[animIndex]; ok {
-			// Found an active hitbox config! Create the world-space DamageSource.
-			worldHitbox := config.HitBox.Offset(c.X, c.Y)
-
-			return NewDamageSource(TagEnemy, worldHitbox, config.Damage)
+		// Check if we have an attack config for the current direction and animation frame index
+		animIndex := anim.frameIndex
+		if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
+			if config, ok := dirConfigs[animIndex]; ok {
+				worldHitbox := config.HitBox.Offset(c.X, c.Y)
+				sources = append(sources, NewDamageSource(TagEnemy, worldHitbox, config.Damage))
+			}
 		}
 	}
 
-	return nil
+	// Add goblin pushbox when near player as well.
+	if c.isNearPlayer(player.Location()) && (c.state == GoblinAttacking || c.state == GoblinWalking) {
+		sources = append(sources, NewDamageSource(TagEnemy, c.GetHurtBox(), 1))
+	}
+
+	return sources
 }
 
 func (c *GoblinEnemy) updateAttack(level *Level, player *Player) {
@@ -322,7 +324,7 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 		c.updateAttack(level, player)
 	}
 
-	if ds := c.getActiveDamageSource(); ds != nil {
+	for _, ds := range c.getActiveDamageSources(player) {
 		actions = append(actions, Action{
 			Type:         ActionCreateDamageSource,
 			DamageSource: ds,
