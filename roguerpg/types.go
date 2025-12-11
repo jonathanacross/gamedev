@@ -111,6 +111,33 @@ const (
 	Down
 )
 
+func VectorToDirection(dirVector Vector) Direction {
+	angle := math.Atan2(dirVector.Y, dirVector.X)
+	if angle >= -math.Pi/4 && angle < math.Pi/4 {
+		return Right
+	} else if angle >= math.Pi/4 && angle < 3*math.Pi/4 {
+		return Down
+	} else if angle >= -3*math.Pi/4 && angle < -math.Pi/4 {
+		return Up
+	} else {
+		return Left
+	}
+}
+
+func DirectionToVector(dir Direction) Vector {
+	switch dir {
+	case Left:
+		return Vector{X: -1, Y: 0}
+	case Right:
+		return Vector{X: 1, Y: 0}
+	case Up:
+		return Vector{X: 0, Y: -1}
+	case Down:
+		return Vector{X: 0, Y: 1}
+	}
+	return Vector{X: 0, Y: 0}
+}
+
 // EntityTag is used to categorize game objects for collision filtering (e.g., friendly fire)
 type EntityTag int
 
@@ -150,6 +177,7 @@ const (
 	ActionPopState
 	ActionCreateDamageSource
 	ActionDropBomb
+	ActionShootArrow
 	ActionThrowBoomerang
 	ActionReturnBoomerang
 	ActionExplosion

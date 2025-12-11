@@ -13,6 +13,7 @@ const (
 	Walking
 	AttackingSword
 	AttackingShield
+	AttackingBow
 	Hurt
 	Dying
 	Dead
@@ -21,6 +22,7 @@ const (
 const (
 	PlayerSpeed  = 2.0
 	BombCooldown = 750 * time.Millisecond
+	BowCooldown  = 500 * time.Millisecond
 )
 
 type PlayerAnimationKey struct {
@@ -39,6 +41,7 @@ type Player struct {
 	attackHitboxes map[Direction]map[int]DamageSourceConfig // Defines hitboxes for specific animation frames
 
 	bombCooldownTimer *Timer
+	bowCooldownTimer  *Timer
 	hasBoomerang      bool
 
 	primaryWeapon   WeaponType
@@ -89,6 +92,7 @@ func NewPlayer() *Player {
 		Walking:         NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
 		AttackingSword:  NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
 		AttackingShield: NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
+		AttackingBow:    NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 10, false),
 		Hurt:            NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
 		Dying:           NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
 		Dead:            NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
@@ -99,6 +103,7 @@ func NewPlayer() *Player {
 		Walking:         PlayerWalkSpritesImage,
 		AttackingSword:  PlayerAttackSwordSpritesImage,
 		AttackingShield: PlayerAttackShieldSpritesImage,
+		AttackingBow:    PlayerAttackBowSpritesImage,
 		Hurt:            PlayerHurtSpritesImage,
 		Dying:           PlayerDeathSpritesImage,
 		Dead:            PlayerDeathSpritesImage,
@@ -139,6 +144,7 @@ func NewPlayer() *Player {
 		direction:         Down,
 		attackHitboxes:    attackHitboxes,
 		bombCooldownTimer: NewTimer(BombCooldown),
+		bowCooldownTimer:  NewTimer(BowCooldown),
 		hasBoomerang:      true,
 		primaryWeapon:     WeaponSword,
 		secondaryWeapon:   WeaponBoomerang,
@@ -159,7 +165,7 @@ func (p *Player) GetCurrentAnimation() *Animation {
 
 func (p *Player) Move(moveVector Vector) {
 	// Don't change direction or velocity if attacking
-	if p.state != AttackingSword && p.state != AttackingShield {
+	if p.state != AttackingSword && p.state != AttackingShield && p.state != AttackingBow {
 		// Determine facing direction from the move vector.
 		// Prioritize vertical direction for diagonal movement.
 		if moveVector.Y < 0 {
@@ -209,12 +215,35 @@ func (p *Player) UseBomb() *Action {
 		p.bombCooldownTimer.Reset()
 
 		// Calculate the bomb's spawn location based on player's direction
-		loc := Vector(p.Location()).Plus(p.getDirectionVector().Scale(float64(TileSize)))
+		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
 
 		return &Action{
 			Type:      ActionDropBomb,
 			Location:  Location(loc),
-			Direction: p.getDirectionVector(),
+			Direction: DirectionToVector(p.direction),
+		}
+	}
+	return nil
+}
+
+func (p *Player) UseBow() {
+	// Only start attack if Idle or Walking
+	if p.state == Idle || p.state == Walking && p.bowCooldownTimer.IsReady() {
+		p.TransitionState(AttackingBow)
+	}
+}
+
+func (p *Player) ShootArrow() *Action {
+	if p.bowCooldownTimer.IsReady() {
+		p.bowCooldownTimer.Reset()
+
+		// Calculate the bow spawn location based on player's direction
+		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
+
+		return &Action{
+			Type:      ActionShootArrow,
+			Location:  Location(loc),
+			Direction: DirectionToVector(p.direction),
 		}
 	}
 	return nil
@@ -230,12 +259,12 @@ func (p *Player) UseBoomerang() *Action {
 		p.hasBoomerang = false
 
 		// Calculate boomerang spawn location
-		loc := Vector(p.Location()).Plus(p.getDirectionVector().Scale(float64(TileSize)))
+		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
 
 		return &Action{
 			Type:      ActionThrowBoomerang,
 			Location:  Location(loc),
-			Direction: p.getDirectionVector(),
+			Direction: DirectionToVector(p.direction),
 		}
 	}
 	return nil
@@ -252,6 +281,9 @@ func (p *Player) PrimaryAttack() *Action {
 		return p.UseBoomerang()
 	case WeaponShield:
 		p.AttackShield()
+		return nil
+	case WeaponBow:
+		p.UseBow()
 		return nil
 	default:
 		return nil
@@ -270,6 +302,9 @@ func (p *Player) SecondaryAttack() *Action {
 	case WeaponShield:
 		p.AttackShield()
 		return nil
+	case WeaponBow:
+		p.UseBow()
+		return nil
 	default:
 		return nil
 	}
@@ -287,28 +322,28 @@ func (p *Player) IsActive() bool {
 
 // handleState runs the logic for the Player's current state and determines
 // the next state, direction, and velocity (Vx/Vy).
-func (p *Player) handleState() {
+func (p *Player) handleState() []Action {
 	animation := p.GetCurrentAnimation()
 	if animation == nil {
 		p.state = Idle // Should never happen
-		return
+		return nil
 	}
 
 	if p.Health <= 0 && p.state != Dying && p.state != Dead {
 		p.TransitionState(Dying)
-		return
+		return nil
 	}
 
 	// Check for terminal state completion.
 	if p.state == Dying && animation.IsFinished() {
 		p.TransitionState(Dead)
-		return
+		return nil
 	}
 
 	// Once Dead, stop all logic.
 	if p.state == Dead {
 		p.Velocity = Vector{}
-		return
+		return nil
 	}
 
 	// If knockback just finished, transition out of Hurt.
@@ -321,6 +356,13 @@ func (p *Player) handleState() {
 		p.TransitionState(Idle)
 	}
 	if p.state == AttackingShield && animation.IsFinished() {
+		p.TransitionState(Idle)
+	}
+	if p.state == AttackingBow && animation.IsFinished() {
+		// Shoot arrow
+		if action := p.ShootArrow(); action != nil {
+			return []Action{*action}
+		}
 		p.TransitionState(Idle)
 	}
 
@@ -340,6 +382,7 @@ func (p *Player) handleState() {
 		// In these states, zero out user-controlled movement. Knockback is handled separately.
 		p.Velocity = Vector{}
 	}
+	return nil
 }
 
 func (p *Player) TransitionState(newState PlayerState) {
@@ -409,27 +452,12 @@ func (p *Player) ReturnBoomerang() {
 	p.hasBoomerang = true
 }
 
-// TODO: move this, and Direction, to utility function
-func (p *Player) getDirectionVector() Vector {
-	switch p.direction {
-	case Left:
-		return Vector{X: -1, Y: 0}
-	case Right:
-		return Vector{X: 1, Y: 0}
-	case Up:
-		return Vector{X: 0, Y: -1}
-	case Down:
-		return Vector{X: 0, Y: 1}
-	}
-	return Vector{X: 0, Y: 0}
-}
-
 func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	// Handle Knockback Physics.
 	p.UpdateKnockback(level)
 
 	// Handle all state transitions.
-	p.handleState()
+	stateActions := p.handleState()
 
 	p.Velocity.X = p.HandleTileCollisions(level, AxisX, p.Velocity.X)
 	p.Velocity.Y = p.HandleTileCollisions(level, AxisY, p.Velocity.Y)
@@ -441,14 +469,18 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	p.srcRect = p.spriteSheet.Rect(animation.Frame())
 
 	p.bombCooldownTimer.Update()
+	p.bowCooldownTimer.Update()
 
 	// Return any actions back to the game
 	actions := []Action{}
+	if len(stateActions) > 0 {
+		actions = append(actions, stateActions...)
+	}
 	if ds := p.getActiveDamageSource(); ds != nil {
 		actions = append(actions, Action{
 			Type:         ActionCreateDamageSource,
 			Location:     p.Location(),
-			Direction:    p.getDirectionVector(),
+			Direction:    DirectionToVector(p.direction),
 			DamageSource: ds,
 		})
 	}

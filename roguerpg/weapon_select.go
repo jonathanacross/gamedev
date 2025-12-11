@@ -13,7 +13,7 @@ const (
 	WeaponBoomerang
 	WeaponShield
 	WeaponBomb
-	WeaponArrows
+	WeaponBow
 	WeaponWand
 )
 
@@ -23,7 +23,7 @@ const (
 	UiIconBoomerang
 	UiIconShield
 	UiIconBomb
-	UiIconArrows
+	UiIconBow
 	UiIconWand
 	UiIconEmpty
 )
@@ -57,8 +57,8 @@ func NewWeaponSelector() *WeaponSelector {
 			{Type: WeaponBoomerang, IconIndex: UiIconBoomerang},
 			{Type: WeaponBomb, IconIndex: UiIconBomb},
 			{Type: WeaponShield, IconIndex: UiIconShield},
-			// TODO: Add wand and arrows when implemented
-			{Type: WeaponNone, IconIndex: UiIconEmpty},
+			{Type: WeaponBow, IconIndex: UiIconBow},
+			// TODO: Add wand when implemented
 			{Type: WeaponNone, IconIndex: UiIconEmpty},
 		},
 	}

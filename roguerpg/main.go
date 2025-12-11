@@ -143,6 +143,9 @@ func (g *Game) executeActions(actions []Action) {
 		case ActionDropBomb:
 			newBomb := NewBomb(action.Location)
 			g.Level.Objects = append(g.Level.Objects, newBomb)
+		case ActionShootArrow:
+			newArrow := NewArrow(action.Location, action.Direction)
+			g.Level.Objects = append(g.Level.Objects, newArrow)
 		case ActionThrowBoomerang:
 			newBoomerang := NewBoomerang(action.Location, action.Direction, rand.IntN(3)+1)
 			g.Level.Objects = append(g.Level.Objects, newBoomerang)

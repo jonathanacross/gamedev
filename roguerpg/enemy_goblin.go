@@ -158,19 +158,6 @@ func (c *GoblinEnemy) TakeDamage(damage int) {
 	}
 }
 
-func GetDirection(dirVector Vector) Direction {
-	angle := math.Atan2(dirVector.Y, dirVector.X)
-	if angle >= -math.Pi/4 && angle < math.Pi/4 {
-		return Right
-	} else if angle >= math.Pi/4 && angle < 3*math.Pi/4 {
-		return Down
-	} else if angle >= -3*math.Pi/4 && angle < -math.Pi/4 {
-		return Up
-	} else {
-		return Left
-	}
-}
-
 func (c *GoblinEnemy) shouldAttackPlayer(player *Player) bool {
 	// Player should be near the goblin, and aligned either horizontally or vertically
 	dist := Vector(player.Location()).Minus(Vector(c.Location()))
@@ -225,7 +212,7 @@ func (c *GoblinEnemy) updateWalk(level *Level, player *Player) {
 		c.velocity = c.velocity.Rotate(math.Pi / 2)
 	}
 
-	c.direction = GetDirection(v)
+	c.direction = VectorToDirection(v)
 }
 
 func (c *GoblinEnemy) isNearPlayer(playerLoc Location) bool {
@@ -273,7 +260,7 @@ func (c *GoblinEnemy) updateAttack(level *Level, player *Player) {
 	var v Vector
 	v.X = c.HandleTileCollisions(level, AxisX, c.velocity.X)
 	v.Y = c.HandleTileCollisions(level, AxisY, c.velocity.Y)
-	c.direction = GetDirection(v)
+	c.direction = VectorToDirection(v)
 }
 
 func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
