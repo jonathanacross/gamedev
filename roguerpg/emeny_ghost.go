@@ -15,9 +15,10 @@ const (
 	GhostMoving
 
 	// Movement constants
-	GhostWalkSpeed  float64 = 0.6
-	GhostRunSpeed   float64 = 1.2
-	GhostTurnFrames int     = 60 * 3 // every 3 seconds
+	GhostMaxFloatSpeed float64 = 0.8
+	GhostAttackSpeed   float64 = 1.2
+	GhostXFrequency    float64 = 0.02 // radians per frame
+	GhostYFrequency    float64 = 0.03 // radians per frame
 )
 
 type GhostEnemy struct {
@@ -27,10 +28,10 @@ type GhostEnemy struct {
 	attackHitboxes map[Direction]map[int]DamageSourceConfig
 
 	// AI
-	state           GhostEnemyState
-	velocity        Vector
-	direction       Direction
-	turnTimeCounter int
+	state         GhostEnemyState
+	velocity      Vector
+	direction     Direction
+	movementTimer float64 // time t for Lissajous pattern
 }
 
 func NewGhostEnemy(startLoc Location) *GhostEnemy {
@@ -49,7 +50,7 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 		GhostMoving:    NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
 		GhostAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 2*framesPerState, directionOffsets, 8, true),
 		GhostHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, false),
-		GhostDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 10, false),
+		GhostDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 8, false),
 	}
 
 	animations[GhostMoving][Up].SetRandomFrame()
@@ -64,7 +65,6 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 		Right:  7,
 		Bottom: 7,
 	}
-	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
 	attackHitboxes := make(map[Direction]map[int]DamageSourceConfig)
 	baseDmg := 1
 
@@ -116,13 +116,13 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 			isDead:          false,
 			KnockbackFrames: 0,
 		},
-		spriteSheet:     spriteSheet,
-		animations:      animations,
-		attackHitboxes:  attackHitboxes,
-		state:           GhostMoving,
-		direction:       Left,
-		velocity:        getRandomVelocity(),
-		turnTimeCounter: rand.Intn(GhostTurnFrames),
+		spriteSheet:    spriteSheet,
+		animations:     animations,
+		attackHitboxes: attackHitboxes,
+		state:          GhostMoving,
+		direction:      Left,
+		velocity:       getRandomVelocity(),
+		movementTimer:  rand.Float64() * 100,
 	}
 }
 
@@ -187,28 +187,30 @@ func (c *GhostEnemy) updateWalk(level *Level, player *Player) {
 	if c.shouldAttackPlayer(player) {
 		c.state = GhostAttacking
 		c.animations[GhostAttacking][c.direction].Reset()
-		c.velocity = c.getAttackVector(player).Scale(GhostRunSpeed)
+		c.velocity = c.getAttackVector(player).Scale(GhostAttackSpeed)
 		return
 	}
 
-	c.turnTimeCounter++
-	if c.turnTimeCounter >= GhostTurnFrames {
-		c.turnTimeCounter = 0
-		c.velocity = c.velocity.Rotate(math.Pi / 2)
-	}
+	c.movementTimer++
+
+	// Lissajous pattern:
+	// velocity.x = maxGhostVelocity * cos(xFrequency * t)
+	// velocity.y = maxGhostVelocity * sin(yFrequency * t)
+	vx := GhostMaxFloatSpeed * math.Cos(GhostXFrequency*c.movementTimer)
+	vy := GhostMaxFloatSpeed * math.Sin(GhostYFrequency*c.movementTimer)
+	c.velocity = Vector{vx, vy}
 
 	// Apply movement and handle collisions
-	// Use the BaseCharacter's collision handler, which modifies c.X/c.Y
-	c.velocity = c.velocity.Normalize().Scale(GhostWalkSpeed)
 	var v Vector
 	v.X = c.HandleTileCollisions(level, AxisX, c.velocity.X)
 	v.Y = c.HandleTileCollisions(level, AxisY, c.velocity.Y)
-	if v.Length() < 0.01 {
-		// Turn immediately if we run into something; don't reset the turn counter, though
-		c.velocity = c.velocity.Rotate(math.Pi / 2)
-	}
 
-	c.direction = VectorToDirection(v)
+	// Update direction based on actual movement if significant,
+	// otherwise keep facing the same way or face velocity?
+	// The velocity determines direction.
+	if c.velocity.Length() > 0.1 {
+		c.direction = VectorToDirection(c.velocity)
+	}
 }
 
 func (c *GhostEnemy) isNearPlayer(playerLoc Location) bool {
