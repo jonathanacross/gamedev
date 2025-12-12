@@ -68,13 +68,13 @@ func (level *Level) AddEnemies(depth int) {
 		var enemy Character
 		enemyType := rand.Intn(4)
 		switch enemyType {
-		case 0:
-			enemy = NewBlobEnemy(location)
-		case 1:
-			enemy = NewBatEnemy(location)
-		case 2:
-			enemy = NewGoblinEnemy(location)
-		case 3:
+		// case 0:
+		// 	enemy = NewBlobEnemy(location)
+		// case 1:
+		// 	enemy = NewBatEnemy(location)
+		// case 2:
+		// 	enemy = NewGoblinEnemy(location)
+		case 0, 1, 2, 3:
 			enemy = NewGhostEnemy(location)
 		}
 		level.Enemies = append(level.Enemies, enemy)

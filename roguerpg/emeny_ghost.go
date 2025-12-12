@@ -47,7 +47,7 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 	animations := map[GhostEnemyState]map[Direction]*Animation{
 		GhostIdle:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*framesPerState, directionOffsets, 10, true),
 		GhostMoving:    NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
-		GhostAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 2*framesPerState, directionOffsets, 10, true),
+		GhostAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 2*framesPerState, directionOffsets, 8, true),
 		GhostHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, false),
 		GhostDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 10, false),
 	}
@@ -69,24 +69,32 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 	baseDmg := 1
 
 	attackHitboxes[Up] = map[int]DamageSourceConfig{
-		2: {HitBox: Rect{Left: 3, Top: -24, Right: 13, Bottom: 4}, Damage: baseDmg},
-		3: {HitBox: Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
-		4: {HitBox: Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -10, Top: -30, Right: 10, Bottom: -6}, Damage: baseDmg},
+		5: {HitBox: Rect{Left: -11, Top: -11, Right: 10, Bottom: 13}, Damage: baseDmg},
+		6: {HitBox: Rect{Left: -11, Top: -9, Right: 10, Bottom: 13}, Damage: baseDmg},
+		7: {HitBox: Rect{Left: -11, Top: -11, Right: 10, Bottom: 11}, Damage: baseDmg},
 	}
 	attackHitboxes[Down] = map[int]DamageSourceConfig{
-		2: {HitBox: Rect{Left: -13, Top: -4, Right: -3, Bottom: 24}, Damage: baseDmg},
-		3: {HitBox: Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
-		4: {HitBox: Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -10, Top: -30, Right: 10, Bottom: -6}, Damage: baseDmg},
+		5: {HitBox: Rect{Left: -11, Top: 5, Right: 10, Bottom: 20}, Damage: baseDmg},
+		6: {HitBox: Rect{Left: -11, Top: -2, Right: 10, Bottom: 20}, Damage: baseDmg},
+		7: {HitBox: Rect{Left: -11, Top: -4, Right: 10, Bottom: 18}, Damage: baseDmg},
 	}
 	attackHitboxes[Left] = map[int]DamageSourceConfig{
-		2: {HitBox: Rect{Left: -25, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-		3: {HitBox: Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-		4: {HitBox: Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -4, Top: -30, Right: 16, Bottom: -5}, Damage: baseDmg},
+		5: {HitBox: Rect{Left: -24, Top: -6, Right: -3, Bottom: 16}, Damage: baseDmg},
+		6: {HitBox: Rect{Left: -24, Top: -6, Right: -3, Bottom: 16}, Damage: baseDmg},
+		7: {HitBox: Rect{Left: -24, Top: -8, Right: -3, Bottom: 14}, Damage: baseDmg},
 	}
 	attackHitboxes[Right] = map[int]DamageSourceConfig{
-		2: {HitBox: Rect{Left: -6, Top: 0, Right: 25, Bottom: 10}, Damage: baseDmg},
-		3: {HitBox: Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
-		4: {HitBox: Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
+		3: {HitBox: Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
+		4: {HitBox: Rect{Left: -16, Top: -30, Right: 4, Bottom: -5}, Damage: baseDmg},
+		5: {HitBox: Rect{Left: 3, Top: -6, Right: 24, Bottom: 16}, Damage: baseDmg},
+		6: {HitBox: Rect{Left: 3, Top: -6, Right: 24, Bottom: 16}, Damage: baseDmg},
+		7: {HitBox: Rect{Left: 3, Top: -8, Right: 24, Bottom: 14}, Damage: baseDmg},
 	}
 
 	return &GhostEnemy{
@@ -147,7 +155,7 @@ func (c *GhostEnemy) TakeDamage(damage int) {
 }
 
 func (c *GhostEnemy) shouldAttackPlayer(player *Player) bool {
-	// Player should be near the goblin, and aligned either horizontally or vertically
+	// Player should be near the ghost, and aligned either horizontally or vertically
 	dist := Vector(player.Location()).Minus(Vector(c.Location()))
 	alignedHorizontally := math.Abs(dist.Y) < TileSize/2
 	alignedVertically := math.Abs(dist.X) < TileSize/2
@@ -218,6 +226,7 @@ func (c *GhostEnemy) getActiveDamageSources(player *Player) []*DamageSource {
 		}
 
 		// Check if we have an attack config for the current direction and animation frame index
+		// Note: the ghost does not hurt the player when it is near them except during attack
 		animIndex := anim.frameIndex
 		if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
 			if config, ok := dirConfigs[animIndex]; ok {
@@ -225,11 +234,6 @@ func (c *GhostEnemy) getActiveDamageSources(player *Player) []*DamageSource {
 				sources = append(sources, NewDamageSource(TagEnemy, worldHitbox, config.Damage))
 			}
 		}
-	}
-
-	// Add goblin pushbox when near player as well.
-	if c.isNearPlayer(player.Location()) && (c.state == GhostAttacking || c.state == GhostMoving) {
-		sources = append(sources, NewDamageSource(TagEnemy, c.GetHurtBox(), 1))
 	}
 
 	return sources
