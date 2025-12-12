@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spritesheet Hitbox Editor</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .controls { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .control-group { margin-bottom: 10px; }
+        label { display: inline-block; width: 150px; }
+        input[type="number"] { width: 80px; }
+        canvas { border: 1px solid black; cursor: crosshair; display: block; }
+        
+        /* Layout for side-by-side view */
+        .main-container { display: flex; gap: 20px; }
+        
+        /* Container for the magnified view and its output */
+        .zoom-and-output-container {
+            display: flex;
+            flex-direction: column; /* Stack the canvas and output vertically */
+            gap: 15px;
+            flex-shrink: 0; /* Prevents container from shrinking */
+        }
+
+        .sheet-view { flex-basis: content; }
+        .zoom-view { flex-basis: content; }
+        .zoom-view h3 { margin-top: 0; }
+        
+        /* Style for the output box */
+        #output {
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+
+        .origin-dot {
+            width: 5px;
+            height: 5px;
+            background-color: red;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%); /* Center the dot */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Spritesheet Hitbox Editor</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="spritesheetFile">Upload Spritesheet:</label>
+            <input type="file" id="spritesheetFile" accept="image/*">
+        </div>
+
+        <div class="control-group">
+            <label for="gridCols">Grid Columns (W):</label>
+            <input type="number" id="gridCols" value="4" min="1">
+            <label for="gridRows">Grid Rows (H):</label>
+            <input type="number" id="gridRows" value="4" min="1">
+            <button onclick="updateGrid()">Apply Grid</button>
+        </div>
+
+        <div class="control-group">
+            <label>Calculated Sprite Size:</label>
+            <span id="spriteSizeDisplay">N/A</span>
+        </div>
+
+        <div class="control-group">
+            <label for="originX">Sprite Origin X:</label>
+            <input type="number" id="originX" value="8" min="0">
+            <label for="originY">Sprite Origin Y:</label>
+            <input type="number" id="originY" value="8" min="0">
+            <button onclick="updateOrigin()">Apply Origin</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="zoom-and-output-container">
+            <div class="zoom-view">
+                <h3>Magnified Sprite (4x Zoom - Draw Hitbox Here)</h3>
+                <div style="position: relative;">
+                    <canvas id="magnifiedCanvas"></canvas>
+                    <div id="originDot" class="origin-dot" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div id="output">
+                <h2>Hitbox Data (Relative to Origin)</h2>
+                <div id="selectedSpriteInfo">Selected Sprite: None</div>
+                <div id="hitboxCoordinates">Hitbox: N/A</div>
+            </div>
+        </div>
+        
+        <div class="sheet-view">
+            <h2>Full Spritesheet View (Click to Select)</h2>
+            <canvas id="spritesheetCanvas"></canvas>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+
+</body>
+</html>
