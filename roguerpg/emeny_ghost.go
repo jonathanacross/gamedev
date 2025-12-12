@@ -5,48 +5,37 @@ import (
 	"math/rand"
 )
 
-type GoblinEnemyState int
+type GhostEnemyState int
 
 const (
-	GoblinIdle GoblinEnemyState = iota
-	GoblinHurt
-	GoblinDying
-	GoblinAttacking
-	GoblinRunning
-	GoblinWalking
+	GhostIdle GhostEnemyState = iota
+	GhostHurt
+	GhostDying
+	GhostAttacking
+	GhostMoving
 
 	// Movement constants
-	GoblinWalkSpeed  float64 = 0.6
-	GoblinRunSpeed   float64 = 1.2
-	GoblinTurnFrames int     = 60 * 3 // every 3 seconds
+	GhostWalkSpeed  float64 = 0.6
+	GhostRunSpeed   float64 = 1.2
+	GhostTurnFrames int     = 60 * 3 // every 3 seconds
 )
 
-type GoblinEnemy struct {
+type GhostEnemy struct {
 	BaseCharacter
 	spriteSheet    *SpriteSheet
-	animations     map[GoblinEnemyState]map[Direction]*Animation
+	animations     map[GhostEnemyState]map[Direction]*Animation
 	attackHitboxes map[Direction]map[int]DamageSourceConfig
 
 	// AI
-	state           GoblinEnemyState
+	state           GhostEnemyState
 	velocity        Vector
 	direction       Direction
 	turnTimeCounter int
 }
 
-func getRandomVelocity() Vector {
-	velocities := []Vector{
-		{X: 1, Y: 0},
-		{X: -1, Y: 0},
-		{X: 0, Y: 1},
-		{X: 0, Y: -1},
-	}
-	return velocities[rand.Intn(len(velocities))]
-}
-
-func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
-	ssColumns := 8
-	ssRows := 32
+func NewGhostEnemy(startLoc Location) *GhostEnemy {
+	ssColumns := 12
+	ssRows := 20
 	directionOffsets := map[Direction]int{
 		Down:  0 * ssColumns,
 		Up:    1 * ssColumns,
@@ -55,19 +44,18 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 	}
 	framesPerState := ssColumns * len(directionOffsets)
 
-	animations := map[GoblinEnemyState]map[Direction]*Animation{
-		GoblinIdle:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*framesPerState, directionOffsets, 10, true),
-		GoblinWalking:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
-		GoblinRunning:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 2*framesPerState, directionOffsets, 10, true),
-		GoblinAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 3*framesPerState, directionOffsets, 10, true),
-		GoblinHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 6*framesPerState, directionOffsets, 10, false),
-		GoblinDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 7*framesPerState, directionOffsets, 10, false),
+	animations := map[GhostEnemyState]map[Direction]*Animation{
+		GhostIdle:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*framesPerState, directionOffsets, 10, true),
+		GhostMoving:    NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
+		GhostAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 2*framesPerState, directionOffsets, 10, true),
+		GhostHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, false),
+		GhostDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 10, false),
 	}
 
-	animations[GoblinWalking][Up].SetRandomFrame()
-	animations[GoblinWalking][Down].SetRandomFrame()
-	animations[GoblinWalking][Left].SetRandomFrame()
-	animations[GoblinWalking][Right].SetRandomFrame()
+	animations[GhostMoving][Up].SetRandomFrame()
+	animations[GhostMoving][Down].SetRandomFrame()
+	animations[GhostMoving][Left].SetRandomFrame()
+	animations[GhostMoving][Right].SetRandomFrame()
 
 	spriteSheet := NewSpriteSheet(64, 64, ssColumns, ssRows)
 	hitbox := Rect{
@@ -101,7 +89,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 		4: {HitBox: Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
 	}
 
-	return &GoblinEnemy{
+	return &GhostEnemy{
 		BaseCharacter: BaseCharacter{
 			BasePhysical: BasePhysical{
 				BaseSprite: BaseSprite{
@@ -111,7 +99,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 						Y: 32,
 					},
 					srcRect: spriteSheet.Rect(0),
-					image:   GoblinSpritesImage,
+					image:   GhostSpritesImage,
 				},
 				pushBoxOffset: hitbox,
 			},
@@ -123,42 +111,42 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 		spriteSheet:     spriteSheet,
 		animations:      animations,
 		attackHitboxes:  attackHitboxes,
-		state:           GoblinWalking,
+		state:           GhostMoving,
 		direction:       Left,
 		velocity:        getRandomVelocity(),
-		turnTimeCounter: rand.Intn(GoblinTurnFrames),
+		turnTimeCounter: rand.Intn(GhostTurnFrames),
 	}
 }
 
-func (c *GoblinEnemy) ApplyKnockback(force Vector, duration int) {
+func (c *GhostEnemy) ApplyKnockback(force Vector, duration int) {
 	c.BaseCharacter.ApplyKnockback(force, duration)
 
-	if c.IsKnockedBack() && c.state != GoblinDying {
-		c.state = GoblinHurt
-		c.animations[GoblinHurt][c.direction].Reset()
+	if c.IsKnockedBack() && c.state != GhostDying {
+		c.state = GhostHurt
+		c.animations[GhostHurt][c.direction].Reset()
 	}
 }
 
-func (c *GoblinEnemy) IsKnockedBack() bool {
+func (c *GhostEnemy) IsKnockedBack() bool {
 	return c.KnockbackFrames > 0
 }
 
-func (c *GoblinEnemy) TakeDamage(damage int) {
-	if c.isDead || c.state == GoblinDying || c.state == GoblinHurt {
+func (c *GhostEnemy) TakeDamage(damage int) {
+	if c.isDead || c.state == GhostDying || c.state == GhostHurt {
 		return
 	}
 
 	// TODO: consider a state transition like Player that handles animation reset
-	c.state = GoblinHurt
-	c.animations[GoblinHurt][c.direction].Reset()
+	c.state = GhostHurt
+	c.animations[GhostHurt][c.direction].Reset()
 
 	c.Health -= damage
 	if c.Health <= 0 {
-		c.state = GoblinDying
+		c.state = GhostDying
 	}
 }
 
-func (c *GoblinEnemy) shouldAttackPlayer(player *Player) bool {
+func (c *GhostEnemy) shouldAttackPlayer(player *Player) bool {
 	// Player should be near the goblin, and aligned either horizontally or vertically
 	dist := Vector(player.Location()).Minus(Vector(c.Location()))
 	alignedHorizontally := math.Abs(dist.Y) < TileSize/2
@@ -166,7 +154,7 @@ func (c *GoblinEnemy) shouldAttackPlayer(player *Player) bool {
 	return dist.Length() <= TileSize*5 && (alignedHorizontally || alignedVertically)
 }
 
-func (c *GoblinEnemy) getAttackVector(player *Player) Vector {
+func (c *GhostEnemy) getAttackVector(player *Player) Vector {
 	dist := Vector(player.Location()).Minus(Vector(c.Location()))
 	alignedHorizontally := math.Abs(dist.Y) < TileSize/2
 	alignedVertically := math.Abs(dist.X) < TileSize/2
@@ -187,23 +175,23 @@ func (c *GoblinEnemy) getAttackVector(player *Player) Vector {
 }
 
 // updateMovement handles the movement logic and target finding.
-func (c *GoblinEnemy) updateWalk(level *Level, player *Player) {
+func (c *GhostEnemy) updateWalk(level *Level, player *Player) {
 	if c.shouldAttackPlayer(player) {
-		c.state = GoblinAttacking
-		c.animations[GoblinAttacking][c.direction].Reset()
-		c.velocity = c.getAttackVector(player).Scale(GoblinRunSpeed)
+		c.state = GhostAttacking
+		c.animations[GhostAttacking][c.direction].Reset()
+		c.velocity = c.getAttackVector(player).Scale(GhostRunSpeed)
 		return
 	}
 
 	c.turnTimeCounter++
-	if c.turnTimeCounter >= GoblinTurnFrames {
+	if c.turnTimeCounter >= GhostTurnFrames {
 		c.turnTimeCounter = 0
 		c.velocity = c.velocity.Rotate(math.Pi / 2)
 	}
 
 	// Apply movement and handle collisions
 	// Use the BaseCharacter's collision handler, which modifies c.X/c.Y
-	c.velocity = c.velocity.Normalize().Scale(GoblinWalkSpeed)
+	c.velocity = c.velocity.Normalize().Scale(GhostWalkSpeed)
 	var v Vector
 	v.X = c.HandleTileCollisions(level, AxisX, c.velocity.X)
 	v.Y = c.HandleTileCollisions(level, AxisY, c.velocity.Y)
@@ -215,16 +203,16 @@ func (c *GoblinEnemy) updateWalk(level *Level, player *Player) {
 	c.direction = VectorToDirection(v)
 }
 
-func (c *GoblinEnemy) isNearPlayer(playerLoc Location) bool {
+func (c *GhostEnemy) isNearPlayer(playerLoc Location) bool {
 	dist := Vector(playerLoc).Minus(Vector(c.Location()))
 	return dist.Length() <= TileSize
 }
 
-func (c *GoblinEnemy) getActiveDamageSources(player *Player) []*DamageSource {
+func (c *GhostEnemy) getActiveDamageSources(player *Player) []*DamageSource {
 	sources := []*DamageSource{}
 
-	if c.state == GoblinAttacking {
-		anim := c.animations[GoblinAttacking][c.direction]
+	if c.state == GhostAttacking {
+		anim := c.animations[GhostAttacking][c.direction]
 		if anim == nil {
 			return nil
 		}
@@ -240,20 +228,20 @@ func (c *GoblinEnemy) getActiveDamageSources(player *Player) []*DamageSource {
 	}
 
 	// Add goblin pushbox when near player as well.
-	if c.isNearPlayer(player.Location()) && (c.state == GoblinAttacking || c.state == GoblinWalking) {
+	if c.isNearPlayer(player.Location()) && (c.state == GhostAttacking || c.state == GhostMoving) {
 		sources = append(sources, NewDamageSource(TagEnemy, c.GetHurtBox(), 1))
 	}
 
 	return sources
 }
 
-func (c *GoblinEnemy) updateAttack(level *Level, player *Player) {
+func (c *GhostEnemy) updateAttack(level *Level, player *Player) {
 	if (c.velocity.X < 0 && c.X <= player.X-TileSize) ||
 		(c.velocity.X > 0 && c.X >= player.X+TileSize) ||
 		(c.velocity.Y < 0 && c.Y <= player.Y-TileSize) ||
 		(c.velocity.Y > 0 && c.Y >= player.Y+TileSize) {
 		// Passed the player
-		c.state = GoblinWalking
+		c.state = GhostMoving
 		return
 	}
 
@@ -263,7 +251,7 @@ func (c *GoblinEnemy) updateAttack(level *Level, player *Player) {
 	c.direction = VectorToDirection(v)
 }
 
-func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
+func (c *GhostEnemy) Update(level *Level, player *Player) UpdateResult {
 	var actions []Action
 
 	// Animation Update
@@ -274,40 +262,40 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 
 	// Priority State Checks (Dying, Knockback/Hurt)
 	if c.UpdateKnockback(level) {
-		// Allow GoblinHurt animation to finish during knockback
-		if c.state == GoblinHurt && c.animations[GoblinHurt][c.direction].IsFinished() {
-			c.state = GoblinWalking
+		// Allow GhostHurt animation to finish during knockback
+		if c.state == GhostHurt && c.animations[GhostHurt][c.direction].IsFinished() {
+			c.state = GhostMoving
 		}
 
-		if c.state != GoblinDying {
+		if c.state != GhostDying {
 			return UpdateResult{Actions: actions}
 		}
 	}
 
 	// Handle Dying state which overrides all AI
-	if c.state == GoblinDying {
-		if c.animations[GoblinDying][c.direction].IsFinished() {
+	if c.state == GhostDying {
+		if c.animations[GhostDying][c.direction].IsFinished() {
 			c.isDead = true
 		}
 		return UpdateResult{Actions: actions}
 	}
 
 	// Handle Hurt state which overrides AI while animation plays
-	if c.state == GoblinHurt {
-		if !c.animations[GoblinHurt][c.direction].IsFinished() {
+	if c.state == GhostHurt {
+		if !c.animations[GhostHurt][c.direction].IsFinished() {
 			return UpdateResult{Actions: actions} // Wait for hurt anim to finish
 		}
 
 		// Hurt animation finished, return to walking
-		c.state = GoblinWalking
-		c.animations[GoblinWalking][c.direction].Reset()
+		c.state = GhostMoving
+		c.animations[GhostMoving][c.direction].Reset()
 	}
 
 	// Core AI Logic
 	switch c.state {
-	case GoblinWalking:
+	case GhostMoving:
 		c.updateWalk(level, player)
-	case GoblinAttacking:
+	case GhostAttacking:
 		c.updateAttack(level, player)
 	}
 
@@ -321,7 +309,7 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 	return UpdateResult{Actions: actions}
 }
 
-func (c *GoblinEnemy) CanRemove() bool {
+func (c *GhostEnemy) CanRemove() bool {
 	// TODO: consider if we want to merge this with isdead.
 	return false
 }
