@@ -14,6 +14,7 @@ const (
 	AttackingSword
 	AttackingShield
 	AttackingBow
+	AttackingWand
 	Hurt
 	Dying
 	Dead
@@ -23,6 +24,7 @@ const (
 	PlayerSpeed  = 2.0
 	BombCooldown = 750 * time.Millisecond
 	BowCooldown  = 500 * time.Millisecond
+	WandCooldown = 500 * time.Millisecond
 )
 
 type PlayerAnimationKey struct {
@@ -42,6 +44,7 @@ type Player struct {
 
 	bombCooldownTimer *Timer
 	bowCooldownTimer  *Timer
+	wandCooldownTimer *Timer
 	hasBoomerang      bool
 
 	primaryWeapon   WeaponType
@@ -104,6 +107,7 @@ func NewPlayer() *Player {
 		AttackingSword:  PlayerAttackSwordSpritesImage,
 		AttackingShield: PlayerAttackShieldSpritesImage,
 		AttackingBow:    PlayerAttackBowSpritesImage,
+		AttackingWand:   PlayerIdleSpritesImage, // TODO: add player sprite sheet for wand attack
 		Hurt:            PlayerHurtSpritesImage,
 		Dying:           PlayerDeathSpritesImage,
 		Dead:            PlayerDeathSpritesImage,
@@ -146,6 +150,7 @@ func NewPlayer() *Player {
 		attackHitboxes:    attackHitboxes,
 		bombCooldownTimer: NewTimer(BombCooldown),
 		bowCooldownTimer:  NewTimer(BowCooldown),
+		wandCooldownTimer: NewTimer(WandCooldown),
 		hasBoomerang:      true,
 		primaryWeapon:     WeaponSword,
 		secondaryWeapon:   WeaponBoomerang,
@@ -234,6 +239,22 @@ func (p *Player) UseBow() {
 	}
 }
 
+func (p *Player) UseWand() *Action {
+	if p.wandCooldownTimer.IsReady() {
+		p.wandCooldownTimer.Reset()
+
+		// Calculate the bomb's spawn location based on player's direction
+		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
+
+		return &Action{
+			Type:      ActionCreateStar,
+			Location:  Location(loc),
+			Direction: DirectionToVector(p.direction),
+		}
+	}
+	return nil
+}
+
 func (p *Player) ShootArrow() *Action {
 	if p.bowCooldownTimer.IsReady() {
 		p.bowCooldownTimer.Reset()
@@ -286,6 +307,8 @@ func (p *Player) PrimaryAttack() *Action {
 	case WeaponBow:
 		p.UseBow()
 		return nil
+	case WeaponWand:
+		return p.UseWand()
 	default:
 		return nil
 	}
@@ -306,6 +329,8 @@ func (p *Player) SecondaryAttack() *Action {
 	case WeaponBow:
 		p.UseBow()
 		return nil
+	case WeaponWand:
+		return p.UseWand()
 	default:
 		return nil
 	}
@@ -471,6 +496,7 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 
 	p.bombCooldownTimer.Update()
 	p.bowCooldownTimer.Update()
+	p.wandCooldownTimer.Update()
 
 	// Return any actions back to the game
 	actions := []Action{}

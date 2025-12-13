@@ -197,6 +197,7 @@ const (
 	ActionCreateDamageSource
 	ActionDropBomb
 	ActionShootArrow
+	ActionCreateStar
 	ActionThrowBoomerang
 	ActionReturnBoomerang
 	ActionExplosion

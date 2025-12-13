@@ -58,8 +58,7 @@ func NewWeaponSelector() *WeaponSelector {
 			{Type: WeaponBomb, IconIndex: UiIconBomb},
 			{Type: WeaponShield, IconIndex: UiIconShield},
 			{Type: WeaponBow, IconIndex: UiIconBow},
-			// TODO: Add wand when implemented
-			{Type: WeaponNone, IconIndex: UiIconEmpty},
+			{Type: WeaponWand, IconIndex: UiIconWand},
 		},
 	}
 }
