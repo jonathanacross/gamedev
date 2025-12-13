@@ -193,8 +193,15 @@ func (c *BatEnemy) updateMovement(level *Level) {
 
 		// Apply movement and handle collisions
 		// We use the BaseCharacter's collision handler, which modifies c.X/c.Y
+		originalVelocity := velocity
 		velocity.X = c.HandleTileCollisions(level, AxisX, velocity.X)
 		velocity.Y = c.HandleTileCollisions(level, AxisY, velocity.Y)
+
+		// If we hit a wall (velocity blocked), pick a new target immediately to avoid getting stuck
+		if (math.Abs(originalVelocity.X) > 0.001 && velocity.X == 0) ||
+			(math.Abs(originalVelocity.Y) > 0.001 && velocity.Y == 0) {
+			c.findNewTargetTile(level)
+		}
 
 		// Update Direction for Animation
 		if velocity.X < 0 {
