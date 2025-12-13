@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 )
 
@@ -13,6 +12,7 @@ const (
 	BlobAttacking
 	BlobHurt
 	BlobDying
+	BlobStunned
 
 	// Movement constants
 	BlobMoveSpeed float64 = 0.5
@@ -41,6 +41,7 @@ func NewBlobEnemy(startLoc Location) *BlobEnemy {
 		BlobAttacking: NewAnimation([]int{15, 16, 17, 18}, 15, false),
 		BlobHurt:      NewAnimation([]int{5, 6, 5, 6}, 10, false),
 		BlobDying:     NewAnimation([]int{5, 6, 10, 11, 12, 13, 14}, 10, false),
+		BlobStunned:   NewAnimation([]int{5, 6}, 10, true),
 	}
 	animations[BlobIdle].SetRandomFrame()
 
@@ -90,7 +91,8 @@ func (c *BlobEnemy) ApplyKnockback(force Vector, duration int) {
 
 func (c *BlobEnemy) ApplyStun(duration int) {
 	c.BaseCharacter.ApplyStun(duration)
-	fmt.Printf("BlobEnemy stunned for %d frames\n", duration)
+	c.state = BlobStunned
+	c.animations[BlobStunned].Reset()
 }
 
 func (c *BlobEnemy) IsKnockedBack() bool {
@@ -166,6 +168,13 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 		if c.state != BlobDying {
 			return UpdateResult{Actions: actions} // Skip AI and normal movement logic
 		}
+	}
+
+	if c.state != BlobDying && c.UpdateStun() {
+		c.state = BlobStunned
+		return UpdateResult{Actions: actions}
+	} else if c.state == BlobStunned {
+		c.state = BlobIdle
 	}
 
 	switch c.state {

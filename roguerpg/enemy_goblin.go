@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 )
@@ -15,6 +14,7 @@ const (
 	GoblinAttacking
 	GoblinRunning
 	GoblinWalking
+	GoblinStunned
 
 	// Movement constants
 	GoblinWalkSpeed  float64 = 0.6
@@ -63,6 +63,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 		GoblinAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 3*framesPerState, directionOffsets, 10, true),
 		GoblinHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 6*framesPerState, directionOffsets, 10, false),
 		GoblinDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 7*framesPerState, directionOffsets, 10, false),
+		GoblinStunned:   NewDirectionAnimationMap([]int{0, 1, 2, 3}, 6*framesPerState, directionOffsets, 10, true),
 	}
 
 	animations[GoblinWalking][Up].SetRandomFrame()
@@ -143,7 +144,8 @@ func (c *GoblinEnemy) ApplyKnockback(force Vector, duration int) {
 
 func (c *GoblinEnemy) ApplyStun(duration int) {
 	c.BaseCharacter.ApplyStun(duration)
-	fmt.Printf("GoblinEnemy stunned for %d frames\n", duration)
+	c.state = GoblinStunned
+	c.animations[GoblinStunned][c.direction].Reset()
 }
 
 func (c *GoblinEnemy) IsKnockedBack() bool {
@@ -289,6 +291,13 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 		if c.state != GoblinDying {
 			return UpdateResult{Actions: actions}
 		}
+	}
+
+	if c.state != GoblinDying && c.UpdateStun() {
+		c.state = GoblinStunned
+		return UpdateResult{Actions: actions}
+	} else if c.state == GoblinStunned {
+		c.state = GoblinWalking
 	}
 
 	// Handle Dying state which overrides all AI

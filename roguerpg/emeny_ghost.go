@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 )
@@ -14,6 +13,7 @@ const (
 	GhostDying
 	GhostAttacking
 	GhostMoving
+	GhostStunned
 
 	// Movement constants
 	GhostMaxFloatSpeed float64 = 0.8
@@ -52,6 +52,7 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 		GhostAttacking: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 2*framesPerState, directionOffsets, 8, true),
 		GhostHurt:      NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, false),
 		GhostDying:     NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 8, false),
+		GhostStunned:   NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, true),
 	}
 
 	animations[GhostMoving][Up].SetRandomFrame()
@@ -139,7 +140,8 @@ func (c *GhostEnemy) ApplyKnockback(force Vector, duration int) {
 
 func (c *GhostEnemy) ApplyStun(duration int) {
 	c.BaseCharacter.ApplyStun(duration)
-	fmt.Printf("GhostEnemy stunned for %d frames\n", duration)
+	c.state = GhostStunned
+	c.animations[GhostStunned][c.direction].Reset()
 }
 
 func (c *GhostEnemy) IsKnockedBack() bool {
@@ -283,6 +285,13 @@ func (c *GhostEnemy) Update(level *Level, player *Player) UpdateResult {
 		if c.state != GhostDying {
 			return UpdateResult{Actions: actions}
 		}
+	}
+
+	if c.state != GhostDying && c.UpdateStun() {
+		c.state = GhostStunned
+		return UpdateResult{Actions: actions}
+	} else if c.state == GhostStunned {
+		c.state = GhostMoving
 	}
 
 	// Handle Dying state which overrides all AI

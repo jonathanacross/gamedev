@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 )
@@ -12,6 +11,7 @@ const (
 	BatFlying BatEnemyState = iota
 	BatHurt
 	BatDying
+	BatStunned
 
 	// Movement constants
 	BatMoveSpeed         float64 = 0.8
@@ -41,9 +41,10 @@ func NewBatEnemy(startLoc Location) *BatEnemy {
 	}
 	framesPerState := ssColumns * len(directionOffsets)
 	animations := map[BatEnemyState]map[Direction]*Animation{
-		BatFlying: NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 0*framesPerState, directionOffsets, 10, true),
-		BatHurt:   NewDirectionAnimationMap([]int{0, 1, 0, 1}, 2*framesPerState, directionOffsets, 10, false),
-		BatDying:  NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 3*framesPerState, directionOffsets, 6, false),
+		BatFlying:  NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 0*framesPerState, directionOffsets, 10, true),
+		BatHurt:    NewDirectionAnimationMap([]int{0, 1, 0, 1}, 2*framesPerState, directionOffsets, 10, false),
+		BatDying:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 3*framesPerState, directionOffsets, 6, false),
+		BatStunned: NewDirectionAnimationMap([]int{0, 1}, 2*framesPerState, directionOffsets, 10, true),
 	}
 
 	animations[BatFlying][Left].SetRandomFrame()
@@ -97,7 +98,8 @@ func (c *BatEnemy) ApplyKnockback(force Vector, duration int) {
 
 func (c *BatEnemy) ApplyStun(duration int) {
 	c.BaseCharacter.ApplyStun(duration)
-	fmt.Printf("BatEnemy stunned for %d frames\n", duration)
+	c.state = BatStunned
+	c.animations[BatStunned][c.direction].Reset()
 }
 
 func (c *BatEnemy) IsKnockedBack() bool {
@@ -222,6 +224,16 @@ func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
 		if c.state != BatDying {
 			return UpdateResult{Actions: actions}
 		}
+	}
+
+	if c.state != BatDying && c.UpdateStun() {
+		c.state = BatStunned
+		// While stunned, we just play the animation and do nothing else
+		// The animation loop is set to true for BatStunned, so it will loop until stun logic ends
+		return UpdateResult{Actions: actions}
+	} else if c.state == BatStunned {
+		// Stun finished, return to flying
+		c.state = BatFlying
 	}
 
 	// Handle Dying state which overrides all AI

@@ -87,7 +87,7 @@ func (b *Boomerang) Update(level *Level, player *Player) UpdateResult {
 	}
 
 	var actions []Action
-	stunDuration := 60 // 1 second stun
+	stunDuration := 120 // 2 seconds stun
 	hitBox := Rect{
 		Left:   b.X - 5,
 		Top:    b.Y - 5,
