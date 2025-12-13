@@ -135,6 +135,7 @@ func NewPlayer() *Player {
 			},
 			Health:          8,
 			MaxHealth:       8,
+			Experience:      0,
 			KnockbackFrames: 0,
 		},
 		images:            charImages,

@@ -72,6 +72,7 @@ func NewBatEnemy(startLoc Location) *BatEnemy {
 			},
 			Health:          3,
 			MaxHealth:       3,
+			Experience:      3,
 			isDead:          false,
 			KnockbackFrames: 0,
 		},

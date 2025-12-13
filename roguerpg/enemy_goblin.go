@@ -117,6 +117,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 			},
 			Health:          5,
 			MaxHealth:       5,
+			Experience:      5,
 			isDead:          false,
 			KnockbackFrames: 0,
 		},

@@ -1,6 +1,13 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"strconv"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+
+	"image/color"
+)
 
 const (
 	HeartWidth        = 11
@@ -41,6 +48,39 @@ func DrawPlayerHeath(screen *ebiten.Image, currHeath int, maxHeath int) {
 	}
 }
 
+// TODO: move this to a utils file
+func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, c color.Color) {
+	fontSize := float64(16)
+	fontFace := &text.GoTextFace{
+		Source: TextFaceSource,
+		Size:   fontSize,
+	}
+
+	// Manually handle alignment to ensure pixel-perfect rendering
+	textWidth, _ := text.Measure(message, fontFace, 1.0)
+	if align == text.AlignCenter {
+		x -= float64(textWidth) / 2
+	} else if align == text.AlignEnd {
+		x -= float64(textWidth)
+	}
+	x = float64(int(x))
+	y = float64(int(y))
+
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(x, y)
+	op.ColorScale.ScaleWithColor(c)
+	op.LineSpacing = fontSize
+	op.PrimaryAlign = text.AlignStart
+
+	text.Draw(screen, message, fontFace, op)
+}
+
+func DrawExperience(screen *ebiten.Image, experience int) {
+	expString := strconv.Itoa(experience)
+	drawTextAt(screen, "Exp: "+expString, ScreenWidth-80, 18, text.AlignStart, color.White)
+}
+
 func DrawHeadsUpDisplay(screen *ebiten.Image, player *Player) {
 	DrawPlayerHeath(screen, player.Health, player.MaxHealth)
+	DrawExperience(screen, player.Experience)
 }

@@ -67,6 +67,7 @@ func NewBlobEnemy(startLoc Location) *BlobEnemy {
 			},
 			Health:          3,
 			MaxHealth:       3,
+			Experience:      2,
 			isDead:          false,
 			KnockbackFrames: 0,
 		},

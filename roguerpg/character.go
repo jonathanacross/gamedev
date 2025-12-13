@@ -7,8 +7,9 @@ import "math"
 type BaseCharacter struct {
 	BasePhysical
 
-	Health    int
-	MaxHealth int
+	Health     int
+	MaxHealth  int
+	Experience int
 
 	// Knockback fields
 	// TODO: make this a vector

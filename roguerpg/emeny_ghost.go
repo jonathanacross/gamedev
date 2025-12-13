@@ -61,9 +61,9 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 	spriteSheet := NewSpriteSheet(64, 64, ssColumns, ssRows)
 	hitbox := Rect{
 		Left:   -7,
-		Top:    -7,
+		Top:    -21,
 		Right:  7,
-		Bottom: 7,
+		Bottom: 0,
 	}
 	attackHitboxes := make(map[Direction]map[int]DamageSourceConfig)
 	baseDmg := 1
@@ -113,6 +113,7 @@ func NewGhostEnemy(startLoc Location) *GhostEnemy {
 			},
 			Health:          5,
 			MaxHealth:       5,
+			Experience:      5,
 			isDead:          false,
 			KnockbackFrames: 0,
 		},

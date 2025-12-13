@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 
 	"image"
@@ -8,6 +9,7 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 //go:embed assets/*
@@ -34,6 +36,7 @@ var BoomerangSpritesImage = loadImage("assets/boomerang.png")
 var HealthHeartImage = loadImage("assets/heart.png")
 var WeaponSelectWindowImage = loadImage("assets/weapon_select_window.png")
 var UiIconsImage = loadImage("assets/ui_icons.png")
+var TextFaceSource = loadFaceSource("assets/m5x7.ttf")
 
 func loadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
@@ -48,4 +51,17 @@ func loadImage(name string) *ebiten.Image {
 	}
 
 	return ebiten.NewImageFromImage(img)
+}
+
+func loadFaceSource(name string) *text.GoTextFaceSource {
+	f, err := assets.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	face, err := text.NewGoTextFaceSource(bytes.NewReader(f))
+	if err != nil {
+		panic(err)
+	}
+	return face
 }
