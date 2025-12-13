@@ -283,6 +283,10 @@ func (c *GhostEnemy) Update(level *Level, player *Player) UpdateResult {
 	if c.state == GhostDying {
 		if c.animations[GhostDying][c.direction].IsFinished() {
 			c.isDead = true
+			actions = append(actions, Action{
+				Type:       ActionGainXP,
+				Experience: c.Experience,
+			})
 		}
 		return UpdateResult{Actions: actions}
 	}

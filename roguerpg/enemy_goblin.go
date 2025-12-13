@@ -117,7 +117,7 @@ func NewGoblinEnemy(startLoc Location) *GoblinEnemy {
 			},
 			Health:          5,
 			MaxHealth:       5,
-			Experience:      5,
+			Experience:      6,
 			isDead:          false,
 			KnockbackFrames: 0,
 		},
@@ -289,6 +289,10 @@ func (c *GoblinEnemy) Update(level *Level, player *Player) UpdateResult {
 	if c.state == GoblinDying {
 		if c.animations[GoblinDying][c.direction].IsFinished() {
 			c.isDead = true
+			actions = append(actions, Action{
+				Type:       ActionGainXP,
+				Experience: c.Experience,
+			})
 		}
 		return UpdateResult{Actions: actions}
 	}

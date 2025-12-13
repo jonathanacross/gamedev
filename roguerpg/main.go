@@ -160,6 +160,8 @@ func (g *Game) executeActions(actions []Action) {
 			g.GoUpLevel()
 		case ActionGoDownLevel:
 			g.GoDownLevel()
+		case ActionGainXP:
+			g.Player.Experience += action.Experience
 		default:
 		}
 	}

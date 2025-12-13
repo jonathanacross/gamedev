@@ -226,6 +226,10 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 	case BlobDying:
 		if c.animations[BlobDying].IsFinished() {
 			c.isDead = true
+			actions = append(actions, Action{
+				Type:       ActionGainXP,
+				Experience: c.Experience,
+			})
 		}
 	}
 

@@ -184,6 +184,7 @@ const (
 	ActionSwitchWeapon
 	ActionGoUpLevel
 	ActionGoDownLevel
+	ActionGainXP
 )
 
 // Action is the generic struct returned by any GameObject
@@ -196,6 +197,7 @@ type Action struct {
 	GameState    GameState     // only used for ActionPushState
 	DamageSource *DamageSource // only populated for ActionCreateDamageSource
 	WeaponType   WeaponType    // only used for ActionSwitchWeapon
+	Experience   int           // only used for ActionGainXP
 }
 
 type UpdateResult struct {
