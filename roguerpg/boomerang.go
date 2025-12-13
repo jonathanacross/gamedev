@@ -86,7 +86,22 @@ func (b *Boomerang) Update(level *Level, player *Player) UpdateResult {
 		}
 	}
 
-	return UpdateResult{}
+	var actions []Action
+	stunDuration := 60 // 1 second stun
+	hitBox := Rect{
+		Left:   b.X - 5,
+		Top:    b.Y - 5,
+		Right:  b.X + 5,
+		Bottom: b.Y + 5,
+	}
+	// Create a stun source at the boomerang's location
+	ds := NewStunSource(TagPlayer, hitBox, stunDuration)
+	actions = append(actions, Action{
+		Type:         ActionCreateDamageSource,
+		DamageSource: ds,
+	})
+
+	return UpdateResult{Actions: actions}
 }
 
 func (b *Boomerang) CanRemove() bool {

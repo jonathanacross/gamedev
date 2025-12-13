@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 )
@@ -134,6 +135,11 @@ func (c *GhostEnemy) ApplyKnockback(force Vector, duration int) {
 		c.state = GhostHurt
 		c.animations[GhostHurt][c.direction].Reset()
 	}
+}
+
+func (c *GhostEnemy) ApplyStun(duration int) {
+	c.BaseCharacter.ApplyStun(duration)
+	fmt.Printf("GhostEnemy stunned for %d frames\n", duration)
 }
 
 func (c *GhostEnemy) IsKnockedBack() bool {

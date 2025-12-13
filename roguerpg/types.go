@@ -147,6 +147,13 @@ const (
 	TagTile
 )
 
+type DamageType int
+
+const (
+	DamageTypePhysical DamageType = iota
+	DamageTypeStun
+)
+
 // DamageSourceConfig holds the Rect offset and damage value for a specific attack frame.
 // Rect is relative to the player's center (Location).
 type DamageSourceConfig struct {
@@ -154,11 +161,13 @@ type DamageSourceConfig struct {
 	Damage int
 }
 
-// DamageSource represents an active attack hitbox in the world.
+// DamageSource is a generic struct for anything that deals damage or applies effects (like stun).
 type DamageSource struct {
-	SourceTag EntityTag // e.g., TagPlayer, TagEnemy
-	HitBox    Rect      // The current world-space hitbox of the attack
-	Damage    int
+	SourceTag EntityTag  // e.g., TagPlayer, TagEnemy
+	HitBox    Rect       // The current world-space hitbox of the attack
+	Damage    int        // Used for DamageTypePhysical
+	Type      DamageType // Physical or Stun
+	Duration  int        // Used for DamageTypeStun (in frames)
 }
 
 func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource {
@@ -166,6 +175,16 @@ func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource
 		SourceTag: sourceTag,
 		HitBox:    hitBox,
 		Damage:    damage,
+		Type:      DamageTypePhysical,
+	}
+}
+
+func NewStunSource(sourceTag EntityTag, hitBox Rect, duration int) *DamageSource {
+	return &DamageSource{
+		SourceTag: sourceTag,
+		HitBox:    hitBox,
+		Duration:  duration,
+		Type:      DamageTypeStun,
 	}
 }
 
@@ -252,6 +271,10 @@ type Character interface {
 	TakeDamage(damage int)
 	ApplyKnockback(force Vector, duration int)
 	IsKnockedBack() bool
+
+	ApplyStun(duration int)
+	IsStunned() bool
+
 	IsDead() bool
 }
 

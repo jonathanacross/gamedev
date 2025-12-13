@@ -17,6 +17,9 @@ type BaseCharacter struct {
 	KnockbackVy     float64
 	KnockbackFrames int
 
+	// Stun fields
+	StunFrames int
+
 	// Internal state tracking for death/dying (specific implementation is handled by Player/Enemy)
 	isDead bool
 }
@@ -41,6 +44,25 @@ func (c *BaseCharacter) IsKnockedBack() bool {
 
 func (c *BaseCharacter) IsDead() bool {
 	return c.isDead
+}
+
+func (c *BaseCharacter) ApplyStun(duration int) {
+	if c.isDead {
+		return
+	}
+	c.StunFrames = duration
+}
+
+func (c *BaseCharacter) IsStunned() bool {
+	return c.StunFrames > 0
+}
+
+func (c *BaseCharacter) UpdateStun() bool {
+	if c.StunFrames > 0 {
+		c.StunFrames--
+		return true
+	}
+	return false
 }
 
 // CheckAndApplyMovement performs the movement for the given velocity v and returns true

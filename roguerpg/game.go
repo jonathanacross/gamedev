@@ -18,18 +18,23 @@ func (g *MainGameState) checkDamageAgainstTargets(damageSource *DamageSource, ta
 		}
 
 		if damageSource.HitBox.Intersects(target.GetHurtBox()) {
-			// Apply damage and knockback
-			target.TakeDamage(damageSource.Damage)
+			if damageSource.Type == DamageTypeStun {
+				// Apply Stun
+				target.ApplyStun(damageSource.Duration)
+			} else {
+				// Apply damage and knockback (Physical)
+				target.TakeDamage(damageSource.Damage)
 
-			// The attacker's location for knockback calculation is the center of the HitBox.
-			// This is better than the Character location for area-of-effect attacks (like bombs).
-			attackerLoc := Location{
-				X: (damageSource.HitBox.Left + damageSource.HitBox.Right) / 2,
-				Y: (damageSource.HitBox.Top + damageSource.HitBox.Bottom) / 2,
+				// The attacker's location for knockback calculation is the center of the HitBox.
+				// This is better than the Character location for area-of-effect attacks (like bombs).
+				attackerLoc := Location{
+					X: (damageSource.HitBox.Left + damageSource.HitBox.Right) / 2,
+					Y: (damageSource.HitBox.Top + damageSource.HitBox.Bottom) / 2,
+				}
+
+				force := CalculateKnockbackForce(attackerLoc, target.Location(), KnockbackForce)
+				target.ApplyKnockback(force, KnockbackDuration)
 			}
-
-			force := CalculateKnockbackForce(attackerLoc, target.Location(), KnockbackForce)
-			target.ApplyKnockback(force, KnockbackDuration)
 			hitCharacters = append(hitCharacters, target)
 		}
 	}

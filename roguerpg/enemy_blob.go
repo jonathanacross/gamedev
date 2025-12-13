@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 )
 
@@ -85,6 +86,11 @@ func (c *BlobEnemy) ApplyKnockback(force Vector, duration int) {
 		c.state = BlobHurt
 		c.animations[BlobHurt].Reset()
 	}
+}
+
+func (c *BlobEnemy) ApplyStun(duration int) {
+	c.BaseCharacter.ApplyStun(duration)
+	fmt.Printf("BlobEnemy stunned for %d frames\n", duration)
 }
 
 func (c *BlobEnemy) IsKnockedBack() bool {
