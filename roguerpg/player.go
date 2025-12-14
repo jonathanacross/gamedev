@@ -23,8 +23,8 @@ const (
 const (
 	PlayerSpeed  = 2.0
 	BombCooldown = 750 * time.Millisecond
-	BowCooldown  = 500 * time.Millisecond
-	WandCooldown = 500 * time.Millisecond
+	BowCooldown  = 300 * time.Millisecond
+	WandCooldown = 2000 * time.Millisecond
 )
 
 type PlayerAnimationKey struct {

@@ -16,7 +16,7 @@ type Star struct {
 }
 
 func NewStar(location Location, direction Vector, target Character) *Star {
-	spriteSheet := NewSpriteSheet(32, 32, 4, 3)
+	spriteSheet := NewSpriteSheet(16, 16, 4, 3)
 	var animation *Animation = nil
 
 	animation = NewAnimation([]int{0, 1, 2, 3}, 5, true)
@@ -35,28 +35,29 @@ func NewStar(location Location, direction Vector, target Character) *Star {
 			image:    StarSpritesImage,
 			srcRect:  spriteSheet.Rect(0),
 			drawOffset: Location{
-				X: 16,
-				Y: 16,
+				X: 8,
+				Y: 8,
 			},
 		},
 		spriteSheet:  spriteSheet,
 		animation:    animation,
 		target:       target,
 		direction:    direction.Normalize(),
-		speed:        4.0,
+		speed:        1.0,
 		finished:     false,
-		idleTimer:    NewTimer(500 * time.Millisecond),
+		idleTimer:    NewTimer(1500 * time.Millisecond),
 		damageSource: damageSource,
 	}
 }
 
 func (b *Star) Update(level *Level, player *Player) UpdateResult {
 	b.animation.Update()
+	b.idleTimer.Update()
 	b.srcRect = b.spriteSheet.Rect(b.animation.Frame())
 
 	if b.target != nil && !b.target.IsDead() {
 		// If we have a valid target, track it
-		turnRate := 0.2
+		turnRate := 0.05
 		dCurr := b.direction
 		dTarget := Vector(b.target.Location()).Minus(Vector(b.Location)).Normalize()
 		dNew := (dCurr.Scale(1 - turnRate)).Plus(dTarget.Scale(turnRate))
@@ -72,15 +73,12 @@ func (b *Star) Update(level *Level, player *Player) UpdateResult {
 		}
 	} else {
 		// No target or target dead
-		b.idleTimer.Update()
-
 		v := b.direction.Scale(b.speed)
 		b.X += v.X
 		b.Y += v.Y
-
-		if b.idleTimer.IsReady() {
-			b.finished = true
-		}
+	}
+	if b.idleTimer.IsReady() {
+		b.finished = true
 	}
 
 	if ds := b.getActiveDamageSource(); ds != nil {
