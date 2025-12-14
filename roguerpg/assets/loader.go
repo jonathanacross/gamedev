@@ -13,28 +13,34 @@ import (
 //go:embed *
 var assetsFS embed.FS
 
-var TerrainTileset = loadImage("terrain.png")
-var WallBlobTileset = loadImage("walls_blob.png")
-var DungeonObjectsTileset = loadImage("dungeon_objects.png")
-var PlayerIdleSpritesImage = loadImage("player_idle.png")
-var PlayerWalkSpritesImage = loadImage("player_walk.png")
-var PlayerHurtSpritesImage = loadImage("player_hurt.png")
-var PlayerDeathSpritesImage = loadImage("player_death.png")
-var PlayerAttackSwordSpritesImage = loadImage("player_attack_sword.png")
-var PlayerAttackShieldSpritesImage = loadImage("player_attack_shield.png")
-var PlayerAttackBowSpritesImage = loadImage("player_attack_bow.png")
-var BatSpritesImage = loadImage("bat.png")
-var BlobSpritesImage = loadImage("blob.png")
-var GoblinSpritesImage = loadImage("goblin.png")
-var GhostSpritesImage = loadImage("ghost.png")
-var BombSpritesImage = loadImage("bomb.png")
-var ArrowSpritesImage = loadImage("arrow.png")
-var BombExplosionSpritesImage = loadImage("explosion.png")
-var BoomerangSpritesImage = loadImage("boomerang.png")
-var StarSpritesImage = loadImage("star_small.png")
-var HealthHeartImage = loadImage("heart.png")
-var WeaponSelectWindowImage = loadImage("weapon_select_window.png")
-var UiIconsImage = loadImage("ui_icons.png")
+var TerrainTileset = loadImage("level/terrain.png")
+var WallBlobTileset = loadImage("level/walls_blob.png")
+
+var PlayerIdleSpritesImage = loadImage("player/idle.png")
+var PlayerWalkSpritesImage = loadImage("player/walk.png")
+var PlayerHurtSpritesImage = loadImage("player/hurt.png")
+var PlayerDeathSpritesImage = loadImage("player/death.png")
+var PlayerAttackSwordSpritesImage = loadImage("player/attack_sword.png")
+var PlayerAttackShieldSpritesImage = loadImage("player/attack_shield.png")
+var PlayerAttackBowSpritesImage = loadImage("player/attack_bow.png")
+
+var BatSpritesImage = loadImage("enemies/bat.png")
+var BlobSpritesImage = loadImage("enemies/blob.png")
+var GoblinSpritesImage = loadImage("enemies/goblin.png")
+var GhostSpritesImage = loadImage("enemies/ghost.png")
+
+var BombSpritesImage = loadImage("objects/bomb.png")
+var ArrowSpritesImage = loadImage("objects/arrow.png")
+var BombExplosionSpritesImage = loadImage("objects/explosion.png")
+var BoomerangSpritesImage = loadImage("objects/boomerang.png")
+var StarSpritesImage = loadImage("objects/star.png")
+var StairsSpritesImage = loadImage("objects/stairs.png")
+var ChestSpritesImage = loadImage("objects/chest.png")
+
+var HealthHeartImage = loadImage("ui/heart.png")
+var WeaponSelectWindowImage = loadImage("ui/weapon_select_window.png")
+var UiIconsImage = loadImage("ui/icons.png")
+
 var TextFaceSource = loadFaceSource("m5x7.ttf")
 
 func loadImage(name string) *ebiten.Image {

@@ -33,7 +33,7 @@ func NewChest(location core.Location) *Chest {
 		BasePhysical: core.BasePhysical{
 			BaseSprite: core.BaseSprite{
 				Loc:     location,
-				Image:   assets.DungeonObjectsTileset,
+				Image:   assets.ChestSpritesImage,
 				SrcRect: spriteSheet.Rect(ChestClosedIdx),
 				DrawOffset: core.Location{
 					X: 7,
