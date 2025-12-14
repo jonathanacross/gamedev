@@ -150,7 +150,7 @@ func (g *Game) executeActions(actions []Action) {
 			newBoomerang := NewBoomerang(action.Location, action.Direction, rand.IntN(3)+1)
 			g.Level.Objects = append(g.Level.Objects, newBoomerang)
 		case ActionCreateStar:
-			newStar := NewStar(action.Location, action.Direction)
+			newStar := NewStar(action.Location, action.Direction, action.Target)
 			g.Level.Objects = append(g.Level.Objects, newStar)
 		case ActionReturnBoomerang:
 			g.Player.ReturnBoomerang()

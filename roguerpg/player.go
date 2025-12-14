@@ -239,17 +239,23 @@ func (p *Player) UseBow() {
 	}
 }
 
-func (p *Player) UseWand() *Action {
+func (p *Player) UseWand(level *Level) *Action {
 	if p.wandCooldownTimer.IsReady() {
 		p.wandCooldownTimer.Reset()
 
 		// Calculate the bomb's spawn location based on player's direction
 		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
 
+		var target Character
+		if level != nil {
+			target = level.FindNearestEnemy(p.Location(), 6*TileSize)
+		}
+
 		return &Action{
 			Type:      ActionCreateStar,
 			Location:  Location(loc),
 			Direction: DirectionToVector(p.direction),
+			Target:    target,
 		}
 	}
 	return nil
@@ -292,7 +298,7 @@ func (p *Player) UseBoomerang() *Action {
 	return nil
 }
 
-func (p *Player) PrimaryAttack() *Action {
+func (p *Player) PrimaryAttack(level *Level) *Action {
 	switch p.primaryWeapon {
 	case WeaponSword:
 		p.AttackSword()
@@ -308,13 +314,13 @@ func (p *Player) PrimaryAttack() *Action {
 		p.UseBow()
 		return nil
 	case WeaponWand:
-		return p.UseWand()
+		return p.UseWand(level)
 	default:
 		return nil
 	}
 }
 
-func (p *Player) SecondaryAttack() *Action {
+func (p *Player) SecondaryAttack(level *Level) *Action {
 	switch p.secondaryWeapon {
 	case WeaponSword:
 		p.AttackSword()
@@ -330,7 +336,7 @@ func (p *Player) SecondaryAttack() *Action {
 		p.UseBow()
 		return nil
 	case WeaponWand:
-		return p.UseWand()
+		return p.UseWand(level)
 	default:
 		return nil
 	}

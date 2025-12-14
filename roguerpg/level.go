@@ -117,3 +117,22 @@ func (level *Level) GetDownstairsLocation() (Location, error) {
 	}
 	return Location{}, fmt.Errorf("no downstairs found in level")
 }
+
+// Returns the nearest enemy to the given location within the maxDist
+// If no enemy is found within the maxDist, returns nil
+func (level *Level) FindNearestEnemy(location Location, maxDist float64) Character {
+	var nearestEnemy Character
+	minDist := maxDist
+
+	for _, enemy := range level.Enemies {
+		if enemy.IsDead() {
+			continue
+		}
+		dist := Vector(location).Minus(Vector(enemy.Location())).Length()
+		if dist < minDist {
+			minDist = dist
+			nearestEnemy = enemy
+		}
+	}
+	return nearestEnemy
+}

@@ -218,6 +218,7 @@ type Action struct {
 	DamageSource *DamageSource // only populated for ActionCreateDamageSource
 	WeaponType   WeaponType    // only used for ActionSwitchWeapon
 	Experience   int           // only used for ActionGainXP
+	Target       Character     // only used for ActionCreateStar
 }
 
 type UpdateResult struct {
