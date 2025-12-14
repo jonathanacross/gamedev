@@ -1,7 +1,6 @@
 package level
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"roguerpg/core"
@@ -62,36 +61,6 @@ func (level *Level) FindRandomFloorLocation() core.Location {
 			return level.TileToWorld(x, y)
 		}
 	}
-}
-
-// AddEnemies and AddObjects methods removed.
-// They will be implemented as functions in `main` package or independent factories
-// that take *Level as argument. We should move them later.
-
-func (level *Level) GetUpstairsLocation() (core.Location, error) {
-	// Problem: Stairs is in `objects` package.
-	// `level` depends on `objects`? NO. Dependencies: level -> core.
-	// `objects` -> core.
-	// If we import `roguerpg/objects`, we make `level` depend on `objects`.
-	// The plan says `level` depends on `core`.
-	// So `level` CANNOT know about `Stairs` struct directly if `Stairs` is in `objects`.
-
-	// Solutions:
-	// 1. Check for `IsUpstairs` property via interface? `core.Interactable`?
-	//    `core.Interactable` doesn't have `IsUpstairs`.
-	// 2. Add `IsUpstairs() bool` to an interface in `core`?
-	// 3. Keep `GetUpstairsLocation` but rely on some `Tag` or `Type`?
-	//    `GameObject` doesn't have Type.
-	// 4. Move `GetUpstairsLocation` to NOT be a method of Level, but a function in `main` where we know about both?
-	//    This is cleaner.
-
-	// I will REMOVE GetUpstairsLocation and GetDownstairsLocation from Level struct.
-	// They are utility lookups.
-	return core.Location{}, fmt.Errorf("method moved to main")
-}
-
-func (level *Level) GetDownstairsLocation() (core.Location, error) {
-	return core.Location{}, fmt.Errorf("method moved to main")
 }
 
 // Returns the nearest enemy to the given location within the maxDist

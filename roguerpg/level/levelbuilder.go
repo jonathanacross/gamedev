@@ -79,7 +79,7 @@ func genRoom(mapWidth, mapHeight int) RoomInfo {
 	x := rand.IntN(mapWidth-2*(xRadius+margin)) + xRadius + margin
 	y := rand.IntN(mapHeight-2*(yRadius+margin)) + yRadius + margin
 
-	vertices := MakeShape(x, y, xRadius, yRadius)
+	vertices := makeShape(x, y, xRadius, yRadius)
 
 	return RoomInfo{
 		X:        x,
@@ -90,36 +90,71 @@ func genRoom(mapWidth, mapHeight int) RoomInfo {
 	}
 }
 
-// core.MakeShape?
-// MakeShape, visitPermutation, addPath, etc. were in levelbuilder.go.
-// Are they generic polygon/math utils?
-// Yes, `MakeShape` creates a polygon.
-// `Polygon` is defined where? core/utils.go? NO.
-// `Polygon` was in `utils.go` in root.
-// I moved `utils.go` to `core/utils.go`.
-// BUT I did NOT check if `Polygon` logic was in the `utils.go` I moved.
-// Let's check `core/utils.go` content.
-// The `utils.go` I moved (renamed) to `core/utils.go` had ONLY Math functions: Abs, Min, Max, RoundEven, Sign, Clamp, CalculateKnockbackForce.
-// THE `Polygon` STRUCT AND METHODS WERE MISSING FROM `core/utils.go`!
-// I accidentally truncated/selectively copied `utils.go` logic.
-// I NEED TO ADD POLYGON UTILS TO `core/utils.go` OR `core/polygon.go`.
+// makeShape generates a specialized polygon used for room generation.
+func makeShape(centerX, centerY int, xRadius, yRadius int) core.Polygon {
+	r := (xRadius + yRadius) / 2
+	numSpokes := 3 * r / 2
+	// Set initial random radius for each spoke
+	radii := make([]float64, numSpokes)
+	for i := range numSpokes {
+		radii[i] = float64(r/2) + float64(r)*rand.Float64()
+	}
 
-// Sub-task: Fix `core/utils.go` to include Polygon logic.
-// Then `levelbuilder.go` can use `core.Polygon` and `core.MakeShape` (if I move MakeShape to core).
-// `MakeShape` was in `levelbuilder.go`.
-// If it's generic, `core` is fine.
-// `visitPermutation`, `addPath`, `connectRoomsWithPaths`, `removeIllegalPatterns` are level building logic.
-// They depend on `RoomInfo` and grid.
-// `RoomInfo` is in `level`.
-// `MakeShape` returns Polygon.
-// I should keep `MakeShape` in `level` OR move generic Polygon shape making to `core`.
-// Given `MakeShape` is for room generation (noisy circles), it fits in `level` or `core` (if reusable). I'll keep in `level` for now to minimize `core` clutter, unless `core.Polygon` is used.
-// But `room.Vertices` is `core.Polygon` (if I put Polygon in core).
-// So `MakeShape` returns `core.Polygon`.
+	// Smooth the radii
+	smoothedRadii := make([]float64, numSpokes)
+	for i := range numSpokes {
+		prev := radii[(i-1+numSpokes)%numSpokes]
+		curr := radii[i]
+		next := radii[(i+1)%numSpokes]
+		smoothedRadii[i] = 0.15*prev + 0.7*curr + 0.15*next
+	}
+	radii = smoothedRadii
 
-// I will assume I will fix `core` first.
+	// Use FPoint for vertex positions calculation
+	dTheta := 2 * math.Pi / float64(numSpokes)
+	fVertices := make([]core.FPoint, numSpokes)
+	for i := range numSpokes {
+		theta := dTheta * float64(i)
+		r := radii[i]
+		// Calculations remain in float64
+		x := float64(centerX) + r*math.Cos(theta)
+		y := float64(centerY) + r*math.Sin(theta)
+		fVertices[i] = core.FPoint{X: x, Y: y}
+	}
 
-// Let's finish writing `levelbuilder.go` using `core.Polygon` assuming I fix core.
+	// Calculate bounds
+	xMin, xMax := fVertices[0].X, fVertices[0].X
+	yMin, yMax := fVertices[0].Y, fVertices[0].Y
+	for _, v := range fVertices {
+		xMin = math.Min(xMin, v.X)
+		xMax = math.Max(xMax, v.X)
+		yMin = math.Min(yMin, v.Y)
+		yMax = math.Max(yMax, v.Y)
+	}
+
+	// Check for zero-division risk
+	var scaleX, scaleY float64 = 1.0, 1.0
+	if xMax-xMin > 0 {
+		scaleX = float64(2*xRadius+1) / (xMax - xMin)
+	}
+	if yMax-yMin > 0 {
+		scaleY = float64(2*yRadius+1) / (yMax - yMin)
+	}
+
+	// Final conversion and scaling to integer Point
+	vertices := make(core.Polygon, numSpokes)
+	for i, v := range fVertices {
+		// Scaling and offset calculation using floats
+		// Note used core.Point which has X,Y int.
+		scaledX := (v.X-xMin)*scaleX + float64(centerX-xRadius)
+		scaledY := (v.Y-yMin)*scaleY + float64(centerY-yRadius)
+
+		vertices[i].X = int(scaledX)
+		vertices[i].Y = int(scaledY)
+	}
+
+	return vertices
+}
 
 func visitPermutation(rooms []RoomInfo) []int {
 	permutation := []int{}

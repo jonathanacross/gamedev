@@ -127,29 +127,9 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 		attackHitboxes: attackHitboxes,
 		state:          GhostMoving,
 		direction:      core.Left,
-		velocity:       core.Vector{0, 0}, // Init from random below?
-		// Logic: velocity = getRandomVelocity() in original.
-		// Wait, GhostEnemy used getRandomVelocity in NewGhostEnemy?
-		// Original: velocity: getRandomVelocity().
-		// But getRandomVelocity was defined in GoblinEnemy file or ghost?
-		// Ah, getRandomVelocity was in Goblin. Ghost uses it?
-		// If it was in same package main, yes.
-		// Now they are in package enemy. `getRandomVelocity` is unexported in goblin.go.
-		// So I must duplicate it or export it or put in utils.
-		// I will duplicate it for now or assume it's there.
-		movementTimer: rand.Float64() * 100,
+		velocity:       core.Vector{0, 0},
+		movementTimer:  rand.Float64() * 100,
 	}
-}
-
-// Duplicate helper locally
-func getRandomVelocityGhost() core.Vector {
-	velocities := []core.Vector{
-		{X: 1, Y: 0},
-		{X: -1, Y: 0},
-		{X: 0, Y: 1},
-		{X: 0, Y: -1},
-	}
-	return velocities[rand.Intn(len(velocities))]
 }
 
 func (c *GhostEnemy) ApplyKnockback(force core.Vector, duration int) {

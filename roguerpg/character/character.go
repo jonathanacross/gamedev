@@ -22,16 +22,8 @@ type BaseCharacter struct {
 	StunFrames int
 
 	// Internal state tracking for death/dying (specific implementation is handled by Player/Enemy)
-	IsDeadFlag bool // Renamed from isDead to export? No, BaseCharacter is struct.
-	// Field was "isDead bool" (unexported).
-	// Accessor "IsDead() bool".
-	// If I move to package `character`, and `Player` (in `player` package) embeds `BaseCharacter`,
-	// Player cannot access `isDead` directly.
-	// It should use `IsDead()` method or `SetDead()`?
-	// Player sets `isDead = true` in `TransitionState`.
-	// So I need to export this field or add a Setter.
-	// I will rename to `IsDeadState` (exported) or `Dead`.
-	Dead bool
+	IsDeadFlag bool
+	Dead       bool
 }
 
 func (c *BaseCharacter) GetHurtBox() core.Rect {

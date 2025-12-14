@@ -35,21 +35,12 @@ type Game struct {
 func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 	if !isFirstLevel {
 		pos := lvl.FindRandomFloorLocation()
-		// Determine orientation for stairs. Assuming simple UpStairs.
-		// Objects like Stairs might need a specific tile or wall.
-
-		// func NewStairs(loc Location, up bool)
-		// In `level.go`: `level.AddObjects` ...
-		// We'll trust random floor location is fine for now, or refine later.
-
 		lvl.Objects = append(lvl.Objects, objects.NewStairs(pos, true))
 	}
 
 	if !isFinalLevel {
 		pos := lvl.FindRandomFloorLocation()
 		lvl.Objects = append(lvl.Objects, objects.NewStairs(pos, false))
-	} else {
-		// Final level: maybe a goal object?
 	}
 
 	// Add Chests
