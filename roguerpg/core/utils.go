@@ -1,55 +1,6 @@
-package main
+package core
 
-import (
-	"math"
-)
-
-func abs(a int) int {
-	if a < 0 {
-		return -a
-	}
-	return a
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func roundEven(n int) int {
-	if n%2 == 0 {
-		return n
-	} else {
-		return n - 1
-	}
-}
-
-func sign(n int) int {
-	if n > 0 {
-		return 1
-	} else if n < 0 {
-		return -1
-	}
-	return 0
-}
-
-func clamp(n int, min int, max int) int {
-	if n < min {
-		return min
-	} else if n > max {
-		return max
-	}
-	return n
-}
+import "math"
 
 type Point struct {
 	X int
@@ -61,13 +12,73 @@ type FPoint struct {
 	Y float64
 }
 
+func Abs(a int) int {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func Max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func RoundEven(n int) int {
+	if n%2 == 0 {
+		return n
+	} else {
+		return n - 1
+	}
+}
+
+func Sign(n int) int {
+	if n > 0 {
+		return 1
+	} else if n < 0 {
+		return -1
+	}
+	return 0
+}
+
+func Clamp(n int, min int, max int) int {
+	if n < min {
+		return min
+	} else if n > max {
+		return max
+	}
+	return n
+}
+
+// Helper for calculating knockback force (originally in types.go)
+func CalculateKnockbackForce(attackerLoc Location, defenderLoc Location, speed float64) Vector {
+	direction := Vector{
+		X: defenderLoc.X - attackerLoc.X,
+		Y: defenderLoc.Y - attackerLoc.Y,
+	}
+
+	if direction.Length() == 0 {
+		return Vector{X: 0, Y: 0}
+	}
+	return direction.Normalize().Scale(speed)
+}
+
 // ====================================================================
 // Polygon utils
 // ====================================================================
 
 type Polygon []Point
 
-func (poly Polygon) area() float64 {
+func (poly Polygon) Area() float64 {
 	n := len(poly)
 	if n < 3 {
 		return 0.0
@@ -90,13 +101,13 @@ func onSegment(p, q, r Point) bool {
 		return false // Not collinear, so Q cannot be on segment PR
 	}
 	// Check Bounding Box
-	return q.X <= max(p.X, r.X) && q.X >= min(p.X, r.X) &&
-		q.Y <= max(p.Y, r.Y) && q.Y >= min(p.Y, r.Y)
+	return q.X <= Max(p.X, r.X) && q.X >= Min(p.X, r.X) &&
+		q.Y <= Max(p.Y, r.Y) && q.Y >= Min(p.Y, r.Y)
 }
 
-// PointInPolygon implements the Ray Casting Algorithm (Even-Odd Rule).
+// Contains implements the Ray Casting Algorithm (Even-Odd Rule).
 // It determines if a given point is inside the polygon defined by the vertices.
-func (poly Polygon) contains(point Point) bool {
+func (poly Polygon) Contains(point Point) bool {
 	n := len(poly)
 	if n < 3 {
 		return false
@@ -189,7 +200,7 @@ func lineIntersection(p1, q1, p2, q2 Point) bool {
 	return false
 }
 
-func (poly1 Polygon) overlaps(poly2 Polygon) bool {
+func (poly1 Polygon) Overlaps(poly2 Polygon) bool {
 	// Check for Edge Intersections
 	n1 := len(poly1)
 	n2 := len(poly2)
@@ -214,7 +225,7 @@ func (poly1 Polygon) overlaps(poly2 Polygon) bool {
 
 	// Check if any vertex of poly2 is inside poly1
 	for _, vertex := range poly2 {
-		if poly1.contains(vertex) {
+		if poly1.Contains(vertex) {
 			return true
 		}
 	}
@@ -222,7 +233,7 @@ func (poly1 Polygon) overlaps(poly2 Polygon) bool {
 	// Check if any vertex of poly1 is inside poly2
 	// (This covers the case where poly1 is inside poly2)
 	for _, vertex := range poly1 {
-		if poly2.contains(vertex) {
+		if poly2.Contains(vertex) {
 			return true
 		}
 	}

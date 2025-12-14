@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"image/color"
@@ -9,22 +9,22 @@ import (
 )
 
 // Size of the debug dot in pixels
-const dotSize = 4.0
+const DotSize = 4.0
 
 // Global ebiten.Image for the location marker dot (initialized in init()).
-var dotImage *ebiten.Image
+var DotImage *ebiten.Image // Exported for use in sprites.go
 
 func init() {
 	// Create the dot image using the gg package.
-	ctx := gg.NewContext(int(dotSize), int(dotSize))
+	ctx := gg.NewContext(int(DotSize), int(DotSize))
 
 	// Draw a filled blue circle in the center
-	ctx.DrawCircle(dotSize/2, dotSize/2, dotSize/2)
+	ctx.DrawCircle(DotSize/2, DotSize/2, DotSize/2)
 	ctx.SetColor(color.RGBA{B: 255, A: 255}) // Blue
 	ctx.Fill()
 
 	// Convert the resulting image to an *ebiten.Image
-	dotImage = ebiten.NewImageFromImage(ctx.Image())
+	DotImage = ebiten.NewImageFromImage(ctx.Image())
 }
 
 // DebugRectCacheKey is used to store unique dimensions in the debug image map.

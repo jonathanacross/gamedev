@@ -1,7 +1,10 @@
-package main
+package enemy
 
 import (
 	"math/rand"
+	"roguerpg/assets"
+	"roguerpg/character"
+	"roguerpg/core"
 )
 
 type BlobEnemyState int
@@ -20,33 +23,33 @@ const (
 )
 
 type BlobEnemy struct {
-	BaseCharacter
-	spriteSheet *SpriteSheet
-	animations  map[BlobEnemyState]*Animation
+	character.BaseCharacter
+	spriteSheet *core.SpriteSheet
+	animations  map[BlobEnemyState]*core.Animation
 
 	// AI
 	state BlobEnemyState
 
-	moveStartLocation  Location
-	moveTargetLocation Location
+	moveStartLocation  core.Location
+	moveTargetLocation core.Location
 	currentFrame       int // Frame counter for the current move or wait action
 	waitFrames         int // Total frames to wait when idle
 }
 
-func NewBlobEnemy(startLoc Location) *BlobEnemy {
+func NewBlobEnemy(startLoc core.Location) *BlobEnemy {
 
-	animations := map[BlobEnemyState]*Animation{
-		BlobIdle:      NewAnimation([]int{0, 1, 2}, 20, true),
-		BlobMoving:    NewAnimation([]int{0, 1, 2}, 20, true),
-		BlobAttacking: NewAnimation([]int{15, 16, 17, 18}, 15, false),
-		BlobHurt:      NewAnimation([]int{5, 6, 5, 6}, 10, false),
-		BlobDying:     NewAnimation([]int{5, 6, 10, 11, 12, 13, 14}, 10, false),
-		BlobStunned:   NewAnimation([]int{5, 6}, 10, true),
+	animations := map[BlobEnemyState]*core.Animation{
+		BlobIdle:      core.NewAnimation([]int{0, 1, 2}, 20, true),
+		BlobMoving:    core.NewAnimation([]int{0, 1, 2}, 20, true),
+		BlobAttacking: core.NewAnimation([]int{15, 16, 17, 18}, 15, false),
+		BlobHurt:      core.NewAnimation([]int{5, 6, 5, 6}, 10, false),
+		BlobDying:     core.NewAnimation([]int{5, 6, 10, 11, 12, 13, 14}, 10, false),
+		BlobStunned:   core.NewAnimation([]int{5, 6}, 10, true),
 	}
 	animations[BlobIdle].SetRandomFrame()
 
-	spriteSheet := NewSpriteSheet(16, 16, 5, 3)
-	hitbox := Rect{
+	spriteSheet := core.NewSpriteSheet(16, 16, 5, 3)
+	hitbox := core.Rect{
 		Left:   -6,
 		Top:    -6,
 		Right:  6,
@@ -54,23 +57,23 @@ func NewBlobEnemy(startLoc Location) *BlobEnemy {
 	}
 
 	return &BlobEnemy{
-		BaseCharacter: BaseCharacter{
-			BasePhysical: BasePhysical{
-				BaseSprite: BaseSprite{
-					Location: startLoc,
-					drawOffset: Location{
+		BaseCharacter: character.BaseCharacter{
+			BasePhysical: core.BasePhysical{
+				BaseSprite: core.BaseSprite{
+					Loc: startLoc,
+					DrawOffset: core.Location{
 						X: 8,
 						Y: 8,
 					},
-					srcRect: spriteSheet.Rect(0),
-					image:   BlobSpritesImage,
+					SrcRect: spriteSheet.Rect(0),
+					Image:   assets.BlobSpritesImage,
 				},
-				pushBoxOffset: hitbox,
+				PushBoxOffset: hitbox,
 			},
 			Health:          3,
 			MaxHealth:       3,
 			Experience:      2,
-			isDead:          false,
+			Dead:            false,
 			KnockbackFrames: 0,
 		},
 		spriteSheet: spriteSheet,
@@ -80,7 +83,7 @@ func NewBlobEnemy(startLoc Location) *BlobEnemy {
 	}
 }
 
-func (c *BlobEnemy) ApplyKnockback(force Vector, duration int) {
+func (c *BlobEnemy) ApplyKnockback(force core.Vector, duration int) {
 	c.BaseCharacter.ApplyKnockback(force, duration)
 
 	if c.IsKnockedBack() && c.state != BlobDying {
@@ -95,16 +98,11 @@ func (c *BlobEnemy) ApplyStun(duration int) {
 	c.animations[BlobStunned].Reset()
 }
 
-func (c *BlobEnemy) IsKnockedBack() bool {
-	return c.KnockbackFrames > 0
-}
-
 func (c *BlobEnemy) TakeDamage(damage int) {
-	if c.isDead || c.state == BlobDying || c.state == BlobHurt {
+	if c.Dead || c.state == BlobDying || c.state == BlobHurt {
 		return
 	}
 
-	// TODO: consider a state transition like Player that handles animation reset
 	c.state = BlobHurt
 	c.animations[BlobHurt].Reset()
 
@@ -115,7 +113,7 @@ func (c *BlobEnemy) TakeDamage(damage int) {
 }
 
 // findNewTargetTile attempts to find a random, adjacent, non-solid tile.
-func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
+func (c *BlobEnemy) findNewTargetTile(level core.Level) bool {
 	// Get current tile coordinates
 	tx, ty := level.WorldToTile(c.Location())
 
@@ -149,15 +147,15 @@ func (c *BlobEnemy) findNewTargetTile(level *Level) bool {
 	return false
 }
 
-func (c *BlobEnemy) isNearPlayer(playerLoc Location) bool {
-	dist := Vector(playerLoc).Minus(Vector(c.Location()))
-	return dist.Length() <= 3*TileSize
+func (c *BlobEnemy) isNearPlayer(playerLoc core.Location) bool {
+	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
+	return dist.Length() <= 3*core.TileSize
 }
 
-func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
+func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResult {
 	c.animations[c.state].Update()
-	c.srcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
-	var actions []Action
+	c.SrcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
+	var actions []core.Action
 
 	if c.UpdateKnockback(level) {
 		// Ensure the BlobHurt animation can finish, even during knockback
@@ -166,13 +164,13 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 		}
 
 		if c.state != BlobDying {
-			return UpdateResult{Actions: actions} // Skip AI and normal movement logic
+			return core.UpdateResult{Actions: actions} // Skip AI and normal movement logic
 		}
 	}
 
 	if c.state != BlobDying && c.UpdateStun() {
 		c.state = BlobStunned
-		return UpdateResult{Actions: actions}
+		return core.UpdateResult{Actions: actions}
 	} else if c.state == BlobStunned {
 		c.state = BlobIdle
 	}
@@ -200,7 +198,7 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 			c.state = BlobAttacking
 			c.animations[BlobAttacking].Reset()
 		} else {
-			target := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
+			target := core.Vector(c.moveTargetLocation).Minus(core.Vector(c.Location()))
 
 			distance := target.Length()
 			if distance <= BlobMoveSpeed {
@@ -210,20 +208,20 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 				// Wait for a short time.
 				c.state = BlobIdle
 				c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-				return UpdateResult{Actions: actions}
+				return core.UpdateResult{Actions: actions}
 			}
 
 			velocity := target.Normalize().Scale(BlobMoveSpeed)
-			c.HandleTileCollisions(level, AxisX, velocity.X)
-			c.HandleTileCollisions(level, AxisY, velocity.Y)
+			c.HandleTileCollisions(level, core.AxisX, velocity.X)
+			c.HandleTileCollisions(level, core.AxisY, velocity.Y)
 		}
 
 	case BlobAttacking:
 		hitBox := c.GetHurtBox()
 		if c.animations[BlobAttacking].Frame() != 0 {
-			ds := NewDamageSource(TagEnemy, hitBox, 1)
-			actions = append(actions, Action{
-				Type:         ActionCreateDamageSource,
+			ds := core.NewDamageSource(core.TagEnemy, hitBox, 1)
+			actions = append(actions, core.Action{
+				Type:         core.ActionCreateDamageSource,
 				DamageSource: ds,
 			})
 		}
@@ -240,18 +238,17 @@ func (c *BlobEnemy) Update(level *Level, player *Player) UpdateResult {
 
 	case BlobDying:
 		if c.animations[BlobDying].IsFinished() {
-			c.isDead = true
-			actions = append(actions, Action{
-				Type:       ActionGainXP,
+			c.Dead = true
+			actions = append(actions, core.Action{
+				Type:       core.ActionGainXP,
 				Experience: c.Experience,
 			})
 		}
 	}
 
-	return UpdateResult{Actions: actions}
+	return core.UpdateResult{Actions: actions}
 }
 
 func (c *BlobEnemy) CanRemove() bool {
-	// TODO: consider if we want to merge this with isdead.
 	return false
 }

@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"image"
@@ -7,22 +7,20 @@ import (
 )
 
 // BaseSprite provides common fields and methods for any visible game entity.
-// It handles drawing a single sprite or the current frame of an animation.
-// This implements the GameObject interface.
 type BaseSprite struct {
-	Location
-	image      *ebiten.Image
-	srcRect    image.Rectangle
-	drawOffset Location
+	Loc        Location // Renamed from Location to avoid method conflict
+	Image      *ebiten.Image
+	SrcRect    image.Rectangle
+	DrawOffset Location
 }
 
 // GetBounds returns the drawing rectangle for the BaseSprite.
 func (bs *BaseSprite) GetBounds() Rect {
-	x := bs.X - bs.drawOffset.X
-	y := bs.Y - bs.drawOffset.Y
+	x := bs.Loc.X - bs.DrawOffset.X
+	y := bs.Loc.Y - bs.DrawOffset.Y
 
-	width := float64(bs.srcRect.Dx())
-	height := float64(bs.srcRect.Dy())
+	width := float64(bs.SrcRect.Dx())
+	height := float64(bs.SrcRect.Dy())
 
 	return Rect{
 		Left:   x,
@@ -32,18 +30,25 @@ func (bs *BaseSprite) GetBounds() Rect {
 	}
 }
 
-func (bs *BaseSprite) GetX() float64 { return bs.X }
+func (bs *BaseSprite) GetX() float64 { return bs.Loc.X }
 
-func (bs *BaseSprite) GetY() float64 { return bs.Y }
+func (bs *BaseSprite) GetY() float64 { return bs.Loc.Y }
 
 func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 	if !ShowDebugInfo {
+		return
+	}
+	// Using global variables from same package (debugutils.go)
+	if DotImage == nil {
 		return
 	}
 
 	// Draw the bounds rectangle
 	hb := bs.GetBounds()
 	debugImage := GetDebugRectImage(hb)
+	if debugImage == nil {
+		return
+	}
 
 	opRect := &ebiten.DrawImageOptions{}
 	opRect.GeoM.Translate(hb.Left, hb.Top)
@@ -52,16 +57,19 @@ func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.Ge
 
 	// Draw the Location Dot
 	opDot := &ebiten.DrawImageOptions{}
-	opDot.GeoM.Translate(bs.X-dotSize/2, bs.Y-dotSize/2)
+	opDot.GeoM.Translate(bs.Loc.X-1.5, bs.Loc.Y-1.5) // Assuming dotSize approx 3-4, centering.
 	opDot.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(dotImage, opDot)
+	screen.DrawImage(DotImage, opDot)
 }
 
 func (bs *BaseSprite) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	if bs.Image == nil {
+		return
+	}
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(bs.X-bs.drawOffset.X, bs.Y-bs.drawOffset.Y)
+	op.GeoM.Translate(bs.Loc.X-bs.DrawOffset.X, bs.Loc.Y-bs.DrawOffset.Y)
 	op.GeoM.Concat(cameraMatrix)
-	currImage := bs.image.SubImage(bs.srcRect).(*ebiten.Image)
+	currImage := bs.Image.SubImage(bs.SrcRect).(*ebiten.Image)
 	screen.DrawImage(currImage, op)
 }
 
@@ -70,21 +78,20 @@ func (bs *BaseSprite) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 type BasePhysical struct {
 	BaseSprite
 
-	pushBoxOffset Rect // The offset of the physical box relative to Location.
+	PushBoxOffset Rect // The offset of the physical box relative to Location.
 }
 
 func (bp *BasePhysical) Location() Location {
-	return Location{X: bp.X, Y: bp.Y}
+	return bp.Loc
 }
 
 func (bp *BasePhysical) SetLocation(l Location) {
-	bp.X = l.X
-	bp.Y = l.Y
+	bp.Loc = l
 }
 
 // GetPushBox implements the PhysicalObject interface.
 func (bp *BasePhysical) GetPushBox() Rect {
-	return bp.pushBoxOffset.Offset(bp.X, bp.Y)
+	return bp.PushBoxOffset.Offset(bp.Loc.X, bp.Loc.Y)
 }
 
 // DrawDebugInfo overrides the BaseSprite version to draw the PushBox.
@@ -92,26 +99,34 @@ func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.
 	if !ShowDebugInfo {
 		return
 	}
+	if DotImage == nil {
+		return
+	}
 
 	// Draw the PushBox rectangle
 	pb := bp.GetPushBox()
-	debugImage := GetDebugRectImage(pb)
+	debugImagePB := GetDebugRectImage(pb)
+	if debugImagePB == nil {
+		return
+	}
 
 	opRect := &ebiten.DrawImageOptions{}
 	opRect.GeoM.Translate(pb.Left, pb.Top)
+
 	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(debugImage, opRect)
+	screen.DrawImage(debugImagePB, opRect)
 
 	// Draw the Location Dot
 	opDot := &ebiten.DrawImageOptions{}
-	opDot.GeoM.Translate(bp.X-dotSize/2, bp.Y-dotSize/2)
+	opDot.GeoM.Translate(bp.Loc.X-1.5, bp.Loc.Y-1.5)
 	opDot.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(dotImage, opDot)
+	screen.DrawImage(DotImage, opDot)
 }
 
+// Tile
 type Tile struct {
 	BasePhysical
-	solid bool
+	Solid bool
 }
 
 func NewTile(location Location, image *ebiten.Image, srcRect image.Rectangle, solid bool) *Tile {
@@ -124,17 +139,17 @@ func NewTile(location Location, image *ebiten.Image, srcRect image.Rectangle, so
 	return &Tile{
 		BasePhysical: BasePhysical{
 			BaseSprite: BaseSprite{
-				Location: location,
-				image:    image,
-				srcRect:  srcRect,
-				drawOffset: Location{
+				Loc:     location,
+				Image:   image,
+				SrcRect: srcRect,
+				DrawOffset: Location{
 					X: 0,
 					Y: 0,
 				},
 			},
-			pushBoxOffset: pushBox,
+			PushBoxOffset: pushBox,
 		},
-		solid: solid,
+		Solid: solid,
 	}
 }
 

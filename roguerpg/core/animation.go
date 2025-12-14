@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"math/rand"
@@ -74,4 +74,8 @@ func (a *Animation) Reset() {
 
 func (a *Animation) IsFinished() bool {
 	return a.isFinished
+}
+
+func (a *Animation) CurrentFrameIndex() int {
+	return a.frameIndex
 }

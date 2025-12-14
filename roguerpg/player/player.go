@@ -1,7 +1,11 @@
-package main
+package player
 
 import (
 	"time"
+
+	"roguerpg/assets"
+	"roguerpg/character"
+	"roguerpg/core"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -29,91 +33,91 @@ const (
 
 type PlayerAnimationKey struct {
 	State     PlayerState
-	Direction Direction
+	Direction core.Direction
 }
 
 type Player struct {
-	BaseCharacter
+	character.BaseCharacter
 	images         map[PlayerState]*ebiten.Image
-	spriteSheet    *SpriteSheet
-	animations     map[PlayerState]map[Direction]*Animation
+	spriteSheet    *core.SpriteSheet
+	animations     map[PlayerState]map[core.Direction]*core.Animation
 	state          PlayerState
-	direction      Direction
-	Velocity       Vector
-	attackHitboxes map[Direction]map[int]DamageSourceConfig // Defines hitboxes for specific animation frames
+	direction      core.Direction
+	Velocity       core.Vector
+	attackHitboxes map[core.Direction]map[int]core.DamageSourceConfig // Defines hitboxes for specific animation frames
 
-	bombCooldownTimer *Timer
-	bowCooldownTimer  *Timer
-	wandCooldownTimer *Timer
+	bombCooldownTimer *core.Timer
+	bowCooldownTimer  *core.Timer
+	wandCooldownTimer *core.Timer
 	hasBoomerang      bool
 
-	primaryWeapon   WeaponType
-	secondaryWeapon WeaponType
+	primaryWeapon   core.WeaponType
+	secondaryWeapon core.WeaponType
 	shieldHeld      bool
 }
 
 func NewPlayer() *Player {
 	// TODO: these are attack boxes for the sword; need to add attack boxes for the shield
-	attackHitboxes := make(map[Direction]map[int]DamageSourceConfig)
+	attackHitboxes := make(map[core.Direction]map[int]core.DamageSourceConfig)
 
 	baseDmg := 1
 
 	// Set up Hitboxes for specific frames of the attack animation.
 	// Downward swing
-	attackHitboxes[Down] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
+	attackHitboxes[core.Down] = map[int]core.DamageSourceConfig{
+		1: {HitBox: core.Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
+		2: {HitBox: core.Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
 	}
 	// Left swing
-	attackHitboxes[Left] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseDmg},
+	attackHitboxes[core.Left] = map[int]core.DamageSourceConfig{
+		1: {HitBox: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseDmg},
+		2: {HitBox: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseDmg},
 	}
 	// Right swing
-	attackHitboxes[Right] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseDmg},
+	attackHitboxes[core.Right] = map[int]core.DamageSourceConfig{
+		1: {HitBox: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseDmg},
+		2: {HitBox: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseDmg},
 	}
 	// Upward swing
-	attackHitboxes[Up] = map[int]DamageSourceConfig{
-		1: {HitBox: Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseDmg},
-		2: {HitBox: Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseDmg},
+	attackHitboxes[core.Up] = map[int]core.DamageSourceConfig{
+		1: {HitBox: core.Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseDmg},
+		2: {HitBox: core.Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseDmg},
 	}
 
 	ssColumns := 8
 	ssRows := 6
-	directionOffsets := map[Direction]int{
-		Left:  8,
-		Right: 40,
-		Up:    24,
-		Down:  0,
+	directionOffsets := map[core.Direction]int{
+		core.Left:  8,
+		core.Right: 40,
+		core.Up:    24,
+		core.Down:  0,
 	}
 
-	animations := map[PlayerState]map[Direction]*Animation{
-		Idle:            NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
-		Walking:         NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
-		AttackingSword:  NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
-		AttackingShield: NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, true),
-		AttackingBow:    NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
-		Hurt:            NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
-		Dying:           NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
-		Dead:            NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
+	animations := map[PlayerState]map[core.Direction]*core.Animation{
+		Idle:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
+		Walking:         core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
+		AttackingSword:  core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
+		AttackingShield: core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, true),
+		AttackingBow:    core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
+		Hurt:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
+		Dying:           core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
+		Dead:            core.NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
 	}
 
 	charImages := map[PlayerState]*ebiten.Image{
-		Idle:            PlayerIdleSpritesImage,
-		Walking:         PlayerWalkSpritesImage,
-		AttackingSword:  PlayerAttackSwordSpritesImage,
-		AttackingShield: PlayerAttackShieldSpritesImage,
-		AttackingBow:    PlayerAttackBowSpritesImage,
-		AttackingWand:   PlayerIdleSpritesImage, // TODO: add player sprite sheet for wand attack
-		Hurt:            PlayerHurtSpritesImage,
-		Dying:           PlayerDeathSpritesImage,
-		Dead:            PlayerDeathSpritesImage,
+		Idle:            assets.PlayerIdleSpritesImage,
+		Walking:         assets.PlayerWalkSpritesImage,
+		AttackingSword:  assets.PlayerAttackSwordSpritesImage,
+		AttackingShield: assets.PlayerAttackShieldSpritesImage,
+		AttackingBow:    assets.PlayerAttackBowSpritesImage,
+		AttackingWand:   assets.PlayerIdleSpritesImage, // TODO: add player sprite sheet for wand attack
+		Hurt:            assets.PlayerHurtSpritesImage,
+		Dying:           assets.PlayerDeathSpritesImage,
+		Dead:            assets.PlayerDeathSpritesImage,
 	}
 
-	spriteSheet := NewSpriteSheet(48, 64, ssColumns, ssRows)
-	pushBox := Rect{
+	spriteSheet := core.NewSpriteSheet(48, 64, ssColumns, ssRows)
+	pushBox := core.Rect{
 		Left:   -6,
 		Top:    -6,
 		Right:  6,
@@ -121,20 +125,20 @@ func NewPlayer() *Player {
 	}
 
 	return &Player{
-		BaseCharacter: BaseCharacter{
-			BasePhysical: BasePhysical{
-				BaseSprite: BaseSprite{
-					Location: Location{
+		BaseCharacter: character.BaseCharacter{
+			BasePhysical: core.BasePhysical{
+				BaseSprite: core.BaseSprite{
+					Loc: core.Location{
 						X: 0,
 						Y: 0,
 					},
-					drawOffset: Location{
+					DrawOffset: core.Location{
 						X: 25,
 						Y: 38,
 					},
-					srcRect: spriteSheet.Rect(0),
+					SrcRect: spriteSheet.Rect(0),
 				},
-				pushBoxOffset: pushBox,
+				PushBoxOffset: pushBox,
 			},
 			Health:          8,
 			MaxHealth:       8,
@@ -145,18 +149,18 @@ func NewPlayer() *Player {
 		spriteSheet:       spriteSheet,
 		animations:        animations,
 		state:             Idle,
-		direction:         Down,
+		direction:         core.Down,
 		attackHitboxes:    attackHitboxes,
-		bombCooldownTimer: NewTimer(BombCooldown),
-		bowCooldownTimer:  NewTimer(BowCooldown),
-		wandCooldownTimer: NewTimer(WandCooldown),
+		bombCooldownTimer: core.NewTimer(BombCooldown),
+		bowCooldownTimer:  core.NewTimer(BowCooldown),
+		wandCooldownTimer: core.NewTimer(WandCooldown),
 		hasBoomerang:      true,
-		primaryWeapon:     WeaponSword,
-		secondaryWeapon:   WeaponBoomerang,
+		primaryWeapon:     core.WeaponSword,
+		secondaryWeapon:   core.WeaponBoomerang,
 	}
 }
 
-func (p *Player) GetCurrentAnimation() *Animation {
+func (p *Player) GetCurrentAnimation() *core.Animation {
 	animationSet, exists := p.animations[p.state]
 	if !exists {
 		return nil
@@ -168,19 +172,19 @@ func (p *Player) GetCurrentAnimation() *Animation {
 	return animation
 }
 
-func (p *Player) Move(moveVector Vector) {
+func (p *Player) Move(moveVector core.Vector) {
 	// Don't change direction or velocity if attacking
 	if p.state != AttackingSword && p.state != AttackingShield && p.state != AttackingBow {
 		// Determine facing direction from the move vector.
 		// Prioritize vertical direction for diagonal movement.
 		if moveVector.Y < 0 {
-			p.direction = Up
+			p.direction = core.Up
 		} else if moveVector.Y > 0 {
-			p.direction = Down
+			p.direction = core.Down
 		} else if moveVector.X < 0 {
-			p.direction = Left
+			p.direction = core.Left
 		} else if moveVector.X > 0 {
-			p.direction = Right
+			p.direction = core.Right
 		}
 
 		// Set velocity based on the move vector, normalized and scaled.
@@ -211,7 +215,7 @@ func (p *Player) AttackShield() {
 	}
 }
 
-func (p *Player) UseBomb() *Action {
+func (p *Player) UseBomb() *core.Action {
 	// Optional: Block item use while attacking
 	// if p.state == AttackingSword || p.state == AttackingShield {
 	// 	return nil
@@ -221,12 +225,12 @@ func (p *Player) UseBomb() *Action {
 		p.bombCooldownTimer.Reset()
 
 		// Calculate the bomb's spawn location based on player's direction
-		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
+		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
 
-		return &Action{
-			Type:      ActionDropBomb,
-			Location:  Location(loc),
-			Direction: DirectionToVector(p.direction),
+		return &core.Action{
+			Type:      core.ActionDropBomb,
+			Location:  core.Location(loc),
+			Direction: core.DirectionToVector(p.direction),
 		}
 	}
 	return nil
@@ -239,45 +243,45 @@ func (p *Player) UseBow() {
 	}
 }
 
-func (p *Player) UseWand(level *Level) *Action {
+func (p *Player) UseWand(level core.Level) *core.Action {
 	if p.wandCooldownTimer.IsReady() {
 		p.wandCooldownTimer.Reset()
 
 		// Calculate the bomb's spawn location based on player's direction
-		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
+		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
 
-		var target Character
+		var target core.Character
 		if level != nil {
-			target = level.FindNearestEnemy(p.Location(), 6*TileSize)
+			target = level.FindNearestEnemy(p.Location(), 6*float64(core.TileSize))
 		}
 
-		return &Action{
-			Type:      ActionCreateStar,
-			Location:  Location(loc),
-			Direction: DirectionToVector(p.direction),
+		return &core.Action{
+			Type:      core.ActionCreateStar,
+			Location:  core.Location(loc),
+			Direction: core.DirectionToVector(p.direction),
 			Target:    target,
 		}
 	}
 	return nil
 }
 
-func (p *Player) ShootArrow() *Action {
+func (p *Player) ShootArrow() *core.Action {
 	if p.bowCooldownTimer.IsReady() {
 		p.bowCooldownTimer.Reset()
 
 		// Calculate the bow spawn location based on player's direction
-		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
+		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
 
-		return &Action{
-			Type:      ActionShootArrow,
-			Location:  Location(loc),
-			Direction: DirectionToVector(p.direction),
+		return &core.Action{
+			Type:      core.ActionShootArrow,
+			Location:  core.Location(loc),
+			Direction: core.DirectionToVector(p.direction),
 		}
 	}
 	return nil
 }
 
-func (p *Player) UseBoomerang() *Action {
+func (p *Player) UseBoomerang() *core.Action {
 	// Optional: Block item use while attacking
 	// if p.state == AttackingSword || p.state == AttackingShield {
 	// 	return nil
@@ -287,62 +291,62 @@ func (p *Player) UseBoomerang() *Action {
 		p.hasBoomerang = false
 
 		// Calculate boomerang spawn location
-		loc := Vector(p.Location()).Plus(DirectionToVector(p.direction).Scale(float64(TileSize)))
+		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
 
-		return &Action{
-			Type:      ActionThrowBoomerang,
-			Location:  Location(loc),
-			Direction: DirectionToVector(p.direction),
+		return &core.Action{
+			Type:      core.ActionThrowBoomerang,
+			Location:  core.Location(loc),
+			Direction: core.DirectionToVector(p.direction),
 		}
 	}
 	return nil
 }
 
-func (p *Player) PrimaryAttack(level *Level) *Action {
+func (p *Player) PrimaryAttack(level core.Level) *core.Action {
 	switch p.primaryWeapon {
-	case WeaponSword:
+	case core.WeaponSword:
 		p.AttackSword()
 		return nil
-	case WeaponBomb:
+	case core.WeaponBomb:
 		return p.UseBomb()
-	case WeaponBoomerang:
+	case core.WeaponBoomerang:
 		return p.UseBoomerang()
-	case WeaponShield:
+	case core.WeaponShield:
 		p.AttackShield()
 		return nil
-	case WeaponBow:
+	case core.WeaponBow:
 		p.UseBow()
 		return nil
-	case WeaponWand:
+	case core.WeaponWand:
 		return p.UseWand(level)
 	default:
 		return nil
 	}
 }
 
-func (p *Player) SecondaryAttack(level *Level) *Action {
+func (p *Player) SecondaryAttack(level core.Level) *core.Action {
 	switch p.secondaryWeapon {
-	case WeaponSword:
+	case core.WeaponSword:
 		p.AttackSword()
 		return nil
-	case WeaponBomb:
+	case core.WeaponBomb:
 		return p.UseBomb()
-	case WeaponBoomerang:
+	case core.WeaponBoomerang:
 		return p.UseBoomerang()
-	case WeaponShield:
+	case core.WeaponShield:
 		p.AttackShield()
 		return nil
-	case WeaponBow:
+	case core.WeaponBow:
 		p.UseBow()
 		return nil
-	case WeaponWand:
+	case core.WeaponWand:
 		return p.UseWand(level)
 	default:
 		return nil
 	}
 }
 
-func (p *Player) SwitchWeapon(weapon WeaponType) {
+func (p *Player) SwitchWeapon(weapon core.WeaponType) {
 	p.secondaryWeapon = weapon
 }
 
@@ -354,7 +358,7 @@ func (p *Player) IsActive() bool {
 
 // handleState runs the logic for the Player's current state and determines
 // the next state, direction, and velocity (Vx/Vy).
-func (p *Player) handleState() []Action {
+func (p *Player) handleState() []core.Action {
 	animation := p.GetCurrentAnimation()
 	if animation == nil {
 		p.state = Idle // Should never happen
@@ -374,7 +378,7 @@ func (p *Player) handleState() []Action {
 
 	// Once Dead, stop all logic.
 	if p.state == Dead {
-		p.Velocity = Vector{}
+		p.Velocity = core.Vector{}
 		return nil
 	}
 
@@ -395,7 +399,7 @@ func (p *Player) handleState() []Action {
 	if p.state == AttackingBow && animation.IsFinished() {
 		// Shoot arrow
 		if action := p.ShootArrow(); action != nil {
-			return []Action{*action}
+			return []core.Action{*action}
 		}
 		p.TransitionState(Idle)
 	}
@@ -407,14 +411,14 @@ func (p *Player) handleState() []Action {
 	switch p.state {
 	case Idle:
 		// Idle means no velocity from movement input
-		p.Velocity = Vector{}
+		p.Velocity = core.Vector{}
 	case Walking:
 		// The Move() command has already set the velocity for this frame.
 		// If StopMoving() is not called, the player will continue with this velocity.
 
 	case AttackingSword, AttackingShield, Hurt, Dying, Dead:
 		// In these states, zero out user-controlled movement. Knockback is handled separately.
-		p.Velocity = Vector{}
+		p.Velocity = core.Vector{}
 	}
 	return nil
 }
@@ -430,12 +434,12 @@ func (p *Player) TransitionState(newState PlayerState) {
 		anim.Reset()
 	}
 
-	p.BaseCharacter.isDead = (newState == Dead)
+	p.BaseCharacter.Dead = (newState == Dead)
 }
 
 // GetActiveDamageSource returns the current attack's DamageSource if the player is attacking
 // and the current frame has an active hitbox, otherwise returns nil.
-func (p *Player) getActiveDamageSource() *DamageSource {
+func (p *Player) getActiveDamageSource() *core.DamageSource {
 	if p.state != AttackingSword && p.state != AttackingShield {
 		return nil
 	}
@@ -446,13 +450,13 @@ func (p *Player) getActiveDamageSource() *DamageSource {
 	}
 
 	// The current frame index within the *animation slice*
-	animIndex := anim.frameIndex
+	animIndex := anim.CurrentFrameIndex()
 
 	// Check if we have an attack config for the current direction and animation frame index
 	if dirConfigs, ok := p.attackHitboxes[p.direction]; ok {
 		if config, ok := dirConfigs[animIndex]; ok {
 			// Found an active hitbox config! Create the world-space DamageSource.
-			worldHitbox := config.HitBox.Offset(p.X, p.Y)
+			worldHitbox := config.HitBox.Offset(p.Loc.X, p.Loc.Y)
 
 			// HACK: Damage is different for swords and shields
 			damage := 0
@@ -460,7 +464,7 @@ func (p *Player) getActiveDamageSource() *DamageSource {
 				damage = config.Damage
 			}
 
-			return NewDamageSource(TagPlayer, worldHitbox, damage)
+			return core.NewDamageSource(core.TagPlayer, worldHitbox, damage)
 		}
 	}
 
@@ -481,7 +485,7 @@ func (p *Player) TakeDamage(damage int) {
 	p.Health -= damage
 }
 
-func (p *Player) ApplyKnockback(force Vector, duration int) {
+func (p *Player) ApplyKnockback(force core.Vector, duration int) {
 	if p.state == AttackingShield {
 		return
 	}
@@ -501,36 +505,45 @@ func (p *Player) ReturnBoomerang() {
 	p.hasBoomerang = true
 }
 
-func (p *Player) Update(level *Level, _ *Player) UpdateResult {
+// Add methods to satisfy Player interface
+func (p *Player) AddExperience(amount int) {
+	p.Experience += amount
+}
+
+func (p *Player) GetExperience() int {
+	return p.Experience
+}
+
+func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	// Handle Knockback Physics.
 	p.UpdateKnockback(level)
 
 	// Handle all state transitions.
 	stateActions := p.handleState()
 
-	p.Velocity.X = p.HandleTileCollisions(level, AxisX, p.Velocity.X)
-	p.Velocity.Y = p.HandleTileCollisions(level, AxisY, p.Velocity.Y)
+	p.Velocity.X = p.HandleTileCollisions(level, core.AxisX, p.Velocity.X)
+	p.Velocity.Y = p.HandleTileCollisions(level, core.AxisY, p.Velocity.Y)
 
 	// Update visuals
 	animation := p.GetCurrentAnimation()
 	animation.Update()
-	p.image = p.images[p.state]
-	p.srcRect = p.spriteSheet.Rect(animation.Frame())
+	p.Image = p.images[p.state]
+	p.SrcRect = p.spriteSheet.Rect(animation.Frame())
 
 	p.bombCooldownTimer.Update()
 	p.bowCooldownTimer.Update()
 	p.wandCooldownTimer.Update()
 
 	// Return any actions back to the game
-	actions := []Action{}
+	actions := []core.Action{}
 	if len(stateActions) > 0 {
 		actions = append(actions, stateActions...)
 	}
 	if ds := p.getActiveDamageSource(); ds != nil {
-		actions = append(actions, Action{
-			Type:         ActionCreateDamageSource,
+		actions = append(actions, core.Action{
+			Type:         core.ActionCreateDamageSource,
 			Location:     p.Location(),
-			Direction:    DirectionToVector(p.direction),
+			Direction:    core.DirectionToVector(p.direction),
 			DamageSource: ds,
 		})
 	}
@@ -538,7 +551,7 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 	// unless set True by input in the next frame.
 	p.shieldHeld = false
 
-	return UpdateResult{Actions: actions}
+	return core.UpdateResult{Actions: actions}
 }
 
 func (p *Player) CanRemove() bool {

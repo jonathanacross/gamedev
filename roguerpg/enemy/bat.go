@@ -1,8 +1,11 @@
-package main
+package enemy
 
 import (
 	"math"
 	"math/rand"
+	"roguerpg/assets"
+	"roguerpg/character"
+	"roguerpg/core"
 )
 
 type BatEnemyState int
@@ -19,39 +22,39 @@ const (
 )
 
 type BatEnemy struct {
-	BaseCharacter
-	spriteSheet *SpriteSheet
-	animations  map[BatEnemyState]map[Direction]*Animation
+	character.BaseCharacter
+	spriteSheet *core.SpriteSheet
+	animations  map[BatEnemyState]map[core.Direction]*core.Animation
 
 	// AI
 	state              BatEnemyState
-	direction          Direction
-	moveStartLocation  Location
-	moveTargetLocation Location
+	direction          core.Direction
+	moveStartLocation  core.Location
+	moveTargetLocation core.Location
 	moveTimeCounter    float64
 }
 
-func NewBatEnemy(startLoc Location) *BatEnemy {
+func NewBatEnemy(startLoc core.Location) *BatEnemy {
 
 	ssColumns := 8
 	ssRows := 8
-	directionOffsets := map[Direction]int{
-		Right: 0,
-		Left:  ssColumns,
+	directionOffsets := map[core.Direction]int{
+		core.Right: 0,
+		core.Left:  ssColumns,
 	}
 	framesPerState := ssColumns * len(directionOffsets)
-	animations := map[BatEnemyState]map[Direction]*Animation{
-		BatFlying:  NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 0*framesPerState, directionOffsets, 10, true),
-		BatHurt:    NewDirectionAnimationMap([]int{0, 1, 0, 1}, 2*framesPerState, directionOffsets, 10, false),
-		BatDying:   NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 3*framesPerState, directionOffsets, 6, false),
-		BatStunned: NewDirectionAnimationMap([]int{0, 1}, 2*framesPerState, directionOffsets, 10, true),
+	animations := map[BatEnemyState]map[core.Direction]*core.Animation{
+		BatFlying:  core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4}, 0*framesPerState, directionOffsets, 10, true),
+		BatHurt:    core.NewDirectionAnimationMap([]int{0, 1, 0, 1}, 2*framesPerState, directionOffsets, 10, false),
+		BatDying:   core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 3*framesPerState, directionOffsets, 6, false),
+		BatStunned: core.NewDirectionAnimationMap([]int{0, 1}, 2*framesPerState, directionOffsets, 10, true),
 	}
 
-	animations[BatFlying][Left].SetRandomFrame()
-	animations[BatFlying][Right].SetRandomFrame()
+	animations[BatFlying][core.Left].SetRandomFrame()
+	animations[BatFlying][core.Right].SetRandomFrame()
 
-	spriteSheet := NewSpriteSheet(16, 16, ssColumns, ssRows)
-	hitbox := Rect{
+	spriteSheet := core.NewSpriteSheet(16, 16, ssColumns, ssRows)
+	hitbox := core.Rect{
 		Left:   -9,
 		Top:    -4,
 		Right:  9,
@@ -59,35 +62,35 @@ func NewBatEnemy(startLoc Location) *BatEnemy {
 	}
 
 	return &BatEnemy{
-		BaseCharacter: BaseCharacter{
-			BasePhysical: BasePhysical{
-				BaseSprite: BaseSprite{
-					Location: startLoc,
-					drawOffset: Location{
+		BaseCharacter: character.BaseCharacter{
+			BasePhysical: core.BasePhysical{
+				BaseSprite: core.BaseSprite{
+					Loc: startLoc,
+					DrawOffset: core.Location{
 						X: 8,
 						Y: 8,
 					},
-					srcRect: spriteSheet.Rect(0),
-					image:   BatSpritesImage,
+					SrcRect: spriteSheet.Rect(0),
+					Image:   assets.BatSpritesImage,
 				},
-				pushBoxOffset: hitbox,
+				PushBoxOffset: hitbox,
 			},
 			Health:          3,
 			MaxHealth:       3,
 			Experience:      3,
-			isDead:          false,
+			Dead:            false,
 			KnockbackFrames: 0,
 		},
 		spriteSheet:        spriteSheet,
 		animations:         animations,
 		state:              BatFlying,
-		direction:          Left,
+		direction:          core.Left,
 		moveStartLocation:  startLoc,
 		moveTargetLocation: startLoc,
 	}
 }
 
-func (c *BatEnemy) ApplyKnockback(force Vector, duration int) {
+func (c *BatEnemy) ApplyKnockback(force core.Vector, duration int) {
 	c.BaseCharacter.ApplyKnockback(force, duration)
 
 	if c.IsKnockedBack() && c.state != BatDying {
@@ -102,16 +105,11 @@ func (c *BatEnemy) ApplyStun(duration int) {
 	c.animations[BatStunned][c.direction].Reset()
 }
 
-func (c *BatEnemy) IsKnockedBack() bool {
-	return c.KnockbackFrames > 0
-}
-
 func (c *BatEnemy) TakeDamage(damage int) {
-	if c.isDead || c.state == BatDying || c.state == BatHurt {
+	if c.Dead || c.state == BatDying || c.state == BatHurt {
 		return
 	}
 
-	// TODO: consider a state transition like Player that handles animation reset
 	c.state = BatHurt
 	c.animations[BatHurt][c.direction].Reset()
 
@@ -122,16 +120,16 @@ func (c *BatEnemy) TakeDamage(damage int) {
 }
 
 // findNewTargetTile attempts to find a random, adjacent, non-solid tile.
-func (c *BatEnemy) findNewTargetTile(level *Level) bool {
+func (c *BatEnemy) findNewTargetTile(level core.Level) bool {
 	// Get current tile coordinates
 	tx, ty := level.WorldToTile(c.Location())
 
 	// Define a set of nearby squares to check
-	nearbySquares := []Point{}
+	nearbySquares := []core.Point{}
 	radius := 3
 	for dx := -radius; dx <= radius; dx++ {
 		for dy := -radius; dy <= radius; dy++ {
-			nearbySquares = append(nearbySquares, Point{dx, dy})
+			nearbySquares = append(nearbySquares, core.Point{X: dx, Y: dy})
 		}
 	}
 
@@ -150,9 +148,9 @@ func (c *BatEnemy) findNewTargetTile(level *Level) bool {
 			c.moveTargetLocation = level.TileToWorld(newTx, newTy)
 
 			if c.moveTargetLocation.X < c.Location().X {
-				c.direction = Left
+				c.direction = core.Left
 			} else if c.moveTargetLocation.X > c.Location().X {
-				c.direction = Right
+				c.direction = core.Right
 			}
 			return true
 		}
@@ -162,13 +160,13 @@ func (c *BatEnemy) findNewTargetTile(level *Level) bool {
 	return false
 }
 
-func (c *BatEnemy) isNearPlayer(playerLoc Location) bool {
-	dist := Vector(playerLoc).Minus(Vector(c.Location()))
-	return dist.Length() <= TileSize
+func (c *BatEnemy) isNearPlayer(playerLoc core.Location) bool {
+	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
+	return dist.Length() <= core.TileSize
 }
 
 // updateMovement handles the movement logic and target finding.
-func (c *BatEnemy) updateMovement(level *Level) {
+func (c *BatEnemy) updateMovement(level core.Level) {
 	c.moveTimeCounter += BatVelocityFrequency
 	if c.moveTimeCounter > 2*math.Pi {
 		c.moveTimeCounter -= 2 * math.Pi
@@ -179,7 +177,7 @@ func (c *BatEnemy) updateMovement(level *Level) {
 	currentSpeed := speedMultiplier * BatMoveSpeed
 
 	// Calculate Movement Vector
-	targetVector := Vector(c.moveTargetLocation).Minus(Vector(c.Location()))
+	targetVector := core.Vector(c.moveTargetLocation).Minus(core.Vector(c.Location()))
 	distance := targetVector.Length()
 
 	if distance <= currentSpeed {
@@ -194,8 +192,8 @@ func (c *BatEnemy) updateMovement(level *Level) {
 		// Apply movement and handle collisions
 		// We use the BaseCharacter's collision handler, which modifies c.X/c.Y
 		originalVelocity := velocity
-		velocity.X = c.HandleTileCollisions(level, AxisX, velocity.X)
-		velocity.Y = c.HandleTileCollisions(level, AxisY, velocity.Y)
+		velocity.X = c.HandleTileCollisions(level, core.AxisX, velocity.X)
+		velocity.Y = c.HandleTileCollisions(level, core.AxisY, velocity.Y)
 
 		// If we hit a wall (velocity blocked), pick a new target immediately to avoid getting stuck
 		if (math.Abs(originalVelocity.X) > 0.001 && velocity.X == 0) ||
@@ -205,21 +203,21 @@ func (c *BatEnemy) updateMovement(level *Level) {
 
 		// Update Direction for Animation
 		if velocity.X < 0 {
-			c.direction = Left
+			c.direction = core.Left
 		} else if velocity.X > 0 {
-			c.direction = Right
+			c.direction = core.Right
 		}
 	}
 }
 
-func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
-	var actions []Action
+func (c *BatEnemy) Update(level core.Level, player core.Player) core.UpdateResult {
+	var actions []core.Action
 
 	// Animation Update
 	// The current animation is determined by the previous frame's state/direction.
 	currentAnim := c.animations[c.state][c.direction]
 	currentAnim.Update()
-	c.srcRect = c.spriteSheet.Rect(currentAnim.Frame())
+	c.SrcRect = c.spriteSheet.Rect(currentAnim.Frame())
 
 	// Priority State Checks (Dying, Knockback/Hurt)
 	if c.UpdateKnockback(level) {
@@ -229,7 +227,7 @@ func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
 		}
 
 		if c.state != BatDying {
-			return UpdateResult{Actions: actions}
+			return core.UpdateResult{Actions: actions}
 		}
 	}
 
@@ -237,7 +235,7 @@ func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
 		c.state = BatStunned
 		// While stunned, we just play the animation and do nothing else
 		// The animation loop is set to true for BatStunned, so it will loop until stun logic ends
-		return UpdateResult{Actions: actions}
+		return core.UpdateResult{Actions: actions}
 	} else if c.state == BatStunned {
 		// Stun finished, return to flying
 		c.state = BatFlying
@@ -246,19 +244,19 @@ func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
 	// Handle Dying state which overrides all AI
 	if c.state == BatDying {
 		if c.animations[BatDying][c.direction].IsFinished() {
-			c.isDead = true
-			actions = append(actions, Action{
-				Type:       ActionGainXP,
+			c.Dead = true
+			actions = append(actions, core.Action{
+				Type:       core.ActionGainXP,
 				Experience: c.Experience,
 			})
 		}
-		return UpdateResult{Actions: actions}
+		return core.UpdateResult{Actions: actions}
 	}
 
 	// Handle Hurt state which overrides AI while animation plays
 	if c.state == BatHurt {
 		if !c.animations[BatHurt][c.direction].IsFinished() {
-			return UpdateResult{Actions: actions} // Wait for hurt anim to finish
+			return core.UpdateResult{Actions: actions} // Wait for hurt anim to finish
 		}
 
 		// Hurt animation finished, return to flying state
@@ -269,17 +267,16 @@ func (c *BatEnemy) Update(level *Level, player *Player) UpdateResult {
 	c.updateMovement(level)
 
 	if c.isNearPlayer(player.Location()) && c.state == BatFlying {
-		ds := NewDamageSource(TagEnemy, c.GetHurtBox(), 1)
-		actions = append(actions, Action{
-			Type:         ActionCreateDamageSource,
+		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), 1)
+		actions = append(actions, core.Action{
+			Type:         core.ActionCreateDamageSource,
 			DamageSource: ds,
 		})
 	}
 
-	return UpdateResult{Actions: actions}
+	return core.UpdateResult{Actions: actions}
 }
 
 func (c *BatEnemy) CanRemove() bool {
-	// TODO: consider if we want to merge this with isdead.
 	return false
 }

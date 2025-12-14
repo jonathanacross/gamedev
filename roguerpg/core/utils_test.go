@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"math"
@@ -26,33 +26,33 @@ func TestAbs(t *testing.T) {
 		{0, 0},
 	}
 	for _, tt := range tests {
-		if got := abs(tt.input); got != tt.want {
-			t.Errorf("abs(%v) = %v, want %v", tt.input, got, tt.want)
+		if got := Abs(tt.input); got != tt.want {
+			t.Errorf("Abs(%v) = %v, want %v", tt.input, got, tt.want)
 		}
 	}
 }
 
 func TestMin(t *testing.T) {
-	if got := min(5, 10); got != 5 {
-		t.Errorf("min(5, 10) = %v, want 5", got)
+	if got := Min(5, 10); got != 5 {
+		t.Errorf("Min(5, 10) = %v, want 5", got)
 	}
-	if got := min(10, 5); got != 5 {
-		t.Errorf("min(10, 5) = %v, want 5", got)
+	if got := Min(10, 5); got != 5 {
+		t.Errorf("Min(10, 5) = %v, want 5", got)
 	}
-	if got := min(-1, -10); got != -10 {
-		t.Errorf("min(-1, -10) = %v, want -10", got)
+	if got := Min(-1, -10); got != -10 {
+		t.Errorf("Min(-1, -10) = %v, want -10", got)
 	}
 }
 
 func TestMax(t *testing.T) {
-	if got := max(5, 10); got != 10 {
-		t.Errorf("max(5, 10) = %v, want 10", got)
+	if got := Max(5, 10); got != 10 {
+		t.Errorf("Max(5, 10) = %v, want 10", got)
 	}
-	if got := max(10, 5); got != 10 {
-		t.Errorf("max(10, 5) = %v, want 10", got)
+	if got := Max(10, 5); got != 10 {
+		t.Errorf("Max(10, 5) = %v, want 10", got)
 	}
-	if got := max(-1, -10); got != -1 {
-		t.Errorf("max(-1, -10) = %v, want -1", got)
+	if got := Max(-1, -10); got != -1 {
+		t.Errorf("Max(-1, -10) = %v, want -1", got)
 	}
 }
 
@@ -95,8 +95,8 @@ func TestArea(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.poly.area(); !floatEquals(got, tt.want) {
-				t.Errorf("area() = %v, want %v", got, tt.want)
+			if got := tt.poly.Area(); !floatEquals(got, tt.want) {
+				t.Errorf("Area() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -110,9 +110,10 @@ func TestOrientation(t *testing.T) {
 	}{
 		{"Collinear", Point{0, 0}, Point{1, 1}, Point{2, 2}, 0},
 		{"Collinear (Reversed)", Point{2, 2}, Point{1, 1}, Point{0, 0}, 0},
-		{"Clockwise", Point{0, 0}, Point{1, 0}, Point{0, 1}, 2},
+		{"Clockwise", Point{0, 0}, Point{1, 0}, Point{0, 1}, 2}, // Wait, check utils.go definitions again if orientation is same
 		{"CounterClockwise", Point{0, 0}, Point{0, 1}, Point{1, 0}, 1},
 	}
+	// Note: utils.go has orientation unexported. We are in same package, so we can access it.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := orientation(tt.p, tt.q, tt.r); got != tt.want {
@@ -199,8 +200,8 @@ func TestPointInPolygon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.poly.contains(tt.point); got != tt.want {
-				t.Errorf("pointInPolygon(%v) = %v, want %v", tt.point, got, tt.want)
+			if got := tt.poly.Contains(tt.point); got != tt.want {
+				t.Errorf("Contains(%v) = %v, want %v", tt.point, got, tt.want)
 			}
 		})
 	}
@@ -237,8 +238,8 @@ func TestOverlaps(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.poly1.overlaps(tt.poly2); got != tt.want {
-				t.Errorf("overlaps(%v, %v) = %v, want %v", tt.poly1, tt.poly2, got, tt.want)
+			if got := tt.poly1.Overlaps(tt.poly2); got != tt.want {
+				t.Errorf("Overlaps(%v, %v) = %v, want %v", tt.poly1, tt.poly2, got, tt.want)
 			}
 		})
 	}

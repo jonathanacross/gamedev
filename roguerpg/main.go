@@ -1,8 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand/v2"
+
+	"roguerpg/core"
+	"roguerpg/enemy"
+	"roguerpg/level"
+	"roguerpg/objects"
+	"roguerpg/player"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -11,7 +18,7 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 
-	TileSize = 16
+	// TileSize = 16 // Defined in core
 
 	ShowDebugInfo = false
 
@@ -19,29 +26,97 @@ const (
 	KnockbackDuration = 6
 )
 
-type GameContext struct {
-	Level         *Level
-	Player        *Player
-	Camera        *Camera
-	DamageSources []*DamageSource // current damage sources; saved here for debug drawing
-}
-
 type Game struct {
-	GameContext
-	StateStack []GameState
+	core.GameContext
+	StateStack []core.GameState
 }
 
-func buildLevels() []*Level {
-	levels := []*Level{}
+// AddObjectsToLevel populates the level with objects (stairs, chests).
+func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
+	if !isFirstLevel {
+		pos := lvl.FindRandomFloorLocation()
+		// Determine orientation for stairs. Assuming simple UpStairs.
+		// Objects like Stairs might need a specific tile or wall.
+
+		// func NewStairs(loc Location, up bool)
+		// In `level.go`: `level.AddObjects` ...
+		// We'll trust random floor location is fine for now, or refine later.
+
+		lvl.Objects = append(lvl.Objects, objects.NewStairs(pos, true))
+	}
+
+	if !isFinalLevel {
+		pos := lvl.FindRandomFloorLocation()
+		lvl.Objects = append(lvl.Objects, objects.NewStairs(pos, false))
+	} else {
+		// Final level: maybe a goal object?
+	}
+
+	// Add Chests
+	numChests := rand.IntN(3) + 1
+	for range numChests {
+		pos := lvl.FindRandomFloorLocation()
+		lvl.Objects = append(lvl.Objects, objects.NewChest(pos))
+	}
+}
+
+// AddEnemiesToLevel populates the level with enemies.
+func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
+	numEnemies := 5 + difficulty*2
+	for range numEnemies {
+		pos := lvl.FindRandomFloorLocation()
+		enemyType := rand.IntN(4)
+		var newEnemy core.Character
+
+		switch enemyType {
+		case 0:
+			newEnemy = enemy.NewBatEnemy(pos)
+		case 1:
+			newEnemy = enemy.NewBlobEnemy(pos)
+		case 2:
+			newEnemy = enemy.NewGoblinEnemy(pos)
+		case 3:
+			newEnemy = enemy.NewGhostEnemy(pos)
+		default:
+			newEnemy = enemy.NewBatEnemy(pos)
+		}
+		lvl.Enemies = append(lvl.Enemies, newEnemy)
+	}
+}
+
+func GetUpstairsLocation(lvl *level.Level) (core.Location, error) {
+	for _, obj := range lvl.Objects {
+		if stairs, ok := obj.(*objects.Stairs); ok {
+			if stairs.IsUpstairs {
+				return stairs.Location(), nil
+			}
+		}
+	}
+	return core.Location{}, fmt.Errorf("upstairs not found")
+}
+
+func GetDownstairsLocation(lvl *level.Level) (core.Location, error) {
+	for _, obj := range lvl.Objects {
+		if stairs, ok := obj.(*objects.Stairs); ok {
+			if !stairs.IsUpstairs {
+				return stairs.Location(), nil
+			}
+		}
+	}
+	return core.Location{}, fmt.Errorf("downstairs not found")
+}
+
+func buildLevels() []*level.Level {
+	levels := []*level.Level{}
 	numLevels := 5
 	for i := range numLevels {
-		level := BuildLevel(70, 50)
+		lvl := level.BuildLevel(70, 50)
 		isFirstLevel := (i == 0)
 		isFinalLevel := (i == numLevels-1)
-		level.AddObjects(isFirstLevel, isFinalLevel)
-		level.AddEnemies(i)
+		AddObjectsToLevel(lvl, isFirstLevel, isFinalLevel)
+		AddEnemiesToLevel(lvl, i)
 
-		levels = append(levels, level)
+		levels = append(levels, lvl)
 	}
 
 	// Link levels
@@ -58,17 +133,17 @@ func buildLevels() []*Level {
 
 func NewGame() *Game {
 	levels := buildLevels()
-	player := NewPlayer()
-	player.SetLocation(levels[0].FindRandomFloorLocation())
+	p := player.NewPlayer()
+	p.SetLocation(levels[0].FindRandomFloorLocation())
 
 	return &Game{
-		GameContext: GameContext{
+		GameContext: core.GameContext{
 			Level:         levels[0],
-			Player:        player,
-			Camera:        NewCamera(ScreenWidth, ScreenHeight),
-			DamageSources: []*DamageSource{},
+			Player:        p,
+			Camera:        NewCamera(ScreenWidth, ScreenHeight), // Camera is in main (camera.go is main package)
+			DamageSources: []*core.DamageSource{},
 		},
-		StateStack: []GameState{&MainGameState{}},
+		StateStack: []core.GameState{&MainGameState{}},
 	}
 }
 
@@ -86,13 +161,21 @@ func (g *Game) Update() error {
 	if mainState, ok := activeState.(*MainGameState); ok {
 		// Access level, player, camera via the embedded Context field
 		for _, ds := range g.DamageSources {
-			// Note: The handleDamageSource function itself would need access to g.Context.Level/g.Context.Player,
-			// or you would pass the context to it as well.
 			mainState.handleDamageSource(ctx, ds)
 		}
 
-		g.Level.Enemies = g.cleanupDeadEnemies(g.Level.Enemies)
-		g.Level.Objects = g.cleanupObjects(g.Level.Objects)
+		// Use type assertions/helpers to update Level enemies/objects if context is holding core.Level
+		if lvl, ok := g.Level.(*level.Level); ok {
+			lvl.Enemies = g.cleanupDeadEnemies(lvl.Enemies)
+			lvl.Objects = g.cleanupObjects(lvl.Objects)
+		}
+
+		// Camera logic needs *Camera if using NewCamera from main
+		// But ctx.Camera is core.Camera Interface.
+		// g.Camera is *Camera (struct in main).
+		// Since g embeds GameContext, g.Camera is core.Camera interface.
+		// But NewCamera returns *Camera.
+		// So g.Camera holds *Camera.
 		g.Camera.CenterOn(g.Player.Location())
 	}
 
@@ -107,88 +190,109 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) GoDownLevel() {
-	if g.Level.DownLevel != nil {
-		g.Level = g.Level.DownLevel
-		newLoc, err := g.Level.GetUpstairsLocation()
+	lvl, ok := g.Level.(*level.Level)
+	if !ok {
+		return
+	}
+
+	if lvl.DownLevel != nil {
+		g.Level = lvl.DownLevel
+		newLvl := lvl.DownLevel
+		newLoc, err := GetUpstairsLocation(newLvl)
 		if err != nil {
 			log.Printf("Error finding upstairs location: %v", err)
-			return
+			// Fallback
+			newLoc = newLvl.FindRandomFloorLocation()
 		}
 		g.Player.SetLocation(newLoc)
 	}
 }
 
 func (g *Game) GoUpLevel() {
-	if g.Level.UpLevel != nil {
-		g.Level = g.Level.UpLevel
-		newLoc, err := g.Level.GetDownstairsLocation()
+	lvl, ok := g.Level.(*level.Level)
+	if !ok {
+		return
+	}
+
+	if lvl.UpLevel != nil {
+		g.Level = lvl.UpLevel
+		newLvl := lvl.UpLevel
+		newLoc, err := GetDownstairsLocation(newLvl)
 		if err != nil {
 			log.Printf("Error finding downstairs location: %v", err)
-			return
+			// Fallback
+			newLoc = newLvl.FindRandomFloorLocation()
 		}
 		g.Player.SetLocation(newLoc)
 	}
 }
 
-func (g *Game) executeActions(actions []Action) {
-	g.DamageSources = []*DamageSource{}
+func (g *Game) executeActions(actions []core.Action) {
+	g.DamageSources = []*core.DamageSource{}
+
+	// Check if level is concrete type to append objects
+	lvl, ok := g.Level.(*level.Level)
+	if !ok {
+		return
+	}
+
 	for _, action := range actions {
 		switch action.Type {
-		case ActionPushState:
+		case core.ActionPushState:
 			g.StateStack = append(g.StateStack, action.GameState)
-		case ActionPopState:
+		case core.ActionPopState:
 			g.StateStack = g.StateStack[:len(g.StateStack)-1]
-		case ActionCreateDamageSource:
+		case core.ActionCreateDamageSource:
 			g.DamageSources = append(g.DamageSources, action.DamageSource)
-		case ActionDropBomb:
-			newBomb := NewBomb(action.Location)
-			g.Level.Objects = append(g.Level.Objects, newBomb)
-		case ActionShootArrow:
-			newArrow := NewArrow(action.Location, action.Direction)
-			g.Level.Objects = append(g.Level.Objects, newArrow)
-		case ActionThrowBoomerang:
-			newBoomerang := NewBoomerang(action.Location, action.Direction, rand.IntN(3)+1)
-			g.Level.Objects = append(g.Level.Objects, newBoomerang)
-		case ActionCreateStar:
-			newStar := NewStar(action.Location, action.Direction, action.Target)
-			g.Level.Objects = append(g.Level.Objects, newStar)
-		case ActionReturnBoomerang:
+		case core.ActionDropBomb:
+			newBomb := objects.NewBomb(action.Location)
+			lvl.Objects = append(lvl.Objects, newBomb)
+		case core.ActionShootArrow:
+			newArrow := objects.NewArrow(action.Location, action.Direction)
+			lvl.Objects = append(lvl.Objects, newArrow)
+		case core.ActionThrowBoomerang:
+			newBoomerang := objects.NewBoomerang(action.Location, action.Direction, rand.IntN(3)+1)
+			lvl.Objects = append(lvl.Objects, newBoomerang)
+		case core.ActionCreateStar:
+			newStar := objects.NewStar(action.Location, action.Direction, action.Target)
+			lvl.Objects = append(lvl.Objects, newStar)
+		case core.ActionReturnBoomerang:
 			g.Player.ReturnBoomerang()
-		case ActionExplosion:
-			NewBombExplosion := NewBombExplosion(action.Location)
-			g.Level.Objects = append(g.Level.Objects, NewBombExplosion)
-		case ActionSwitchWeapon:
+		case core.ActionExplosion:
+			newBombExplosion := objects.NewBombExplosion(action.Location)
+			lvl.Objects = append(lvl.Objects, newBombExplosion)
+		case core.ActionSwitchWeapon:
 			g.Player.SwitchWeapon(action.WeaponType)
-		case ActionGoUpLevel:
+		case core.ActionGoUpLevel:
 			g.GoUpLevel()
-		case ActionGoDownLevel:
+		case core.ActionGoDownLevel:
 			g.GoDownLevel()
-		case ActionGainXP:
-			g.Player.Experience += action.Experience
+		case core.ActionGainXP:
+			// Need cast to *player.Player if I want to access fields?
+			// Or use interface method AddExperience
+			g.Player.AddExperience(action.Experience)
 		default:
 		}
 	}
 }
 
-func (g *Game) cleanupDeadEnemies(enemies []Character) []Character {
-	liveEnemies := enemies[:0] // Create a zero-length slice backed by the original array
+func (g *Game) cleanupDeadEnemies(enemies []core.Character) []core.Character {
+	liveEnemies := enemies[:0]
 	for _, enemy := range enemies {
 		if !enemy.IsDead() {
 			liveEnemies = append(liveEnemies, enemy)
 		}
 	}
-	// Return the newly filtered slice.
 	return liveEnemies
 }
 
-func (g *Game) cleanupObjects(objects []GameObject) []GameObject {
-	liveObjects := objects[:0] // Create a zero-length slice backed by the original array
-	for _, object := range objects {
+func (g *Game) cleanupObjects(objs []core.GameObject) []core.GameObject {
+	liveObjects := objs[:0]
+	for _, object := range objs {
 		if !object.CanRemove() {
 			liveObjects = append(liveObjects, object)
 		}
 	}
-	// Return the newly filtered slice.
 	return liveObjects
 }
 

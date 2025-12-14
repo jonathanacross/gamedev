@@ -7,6 +7,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"image/color"
+	"roguerpg/assets"
+	"roguerpg/core"
 )
 
 const (
@@ -19,13 +21,13 @@ var heartInstance = newHeart()
 
 type Heart struct {
 	image       *ebiten.Image
-	spriteSheet *SpriteSheet
+	spriteSheet *core.SpriteSheet
 }
 
 func newHeart() Heart {
 	return Heart{
-		image:       HealthHeartImage,
-		spriteSheet: NewSpriteSheet(HeartWidth, HeartHeight, HeartSubdivisions+1, 1),
+		image:       assets.HealthHeartImage,
+		spriteSheet: core.NewSpriteSheet(HeartWidth, HeartHeight, HeartSubdivisions+1, 1),
 	}
 }
 
@@ -43,7 +45,7 @@ func DrawPlayerHeath(screen *ebiten.Image, currHeath int, maxHeath int) {
 	for i := range numHearts {
 		x := float64(20 + i*HeartWidth)
 		y := float64(20)
-		frame := clamp(currHeath-HeartSubdivisions*i, 0, HeartSubdivisions)
+		frame := core.Clamp(currHeath-HeartSubdivisions*i, 0, HeartSubdivisions)
 		DrawHeart(screen, x, y, frame)
 	}
 }
@@ -52,7 +54,7 @@ func DrawPlayerHeath(screen *ebiten.Image, currHeath int, maxHeath int) {
 func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, c color.Color) {
 	fontSize := float64(16)
 	fontFace := &text.GoTextFace{
-		Source: TextFaceSource,
+		Source: assets.TextFaceSource,
 		Size:   fontSize,
 	}
 
@@ -80,7 +82,7 @@ func DrawExperience(screen *ebiten.Image, experience int) {
 	drawTextAt(screen, "Exp: "+expString, ScreenWidth-80, 18, text.AlignStart, color.White)
 }
 
-func DrawHeadsUpDisplay(screen *ebiten.Image, player *Player) {
-	DrawPlayerHeath(screen, player.Health, player.MaxHealth)
-	DrawExperience(screen, player.Experience)
+func DrawHeadsUpDisplay(screen *ebiten.Image, player core.Player) {
+	DrawPlayerHeath(screen, player.GetHealth(), player.GetMaxHealth())
+	DrawExperience(screen, player.GetExperience())
 }

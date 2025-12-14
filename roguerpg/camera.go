@@ -1,11 +1,13 @@
 package main
 
 import (
+	"roguerpg/core"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Camera struct {
-	Location Location
+	Location core.Location
 	Width    float64
 	Height   float64
 	BufferX  float64
@@ -21,14 +23,14 @@ func NewCamera(width, height float64) *Camera {
 	}
 }
 
-func (c *Camera) CenterOn(loc Location) {
+func (c *Camera) CenterOn(loc core.Location) {
 	// TODO: Smooth camera movement
 	c.Location.X = loc.X
 	c.Location.Y = loc.Y
 }
 
-func (c *Camera) GetViewRect() Rect {
-	return Rect{
+func (c *Camera) GetViewRect() core.Rect {
+	return core.Rect{
 		Left:   c.Location.X - c.Width/2,
 		Top:    c.Location.Y - c.Height/2,
 		Right:  c.Location.X + c.Width/2,

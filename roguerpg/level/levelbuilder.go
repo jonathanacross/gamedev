@@ -1,8 +1,10 @@
-package main
+package level
 
 import (
 	"math"
 	"math/rand/v2"
+	"roguerpg/assets"
+	"roguerpg/core"
 )
 
 const (
@@ -52,16 +54,16 @@ type RoomInfo struct {
 	Y        int
 	XRadius  int
 	YRadius  int
-	Vertices Polygon
+	Vertices core.Polygon
 }
 
 func (room *RoomInfo) Area() float64 {
-	return room.Vertices.area()
+	return room.Vertices.Area()
 }
 
 func (room *RoomInfo) Overlaps(rooms []RoomInfo) bool {
 	for _, prevRoom := range rooms {
-		if room.Vertices.overlaps(prevRoom.Vertices) {
+		if room.Vertices.Overlaps(prevRoom.Vertices) {
 			return true
 		}
 	}
@@ -88,70 +90,36 @@ func genRoom(mapWidth, mapHeight int) RoomInfo {
 	}
 }
 
-func MakeShape(centerX, centerY int, xRadius, yRadius int) Polygon {
-	r := (xRadius + yRadius) / 2
-	numSpokes := 3 * r / 2
-	// Set initial random radius for each spoke
-	radii := make([]float64, numSpokes)
-	for i := range numSpokes {
-		radii[i] = float64(r/2) + float64(r)*rand.Float64()
-	}
+// core.MakeShape?
+// MakeShape, visitPermutation, addPath, etc. were in levelbuilder.go.
+// Are they generic polygon/math utils?
+// Yes, `MakeShape` creates a polygon.
+// `Polygon` is defined where? core/utils.go? NO.
+// `Polygon` was in `utils.go` in root.
+// I moved `utils.go` to `core/utils.go`.
+// BUT I did NOT check if `Polygon` logic was in the `utils.go` I moved.
+// Let's check `core/utils.go` content.
+// The `utils.go` I moved (renamed) to `core/utils.go` had ONLY Math functions: Abs, Min, Max, RoundEven, Sign, Clamp, CalculateKnockbackForce.
+// THE `Polygon` STRUCT AND METHODS WERE MISSING FROM `core/utils.go`!
+// I accidentally truncated/selectively copied `utils.go` logic.
+// I NEED TO ADD POLYGON UTILS TO `core/utils.go` OR `core/polygon.go`.
 
-	// Smooth the radii
-	smoothedRadii := make([]float64, numSpokes)
-	for i := range numSpokes {
-		prev := radii[(i-1+numSpokes)%numSpokes]
-		curr := radii[i]
-		next := radii[(i+1)%numSpokes]
-		smoothedRadii[i] = 0.15*prev + 0.7*curr + 0.15*next
-	}
-	radii = smoothedRadii
+// Sub-task: Fix `core/utils.go` to include Polygon logic.
+// Then `levelbuilder.go` can use `core.Polygon` and `core.MakeShape` (if I move MakeShape to core).
+// `MakeShape` was in `levelbuilder.go`.
+// If it's generic, `core` is fine.
+// `visitPermutation`, `addPath`, `connectRoomsWithPaths`, `removeIllegalPatterns` are level building logic.
+// They depend on `RoomInfo` and grid.
+// `RoomInfo` is in `level`.
+// `MakeShape` returns Polygon.
+// I should keep `MakeShape` in `level` OR move generic Polygon shape making to `core`.
+// Given `MakeShape` is for room generation (noisy circles), it fits in `level` or `core` (if reusable). I'll keep in `level` for now to minimize `core` clutter, unless `core.Polygon` is used.
+// But `room.Vertices` is `core.Polygon` (if I put Polygon in core).
+// So `MakeShape` returns `core.Polygon`.
 
-	// Use FPoint for vertex positions calculation
-	dTheta := 2 * math.Pi / float64(numSpokes)
-	fVertices := make([]FPoint, numSpokes) // Changed to FPoint
-	for i := range numSpokes {
-		theta := dTheta * float64(i)
-		r := radii[i]
-		// Calculations remain in float64
-		x := float64(centerX) + r*math.Cos(theta)
-		y := float64(centerY) + r*math.Sin(theta)
-		fVertices[i] = FPoint{X: x, Y: y}
-	}
+// I will assume I will fix `core` first.
 
-	// Calculate bounds using FPoint values
-	xMin, xMax := fVertices[0].X, fVertices[0].X
-	yMin, yMax := fVertices[0].Y, fVertices[0].Y
-	for _, v := range fVertices {
-		xMin = math.Min(xMin, v.X)
-		xMax = math.Max(xMax, v.X)
-		yMin = math.Min(yMin, v.Y)
-		yMax = math.Max(yMax, v.Y)
-	}
-
-	// Check for zero-division risk (in case shape collapsed to a line/point)
-	var scaleX, scaleY float64 = 1.0, 1.0
-	if xMax-xMin > 0 {
-		scaleX = float64(2*xRadius+1) / (xMax - xMin)
-	}
-	if yMax-yMin > 0 {
-		scaleY = float64(2*yRadius+1) / (yMax - yMin)
-	}
-
-	// Final conversion and scaling to integer Point
-	vertices := make(Polygon, numSpokes)
-	for i, v := range fVertices {
-		// Scaling and offset calculation using floats
-		scaledX := (v.X-xMin)*scaleX + float64(centerX-xRadius)
-		scaledY := (v.Y-yMin)*scaleY + float64(centerY-yRadius)
-
-		// Final conversion to integer Point
-		vertices[i].X = int(scaledX)
-		vertices[i].Y = int(scaledY)
-	}
-
-	return vertices
-}
+// Let's finish writing `levelbuilder.go` using `core.Polygon` assuming I fix core.
 
 func visitPermutation(rooms []RoomInfo) []int {
 	permutation := []int{}
@@ -168,7 +136,7 @@ func visitPermutation(rooms []RoomInfo) []int {
 		closestRoom := -1
 		for i, r := range rooms {
 			if !seen[i] {
-				dist := abs(r.X-rooms[currRoom].X) + abs(r.Y-rooms[currRoom].Y)
+				dist := core.Abs(r.X-rooms[currRoom].X) + core.Abs(r.Y-rooms[currRoom].Y)
 				if dist < bestDist {
 					bestDist = dist
 					closestRoom = i
@@ -186,8 +154,8 @@ func visitPermutation(rooms []RoomInfo) []int {
 
 // adds a new path
 func addPath(data [][]int, rooms []RoomInfo, oldx, oldy, newx, newy int) {
-	dx := sign(newx - oldx)
-	dy := sign(newy - oldy)
+	dx := core.Sign(newx - oldx)
+	dy := core.Sign(newy - oldy)
 
 	for x := oldx; x != newx; x += dx {
 		data[oldy][x] = floor
@@ -212,10 +180,10 @@ func connectRoomsWithPaths(data [][]int, rooms []RoomInfo) {
 
 	// connect the rooms with corridors -- just go in order
 	for i := 1; i < len(pi); i++ {
-		oldx := roundEven(rooms[pi[i-1]].X)
-		oldy := roundEven(rooms[pi[i-1]].Y)
-		newx := roundEven(rooms[pi[i]].X)
-		newy := roundEven(rooms[pi[i]].Y)
+		oldx := core.RoundEven(rooms[pi[i-1]].X)
+		oldy := core.RoundEven(rooms[pi[i-1]].Y)
+		newx := core.RoundEven(rooms[pi[i]].X)
+		newy := core.RoundEven(rooms[pi[i]].Y)
 
 		addPath(data, rooms, oldx, oldy, newx, newy)
 	}
@@ -293,9 +261,9 @@ func BuildLevelBlueprint(width, height int) *LevelBlueprint {
 	// clear out the area in the rooms
 	for y := range height {
 		for x := range width {
-			point := Point{X: x, Y: y}
+			point := core.Point{X: x, Y: y}
 			for _, room := range rooms {
-				if room.Vertices.contains(point) {
+				if room.Vertices.Contains(point) {
 					data[y][x] = floor
 					break
 				}
@@ -388,28 +356,28 @@ func (lb *LevelBlueprint) GetBlobValueForWallEdge(x, y int) int {
 
 func BuildLevel(width, height int) *Level {
 	blueprint := BuildLevelBlueprint(width, height)
-	terrainTiles := [][]*Tile{}
+	terrainTiles := [][]*core.Tile{}
 
-	terrainSpriteSheet := NewSpriteSheet(TileSize, TileSize, 5, 3)
-	wallEdgeBlobSpriteSheet := NewBlobSpriteSheet(TileSize, TileSize)
+	terrainSpriteSheet := core.NewSpriteSheet(core.TileSize, core.TileSize, 5, 3)
+	wallEdgeBlobSpriteSheet := core.NewBlobSpriteSheet(core.TileSize, core.TileSize)
 
 	for y := 0; y < blueprint.Height; y++ {
-		row := []*Tile{}
+		row := []*core.Tile{}
 		for x := 0; x < blueprint.Width; x++ {
 			squareType := blueprint.Squares[y][x]
-			location := Location{
-				X: float64(x * TileSize),
-				Y: float64(y * TileSize),
+			location := core.Location{
+				X: float64(x * core.TileSize),
+				Y: float64(y * core.TileSize),
 			}
 
-			var tile *Tile = nil
+			var tile *core.Tile = nil
 			if squareType == wall {
 				blobValue := blueprint.GetBlobValueForWallEdge(x, y)
-				tile = NewTile(location, WallBlobTileset, wallEdgeBlobSpriteSheet.Rect(blobValue), true)
+				tile = core.NewTile(location, assets.WallBlobTileset, wallEdgeBlobSpriteSheet.Rect(blobValue), true)
 			} else {
 				tileIdx := blueprint.GetSheetIdxForTerrain(x, y)
 				solid := blueprint.Squares[y][x] != floor
-				tile = NewTile(location, TerrainTileset, terrainSpriteSheet.Rect(tileIdx), solid)
+				tile = core.NewTile(location, assets.TerrainTileset, terrainSpriteSheet.Rect(tileIdx), solid)
 			}
 			row = append(row, tile)
 		}
@@ -420,16 +388,9 @@ func BuildLevel(width, height int) *Level {
 		WidthInTiles:  width,
 		HeightInTiles: height,
 		Tiles:         terrainTiles,
-		Enemies:       []Character{},
-		Objects:       []GameObject{},
+		Enemies:       []core.Character{},
+		Objects:       []core.GameObject{},
 		DownLevel:     nil,
 		UpLevel:       nil,
 	}
 }
-
-/*
-func main() {
-	lb := BuildLevel(70, 50)
-	fmt.Printf("%v", lb)
-}
-*/
