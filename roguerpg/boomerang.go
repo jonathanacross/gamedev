@@ -96,6 +96,9 @@ func (b *Boomerang) Update(level *Level, player *Player) UpdateResult {
 	}
 	// Create a stun source at the boomerang's location
 	ds := NewStunSource(TagPlayer, hitBox, stunDuration)
+	ds.OnHit = func() {
+		b.leaving = false
+	}
 	actions = append(actions, Action{
 		Type:         ActionCreateDamageSource,
 		DamageSource: ds,

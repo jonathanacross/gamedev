@@ -36,6 +36,10 @@ func (g *MainGameState) checkDamageAgainstTargets(damageSource *DamageSource, ta
 				target.ApplyKnockback(force, KnockbackDuration)
 			}
 			hitCharacters = append(hitCharacters, target)
+
+			if damageSource.OnHit != nil {
+				damageSource.OnHit()
+			}
 		}
 	}
 	return hitCharacters

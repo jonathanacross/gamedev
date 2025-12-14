@@ -96,5 +96,9 @@ func (b *Star) CanRemove() bool {
 
 func (b *Star) getActiveDamageSource() *DamageSource {
 	worldHitbox := b.damageSource.HitBox.Offset(b.X, b.Y)
-	return NewDamageSource(TagPlayer, worldHitbox, b.damageSource.Damage)
+	ds := NewDamageSource(TagPlayer, worldHitbox, b.damageSource.Damage)
+	ds.OnHit = func() {
+		b.finished = true
+	}
+	return ds
 }

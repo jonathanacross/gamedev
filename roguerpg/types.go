@@ -168,6 +168,7 @@ type DamageSource struct {
 	Damage    int        // Used for DamageTypePhysical
 	Type      DamageType // Physical or Stun
 	Duration  int        // Used for DamageTypeStun (in frames)
+	OnHit     func()     // Callback when damage source hits a target
 }
 
 func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource {
