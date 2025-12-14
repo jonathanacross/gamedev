@@ -110,14 +110,14 @@ func (mg *MainGameState) handleInput(ctx *GameContext) []Action {
 	// --- Handle Attack/Item Input (Take precedence over movement commands) ---
 
 	// Sword Attack
-	if inpututil.IsKeyJustPressed(ebiten.KeyX) {
+	if ebiten.IsKeyPressed(ebiten.KeyX) {
 		if action := player.PrimaryAttack(level); action != nil {
 			actions = append(actions, *action)
 		}
 	}
 
 	// Secondary Attack
-	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
+	if ebiten.IsKeyPressed(ebiten.KeyZ) {
 		if action := player.SecondaryAttack(level); action != nil {
 			actions = append(actions, *action)
 		}

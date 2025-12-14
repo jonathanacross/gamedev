@@ -17,7 +17,7 @@ const (
 
 	// Movement constants
 	GhostMaxFloatSpeed float64 = 0.8
-	GhostAttackSpeed   float64 = 1.2
+	GhostAttackSpeed   float64 = 0.8
 	GhostXFrequency    float64 = 0.02 // radians per frame
 	GhostYFrequency    float64 = 0.03 // radians per frame
 )

@@ -49,17 +49,16 @@ type Player struct {
 
 	primaryWeapon   WeaponType
 	secondaryWeapon WeaponType
+	shieldHeld      bool
 }
 
 func NewPlayer() *Player {
-	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
+	// TODO: these are attack boxes for the sword; need to add attack boxes for the shield
 	attackHitboxes := make(map[Direction]map[int]DamageSourceConfig)
 
 	baseDmg := 1
 
-	// Setup Hitboxes for specific frames of the attack animation.
-	// The key (int) is the index within the animation array.
-
+	// Set up Hitboxes for specific frames of the attack animation.
 	// Downward swing
 	attackHitboxes[Down] = map[int]DamageSourceConfig{
 		1: {HitBox: Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseDmg},
@@ -94,8 +93,8 @@ func NewPlayer() *Player {
 		Idle:            NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
 		Walking:         NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
 		AttackingSword:  NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
-		AttackingShield: NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
-		AttackingBow:    NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 10, false),
+		AttackingShield: NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, true),
+		AttackingBow:    NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
 		Hurt:            NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
 		Dying:           NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
 		Dead:            NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
@@ -186,8 +185,8 @@ func (p *Player) Move(moveVector Vector) {
 
 		// Set velocity based on the move vector, normalized and scaled.
 		p.Velocity = moveVector.Normalize().Scale(PlayerSpeed)
+		p.TransitionState(Walking)
 	}
-	p.TransitionState(Walking)
 }
 
 func (p *Player) StopMoving() {
@@ -205,6 +204,7 @@ func (p *Player) AttackSword() {
 }
 
 func (p *Player) AttackShield() {
+	p.shieldHeld = true
 	// Only start attack if Idle or Walking
 	if p.state == Idle || p.state == Walking {
 		p.TransitionState(AttackingShield)
@@ -234,7 +234,7 @@ func (p *Player) UseBomb() *Action {
 
 func (p *Player) UseBow() {
 	// Only start attack if Idle or Walking
-	if p.state == Idle || p.state == Walking && p.bowCooldownTimer.IsReady() {
+	if (p.state == Idle || p.state == Walking) && p.bowCooldownTimer.IsReady() {
 		p.TransitionState(AttackingBow)
 	}
 }
@@ -387,8 +387,10 @@ func (p *Player) handleState() []Action {
 	if p.state == AttackingSword && animation.IsFinished() {
 		p.TransitionState(Idle)
 	}
-	if p.state == AttackingShield && animation.IsFinished() {
-		p.TransitionState(Idle)
+	if p.state == AttackingShield {
+		if !p.shieldHeld {
+			p.TransitionState(Idle)
+		}
 	}
 	if p.state == AttackingBow && animation.IsFinished() {
 		// Shoot arrow
@@ -452,7 +454,13 @@ func (p *Player) getActiveDamageSource() *DamageSource {
 			// Found an active hitbox config! Create the world-space DamageSource.
 			worldHitbox := config.HitBox.Offset(p.X, p.Y)
 
-			return NewDamageSource(TagPlayer, worldHitbox, config.Damage)
+			// HACK: Damage is different for swords and shields
+			damage := 0
+			if p.state == AttackingSword {
+				damage = config.Damage
+			}
+
+			return NewDamageSource(TagPlayer, worldHitbox, damage)
 		}
 	}
 
@@ -464,11 +472,20 @@ func (p *Player) TakeDamage(damage int) {
 		return
 	}
 
+	// Shield blocks damage
+	if p.state == AttackingShield {
+		return
+	}
+
 	p.TransitionState(Hurt)
 	p.Health -= damage
 }
 
 func (p *Player) ApplyKnockback(force Vector, duration int) {
+	if p.state == AttackingShield {
+		return
+	}
+
 	p.BaseCharacter.ApplyKnockback(force, duration)
 
 	if p.state == Dying || p.state == Dead {
@@ -517,6 +534,10 @@ func (p *Player) Update(level *Level, _ *Player) UpdateResult {
 			DamageSource: ds,
 		})
 	}
+	// Reset shieldHeld at the end of the frame so it defaults to false
+	// unless set True by input in the next frame.
+	p.shieldHeld = false
+
 	return UpdateResult{Actions: actions}
 }
 

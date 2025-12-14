@@ -19,9 +19,8 @@ func NewStar(location Location, direction Vector, target Character) *Star {
 	spriteSheet := NewSpriteSheet(16, 16, 4, 3)
 	var animation *Animation = nil
 
-	animation = NewAnimation([]int{0, 1, 2, 3}, 5, true)
-	//animation = NewAnimation([]int{8, 9, 10, 11}, 5, true)
-	//animation = NewAnimation([]int{0, 4, 1, 5, 2, 6, 3, 7}, 5, true)
+	//animation = NewAnimation([]int{0, 1, 2, 3}, 5, true)
+	animation = NewAnimation([]int{0, 4, 1, 5, 2, 6, 3, 7}, 5, true)
 
 	hitBox := Rect{Left: -7, Top: -7, Right: 7, Bottom: 7}
 	damageSource := DamageSourceConfig{
