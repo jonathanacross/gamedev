@@ -27,7 +27,7 @@ type BaseCharacter struct {
 }
 
 func (c *BaseCharacter) GetHurtBox() core.Rect {
-	return c.GetPushBox() // Use the inherited push box (from BasePhysical)
+	return c.GetPushBox()
 }
 
 func (c *BaseCharacter) ApplyKnockback(force core.Vector, duration int) {
@@ -96,92 +96,17 @@ func (c *BaseCharacter) CheckAndApplyMovement(level core.Level, axis core.Collis
 
 	for y := minY; y <= maxY; y++ {
 		for x := minX; x <= maxX; x++ {
-			// level.GetTile returns Tile (struct).
-			// In core/interfaces.go I commented: "Region of code where I define Level... Tile is a struct in core".
-			// However, Level interface: IsTileSolid(tileX, tileY int) bool.
-			// CheckAndApplyMovement used: tile := level.GetTile(x, y); if tile != nil && tile.solid ...
-			// The Level interface in core (interface.go) defined: IsTileSolid(x, y int) bool.
-			// It ALSO defined GetTile(x, y int) Tile? No, I need to check interface definition.
-
-			// I defined `GetTile(x, y int) Tile` in `core/interfaces.go`.
-			// But `Tile` is a struct, checking against nil is tricky if it returns value.
-			// It should return *Tile.
-
-			// Wait, Level interface needs to work for this code.
-			// The code uses `tile.solid` and `tile.GetPushBox()`.
-			// So `GetTile` should return `*core.Tile`.
-
-			// Wait, I should verify `core/interfaces.go` definition of `Level`.
-			// I'll proceed assuming I can fix interface if needed.
-			// For now, I'll use IsTileSolid from interface if possible?
-			// But I need `tile.GetPushBox()`.
-			// `core.Tile` has `GetPushBox()`.
-			// So `GetTile` must return `*core.Tile`.
-
-			// If `GetTile` returns nil, it means no tile?
-			// `level.GetTile` in original code returned `*Tile`.
-			// So I will assume `level.GetTile(x,y)` returns `*core.Tile`.
-
-			tileSolid := level.IsTileSolid(x, y)
-			if tileSolid {
-				// We need the tile's rect.
-				// Tile rect is derived from position.
-				// Original: tile.GetPushBox().
-				// Construct a tile at that position to get its box?
-				// Or use `level.TileToWorld`.
-				// Tile always fills the grid square?
-				// `core/sprites.go` NewTile: PushBox is (0,0) to (16,16).
-				// `Tile` uses `PushBoxOffset`.
-				// `tile.GetPushBox()` uses `TileToWorld` location?
-
-				// If I don't have access to the Tile object, can I calculate the box?
-				// Yes, generic tile at (x,y)
-				// location := level.TileToWorld(x,y) -> gives center.
-				// Wait, TileToWorld gives center.
-				// NewTile location is what? Center? TopLeft?
-				// Original `BuildLevel`: location x*TileSize, y*TileSize (TopLeft?)
-				// `NewTile` sets Location.
-				// `core` Tile: `GetPushBox` = Box + Loc.
-				// If I know it's a solid tile, I can calculate its box without the Tile object.
-				// Box is (x*TileSize, y*TileSize, (x+1)*TileSize, (y+1)*TileSize).
-
-				// Let's rely on calculation instead of getting the Tile object if possible,
-				// to reduce dependency on Tile implementation details if we want abstract Level.
-				// But Level interface is in core, Tile is in core.
-				// I'll stick to logical calculation for collision.
-
+			if level.IsTileSolid(x, y) {
 				tileRect := core.Rect{
 					Left:   float64(x * core.TileSize),
 					Top:    float64(y * core.TileSize),
 					Right:  float64((x + 1) * core.TileSize),
 					Bottom: float64((y + 1) * core.TileSize),
 				}
-				t := 1.0
 
-				// Calculate collision time 't' (Swept AABB logic)
-				if axis == core.AxisX {
-					if !characterRect.IntersectsY(tileRect) {
-						continue // Skip this tile, no Y-overlap
-					}
-					if v > 0 { // moving right (Right edge hits Left edge)
-						t = (tileRect.Left - characterRect.Right) / v
-					} else if v < 0 { // moving left (Left edge hits Right edge)
-						t = (tileRect.Right - characterRect.Left) / v
-					}
-				} else if axis == core.AxisY {
-					if !characterRect.IntersectsX(tileRect) {
-						continue // Skip this tile, no X-overlap
-					}
-					if v > 0 { // moving down (Bottom edge hits Top edge)
-						t = (tileRect.Top - characterRect.Bottom) / v
-					} else if v < 0 { // moving up (Top edge hits Bottom edge)
-						t = (tileRect.Bottom - characterRect.Top) / v
-					}
-				}
+				t := c.calculateCollisionTime(characterRect, tileRect, axis, v)
 
 				// A collision occurs if t is between -tolerance and 1.0
-				// -tolerance ensures we detect collisions even if the boxes are slightly overlapping
-				// due to previous floating point math.
 				if t >= -collisionTolerance && t < 1.0 {
 					hitT = math.Min(hitT, t)
 				}
@@ -208,6 +133,32 @@ func (c *BaseCharacter) CheckAndApplyMovement(level core.Level, axis core.Collis
 
 	// Return true if a collision was detected before the full movement (hitT < 1.0)
 	return hitT < 1.0
+}
+
+func (c *BaseCharacter) calculateCollisionTime(characterRect, tileRect core.Rect, axis core.CollisionAxis, v float64) float64 {
+	t := 1.0 // Default to no collision (or collision > 1.0)
+
+	if axis == core.AxisX {
+		if !characterRect.IntersectsY(tileRect) {
+			return 1.0
+		}
+		if v > 0 { // moving right
+			t = (tileRect.Left - characterRect.Right) / v
+		} else if v < 0 { // moving left
+			t = (tileRect.Right - characterRect.Left) / v
+		}
+	} else if axis == core.AxisY {
+		if !characterRect.IntersectsX(tileRect) {
+			return 1.0
+		}
+		if v > 0 { // moving down
+			t = (tileRect.Top - characterRect.Bottom) / v
+		} else if v < 0 { // moving up
+			t = (tileRect.Bottom - characterRect.Top) / v
+		}
+	}
+
+	return t
 }
 
 // ResolveTileCollision applies the default response (stopping) to a velocity vector.
