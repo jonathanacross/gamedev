@@ -97,7 +97,7 @@ func NewPlayer() *Player {
 		Idle:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
 		Walking:         core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
 		AttackingSword:  core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
-		AttackingShield: core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, true),
+		AttackingShield: core.NewDirectionAnimationMap([]int{1}, 0, directionOffsets, 6, true),
 		AttackingBow:    core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
 		Hurt:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
 		Dying:           core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
@@ -269,8 +269,10 @@ func (p *Player) ShootArrow() *core.Action {
 	if p.bowCooldownTimer.IsReady() {
 		p.bowCooldownTimer.Reset()
 
-		// Calculate the bow spawn location based on player's direction
-		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
+		// Calculate the bow spawn location based on player's direction.
+		// since the player holds the bow a few pixels above the origin, we need an offet.
+		arrowStartOffset := core.Vector{X: 0, Y: -6}
+		loc := core.Vector(p.Location()).Plus(arrowStartOffset).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
 
 		return &core.Action{
 			Type:      core.ActionShootArrow,
@@ -403,9 +405,6 @@ func (p *Player) handleState() []core.Action {
 		}
 		p.TransitionState(Idle)
 	}
-
-	// Crucially, we no longer call handleMovementInput() here.
-	// Movement is now controlled by external command methods (e.g., p.Move()).
 
 	// The Player's internal state handles movement physics based on its state:
 	switch p.state {
