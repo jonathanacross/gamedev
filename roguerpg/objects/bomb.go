@@ -112,25 +112,6 @@ func (b *BombExplosion) CanRemove() bool {
 
 func (b *BombExplosion) getActiveDamageSource() *core.DamageSource {
 	animIndex := b.animation.Frame()
-	// Wrong. Frame() returns the FRAME NUMBER (from array).
-	// Original used `b.animation.frameIndex` which is the index in array.
-	// Frame() returns frames[frameIndex].
-	// If frames are [0, 1, 2, 3, 4, 5], Frame() = frameIndex.
-	// But safely, we want index?
-	// Original `bomb.go`: `animIndex := b.animation.frameIndex`.
-	// But `frameIndex` is not exported in `core.Animation`.
-	// I need to export `FrameIndex` or add a getter.
-	// Or change `Frame()` to return what?
-
-	// In `core/animation.go`: `func (a *Animation) Frame() int { return a.frames[a.frameIndex] }`
-	// So Frame() returns sprite index.
-
-	// BombExplosion `attackHitboxes` map key is 1.
-	// Animation frames: 0, 1, 2, 3, 4, 5.
-	// So if Frame() returns 1, we match.
-	// So it works if frame values are unique/sequential.
-	// Here they are [0,1,2,3...].
-	// So `b.animation.Frame()` works correctly.
 
 	if config, ok := b.attackHitboxes[animIndex]; ok {
 		worldHitbox := config.HitBox.Offset(b.Loc.X, b.Loc.Y)

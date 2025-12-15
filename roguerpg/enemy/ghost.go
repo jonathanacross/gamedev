@@ -127,7 +127,7 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 		attackHitboxes: attackHitboxes,
 		state:          GhostMoving,
 		direction:      core.Left,
-		velocity:       core.Vector{0, 0},
+		velocity:       core.Vector{X: 0, Y: 0},
 		movementTimer:  rand.Float64() * 100,
 	}
 }

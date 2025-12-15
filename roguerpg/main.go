@@ -161,12 +161,6 @@ func (g *Game) Update() error {
 			lvl.Objects = g.cleanupObjects(lvl.Objects)
 		}
 
-		// Camera logic needs *Camera if using NewCamera from main
-		// But ctx.Camera is core.Camera Interface.
-		// g.Camera is *Camera (struct in main).
-		// Since g embeds GameContext, g.Camera is core.Camera interface.
-		// But NewCamera returns *Camera.
-		// So g.Camera holds *Camera.
 		g.Camera.CenterOn(g.Player.Location())
 	}
 

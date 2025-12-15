@@ -23,6 +23,7 @@ var PlayerDeathSpritesImage = loadImage("player/death.png")
 var PlayerAttackSwordSpritesImage = loadImage("player/attack_sword.png")
 var PlayerAttackShieldSpritesImage = loadImage("player/attack_shield.png")
 var PlayerAttackBowSpritesImage = loadImage("player/attack_bow.png")
+var PlayerAttackWandSpritesImage = loadImage("player/attack_wand.png")
 
 var BatSpritesImage = loadImage("enemies/bat.png")
 var BlobSpritesImage = loadImage("enemies/blob.png")

@@ -99,6 +99,7 @@ func NewPlayer() *Player {
 		AttackingSword:  core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
 		AttackingShield: core.NewDirectionAnimationMap([]int{1}, 0, directionOffsets, 6, true),
 		AttackingBow:    core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
+		AttackingWand:   core.NewDirectionAnimationMap([]int{0, 1, 2}, 0, directionOffsets, 4, false),
 		Hurt:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
 		Dying:           core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
 		Dead:            core.NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
@@ -110,7 +111,7 @@ func NewPlayer() *Player {
 		AttackingSword:  assets.PlayerAttackSwordSpritesImage,
 		AttackingShield: assets.PlayerAttackShieldSpritesImage,
 		AttackingBow:    assets.PlayerAttackBowSpritesImage,
-		AttackingWand:   assets.PlayerIdleSpritesImage, // TODO: add player sprite sheet for wand attack
+		AttackingWand:   assets.PlayerAttackWandSpritesImage,
 		Hurt:            assets.PlayerHurtSpritesImage,
 		Dying:           assets.PlayerDeathSpritesImage,
 		Dead:            assets.PlayerDeathSpritesImage,
@@ -243,12 +244,20 @@ func (p *Player) UseBow() {
 	}
 }
 
-func (p *Player) UseWand(level core.Level) *core.Action {
+func (p *Player) AimWand() {
+	// Only start attack if Idle or Walking
+	if (p.state == Idle || p.state == Walking) && p.wandCooldownTimer.IsReady() {
+		p.TransitionState(AttackingWand)
+	}
+}
+
+func (p *Player) ShootStar(level core.Level) *core.Action {
 	if p.wandCooldownTimer.IsReady() {
 		p.wandCooldownTimer.Reset()
 
 		// Calculate the bomb's spawn location based on player's direction
-		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
+		starStartOffset := core.Vector{X: 0, Y: -4}
+		loc := core.Vector(p.Location()).Plus(starStartOffset).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
 
 		var target core.Character
 		if level != nil {
@@ -304,7 +313,7 @@ func (p *Player) UseBoomerang() *core.Action {
 	return nil
 }
 
-func (p *Player) PrimaryAttack(level core.Level) *core.Action {
+func (p *Player) PrimaryAttack() *core.Action {
 	switch p.primaryWeapon {
 	case core.WeaponSword:
 		p.AttackSword()
@@ -320,13 +329,14 @@ func (p *Player) PrimaryAttack(level core.Level) *core.Action {
 		p.UseBow()
 		return nil
 	case core.WeaponWand:
-		return p.UseWand(level)
+		p.AimWand()
+		return nil
 	default:
 		return nil
 	}
 }
 
-func (p *Player) SecondaryAttack(level core.Level) *core.Action {
+func (p *Player) SecondaryAttack() *core.Action {
 	switch p.secondaryWeapon {
 	case core.WeaponSword:
 		p.AttackSword()
@@ -342,7 +352,8 @@ func (p *Player) SecondaryAttack(level core.Level) *core.Action {
 		p.UseBow()
 		return nil
 	case core.WeaponWand:
-		return p.UseWand(level)
+		p.AimWand()
+		return nil
 	default:
 		return nil
 	}
@@ -360,7 +371,7 @@ func (p *Player) IsActive() bool {
 
 // handleState runs the logic for the Player's current state and determines
 // the next state, direction, and velocity (Vx/Vy).
-func (p *Player) handleState() []core.Action {
+func (p *Player) handleState(level core.Level) []core.Action {
 	animation := p.GetCurrentAnimation()
 	if animation == nil {
 		p.state = Idle // Should never happen
@@ -401,6 +412,13 @@ func (p *Player) handleState() []core.Action {
 	if p.state == AttackingBow && animation.IsFinished() {
 		// Shoot arrow
 		if action := p.ShootArrow(); action != nil {
+			return []core.Action{*action}
+		}
+		p.TransitionState(Idle)
+	}
+	if p.state == AttackingWand && animation.IsFinished() {
+		// Shoot wand
+		if action := p.ShootStar(level); action != nil {
 			return []core.Action{*action}
 		}
 		p.TransitionState(Idle)
@@ -518,7 +536,7 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	p.UpdateKnockback(level)
 
 	// Handle all state transitions.
-	stateActions := p.handleState()
+	stateActions := p.handleState(level)
 
 	p.Velocity.X = p.HandleTileCollisions(level, core.AxisX, p.Velocity.X)
 	p.Velocity.Y = p.HandleTileCollisions(level, core.AxisY, p.Velocity.Y)

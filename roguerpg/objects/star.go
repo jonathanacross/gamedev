@@ -6,14 +6,6 @@ import (
 	"time"
 )
 
-// Need Timer from where?
-// Original code `timer.go` in root.
-// I should move `timer.go` to `core` or `objects`?
-// It's a general utility. Prefer `core`.
-// I missed `timer.go` in planning.
-// I will assume `core.Timer`.
-// I will create `core/timer.go` in a parallel step to fix this dependency.
-
 type Star struct {
 	core.BaseSprite
 	spriteSheet *core.SpriteSheet
@@ -78,7 +70,6 @@ func (b *Star) Update(level core.Level, player core.Player) core.UpdateResult {
 		b.Loc.Y += v.Y
 
 		// Check collision
-		// b.target.Location() returns Location.
 		targetDir := core.Vector(b.target.Location()).Minus(core.Vector(b.Loc))
 		if targetDir.Length() <= 10 {
 			b.finished = true

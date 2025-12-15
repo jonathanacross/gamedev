@@ -126,7 +126,7 @@ func (c *BaseCharacter) CheckAndApplyMovement(level core.Level, axis core.Collis
 	// Apply movement to position.
 	moveDistance := v * moveFraction
 	if axis == core.AxisX {
-		c.Loc.X += moveDistance // Using Loc field from BaseSprite (exported in core)
+		c.Loc.X += moveDistance
 	} else if axis == core.AxisY {
 		c.Loc.Y += moveDistance
 	}

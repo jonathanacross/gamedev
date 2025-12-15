@@ -37,16 +37,7 @@ type DamageSource struct {
 	OnHit     func()     // Callback when damage source hits a target
 }
 
-var ShowDebugInfo bool = false // Global flag, or move to a config? For now assuming global.
-// Actually ShowDebugInfo was in main.go constants usually or types.go?
-// It was in main.go as const ShowDebugInfo = false.
-// But DamageSource.DrawDebugInfo uses it.
-// If it was a const in main, it's not accessible here unless passed or duplicated.
-// Let's assume we can remove the check or add a global variable in core.
-// Better: Pass it in DrawDebugInfo or just always draw if called?
-// The DrawDebugInfo method usually checks the flag.
-// I'll add a SetShowDebugInfo in core or just export a variable.
-// For now, I'll add it as a variable.
+var ShowDebugInfo bool = false
 
 func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource {
 	return &DamageSource{
@@ -84,12 +75,6 @@ const (
 	ActionGoDownLevel
 	ActionGainXP
 )
-
-// Helper for WeaponType to avoid circular dep if WeaponType is in projectile...
-// Wait, WeaponType was in types.go? No, I don't see it in the `types.go` dump I read.
-// I must have missed it or it was in `player.go`?
-// Let me check `player.go` for `WeaponType`.
-// If it's used in `Action`, it needs to be in `core`.
 
 type WeaponType int
 

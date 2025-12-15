@@ -51,7 +51,6 @@ func (g *MainGameState) checkDamageAgainstTargets(damageSource *core.DamageSourc
 
 // handleDamageSource checks if a damage source hits the player or any enemy,
 // depending on its SourceTag.
-
 func (s *MainGameState) handleDamageSource(ctx *core.GameContext, damageSource *core.DamageSource) {
 	if damageSource.SourceTag == core.TagPlayer {
 		// Player attack hits enemies
@@ -115,14 +114,14 @@ func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {
 
 	// Sword Attack
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
-		if action := player.PrimaryAttack(level); action != nil {
+		if action := player.PrimaryAttack(); action != nil {
 			actions = append(actions, *action)
 		}
 	}
 
 	// Secondary Attack
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		if action := player.SecondaryAttack(level); action != nil {
+		if action := player.SecondaryAttack(); action != nil {
 			actions = append(actions, *action)
 		}
 	}

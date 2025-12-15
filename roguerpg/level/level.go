@@ -33,7 +33,6 @@ func (level *Level) TileToWorld(tx, ty int) core.Location {
 }
 
 // WorldToTile converts world coordinates (Location) to tile coordinates.
-// It uses floor to get the tile index.
 func (level *Level) WorldToTile(l core.Location) (int, int) {
 	tx := int(math.Floor(l.X / float64(core.TileSize)))
 	ty := int(math.Floor(l.Y / float64(core.TileSize)))
@@ -46,9 +45,6 @@ func (level *Level) IsTileSolid(tx, ty int) bool {
 		// Treat out-of-bounds as solid to prevent enemies from escaping
 		return true
 	}
-	// Tiles is [][]*core.Tile.
-
-	// We'll trust level gen.
 	return level.Tiles[ty][tx].Solid
 }
 

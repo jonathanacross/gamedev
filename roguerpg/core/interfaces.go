@@ -63,8 +63,8 @@ type GameContext struct {
 type Player interface {
 	Character
 	IsActive() bool
-	PrimaryAttack(level Level) *Action
-	SecondaryAttack(level Level) *Action
+	PrimaryAttack() *Action
+	SecondaryAttack() *Action
 	StopMoving()
 	Move(velocity Vector)
 	SwitchWeapon(weapon WeaponType)
