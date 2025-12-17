@@ -1,6 +1,8 @@
 package core
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // GameObject is an interface for any entity in the game world.
 type GameObject interface {
@@ -45,11 +47,9 @@ type Character interface {
 
 type GameState interface {
 	// Update handles input and logic, using the global context.
-	// It returns Actions that modify the main Game struct (e.g., PushState, PopState).
 	Update(context *GameContext) []Action
 
-	// Draw renders the state. We pass the camera matrix since some states (like MainGame)
-	// need to translate world coordinates, while others ignore it.
+	// Draw renders the state.
 	Draw(screen *ebiten.Image, context *GameContext)
 }
 
@@ -71,6 +71,9 @@ type Player interface {
 	ReturnBoomerang() // Used by ActionReturnBoomerang
 	AddExperience(amount int)
 	GetExperience() int
+	GetPrimaryWeapon() WeaponType
+	GetSecondaryWeapon() WeaponType
+	GetWeaponProgress(weapon WeaponType) float64
 }
 
 type Level interface {

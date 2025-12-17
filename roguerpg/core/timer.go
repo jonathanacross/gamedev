@@ -1,29 +1,37 @@
 package core
 
-import "time"
+import (
+	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 type Timer struct {
-	current  time.Duration
-	duration time.Duration
+	currentTicks int
+	targetTicks  int
 }
 
-func NewTimer(duration time.Duration) *Timer {
+func NewTimer(d time.Duration) *Timer {
 	return &Timer{
-		current:  0,
-		duration: duration,
+		currentTicks: 0,
+		targetTicks:  int(d.Milliseconds()) * ebiten.TPS() / 1000,
 	}
 }
 
 func (t *Timer) Update() {
-	if t.current < t.duration {
-		t.current += 16 * time.Millisecond // approximate 60 FPS
+	if t.currentTicks < t.targetTicks {
+		t.currentTicks++
 	}
 }
 
 func (t *Timer) IsReady() bool {
-	return t.current >= t.duration
+	return t.currentTicks >= t.targetTicks
 }
 
 func (t *Timer) Reset() {
-	t.current = 0
+	t.currentTicks = 0
+}
+
+func (t *Timer) GetProgress() float64 {
+	return float64(t.currentTicks) / float64(t.targetTicks)
 }

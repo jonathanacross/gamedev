@@ -41,6 +41,7 @@ var ChestSpritesImage = loadImage("objects/chest.png")
 var HealthHeartImage = loadImage("ui/heart.png")
 var WeaponSelectWindowImage = loadImage("ui/weapon_select_window.png")
 var UiIconsImage = loadImage("ui/icons.png")
+var UiSelectRectImage = loadImage("ui/select_rect.png")
 
 var TextFaceSource = loadFaceSource("m5x7.ttf")
 

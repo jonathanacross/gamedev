@@ -363,6 +363,37 @@ func (p *Player) SwitchWeapon(weapon core.WeaponType) {
 	p.secondaryWeapon = weapon
 }
 
+func (p *Player) GetPrimaryWeapon() core.WeaponType {
+	return p.primaryWeapon
+}
+
+func (p *Player) GetSecondaryWeapon() core.WeaponType {
+	return p.secondaryWeapon
+}
+
+func (p *Player) GetWeaponProgress(weapon core.WeaponType) float64 {
+	switch weapon {
+	case core.WeaponSword:
+		return 1.0
+	case core.WeaponBomb:
+		return p.bombCooldownTimer.GetProgress()
+	case core.WeaponBoomerang:
+		if p.hasBoomerang {
+			return 1.0
+		} else {
+			return 0.0
+		}
+	case core.WeaponShield:
+		return 1.0
+	case core.WeaponBow:
+		return p.bowCooldownTimer.GetProgress()
+	case core.WeaponWand:
+		return p.wandCooldownTimer.GetProgress()
+	default:
+		return 0.0
+	}
+}
+
 func (p *Player) IsActive() bool {
 	// Input should be blocked if the player is Hurt, Dying, or Dead.
 	// We allow input only when Idle, Walking, or Attacking (to allow chaining/canceling).

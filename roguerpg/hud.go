@@ -50,6 +50,21 @@ func DrawPlayerHeath(screen *ebiten.Image, currHeath int, maxHeath int) {
 	}
 }
 
+func DrawCurrentWeapons(screen *ebiten.Image,
+	primaryWeapon core.WeaponType,
+	primaryWeaponProgress float64,
+	secondaryWeapon core.WeaponType,
+	secondaryWeaponProgress float64) {
+	primaryWeaponBox := NewWeaponBox(core.Location{X: 100, Y: 14}, primaryWeapon, true)
+	secondaryWeaponBox := NewWeaponBox(core.Location{X: 135, Y: 14}, secondaryWeapon, true)
+
+	primaryWeaponBox.ReadyPercent = primaryWeaponProgress
+	secondaryWeaponBox.ReadyPercent = secondaryWeaponProgress
+
+	primaryWeaponBox.Draw(screen)
+	secondaryWeaponBox.Draw(screen)
+}
+
 // TODO: move this to a utils file
 func drawTextAt(screen *ebiten.Image, message string, x float64, y float64, align text.Align, c color.Color) {
 	fontSize := float64(16)
@@ -85,4 +100,9 @@ func DrawExperience(screen *ebiten.Image, experience int) {
 func DrawHeadsUpDisplay(screen *ebiten.Image, player core.Player) {
 	DrawPlayerHeath(screen, player.GetHealth(), player.GetMaxHealth())
 	DrawExperience(screen, player.GetExperience())
+	primaryWeapon := player.GetPrimaryWeapon()
+	secondaryWeapon := player.GetSecondaryWeapon()
+	DrawCurrentWeapons(screen,
+		primaryWeapon, player.GetWeaponProgress(primaryWeapon),
+		secondaryWeapon, player.GetWeaponProgress(secondaryWeapon))
 }
