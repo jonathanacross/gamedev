@@ -33,10 +33,11 @@ type Interactable interface {
 type Character interface {
 	PhysicalObject
 	GetHurtBox() Rect
+	HandleHit(ds *DamageSource)
+	// TODO: see if I can remove TakeDamage, ApplyKnockback, and IsKnockedBack, ApplyStun, and IsStunned.
 	TakeDamage(damage int)
 	ApplyKnockback(force Vector, duration int)
 	IsKnockedBack() bool
-
 	ApplyStun(duration int)
 	IsStunned() bool
 

@@ -40,6 +40,13 @@ func (r1 Rect) Intersects(r2 Rect) bool {
 	return r1.IntersectsX(r2) && r1.IntersectsY(r2)
 }
 
+func (r Rect) Center() Location {
+	return Location{
+		X: (r.Left + r.Right) / 2,
+		Y: (r.Top + r.Bottom) / 2,
+	}
+}
+
 type CollisionAxis int
 
 const (

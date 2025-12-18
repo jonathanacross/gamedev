@@ -11,13 +11,20 @@ const (
 	TagTile
 )
 
-const TileSize = 16
+const (
+	TileSize = 16
+
+	KnockbackForce    = 3.0
+	KnockbackDuration = 6
+)
 
 type DamageType int
 
 const (
 	DamageTypePhysical DamageType = iota
 	DamageTypeStun
+	DamageTypeImpact
+	DamageTypeMagic
 )
 
 // DamageSourceConfig holds the Rect offset and damage value for a specific attack frame.
@@ -39,15 +46,16 @@ type DamageSource struct {
 
 var ShowDebugInfo bool = false
 
-func NewDamageSource(sourceTag EntityTag, hitBox Rect, damage int) *DamageSource {
+func NewDamageSource(sourceTag EntityTag, hitBox Rect, damageType DamageType, damage int) *DamageSource {
 	return &DamageSource{
 		SourceTag: sourceTag,
 		HitBox:    hitBox,
 		Damage:    damage,
-		Type:      DamageTypePhysical,
+		Type:      damageType,
 	}
 }
 
+// Specialized version of NewDamageSource for stun damage.
 func NewStunSource(sourceTag EntityTag, hitBox Rect, duration int) *DamageSource {
 	return &DamageSource{
 		SourceTag: sourceTag,

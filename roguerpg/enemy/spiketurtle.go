@@ -6,6 +6,7 @@ import (
 	"roguerpg/assets"
 	"roguerpg/character"
 	"roguerpg/core"
+	"time"
 )
 
 type SpikeTurtleEnemyState int
@@ -19,6 +20,8 @@ const (
 	// Movement constants
 	SpikeTurtleMoveSpeed         float64 = 0.8
 	SpikeTurtleVelocityFrequency float64 = 0.05
+
+	SpikeTurtleFlipDuration time.Duration = 4000 * time.Millisecond
 )
 
 type SpikeTurtleEnemy struct {
@@ -32,6 +35,7 @@ type SpikeTurtleEnemy struct {
 	moveStartLocation  core.Location
 	moveTargetLocation core.Location
 	moveTimeCounter    float64
+	flipTimer          *core.Timer
 }
 
 func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
@@ -81,16 +85,38 @@ func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
 		direction:          core.Left,
 		moveStartLocation:  startLoc,
 		moveTargetLocation: startLoc,
+		flipTimer:          core.NewTimer(SpikeTurtleFlipDuration),
+	}
+}
+
+func (c *SpikeTurtleEnemy) HandleHit(ds *core.DamageSource) {
+	if c.Dead || c.state == SpikeTurtleDying {
+		return
+	}
+	// Turtles are immune to stun damage
+	if ds.Type == core.DamageTypeStun {
+		return
+	}
+
+	if c.state == SpikeTurtleMoving {
+		// If the turtle is right side up, flip it, only for impact damage
+		if ds.Type == core.DamageTypeImpact {
+			c.state = SpikeTurtleFlipped
+			c.animations[SpikeTurtleFlipped].Reset()
+		}
+		force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
+		c.ApplyKnockback(force, core.KnockbackDuration)
+	} else if c.state == SpikeTurtleFlipped {
+		if ds.Type != core.DamageTypeStun {
+			c.TakeDamage(ds.Damage)
+			force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
+			c.ApplyKnockback(force, core.KnockbackDuration)
+		}
 	}
 }
 
 func (c *SpikeTurtleEnemy) ApplyKnockback(force core.Vector, duration int) {
 	c.BaseCharacter.ApplyKnockback(force, duration)
-
-	if c.IsKnockedBack() && c.state != SpikeTurtleDying {
-		c.state = SpikeTurtleHurt
-		c.animations[SpikeTurtleHurt].Reset()
-	}
 }
 
 func (c *SpikeTurtleEnemy) ApplyStun(duration int) {
@@ -245,11 +271,21 @@ func (c *SpikeTurtleEnemy) Update(level core.Level, player core.Player) core.Upd
 		c.state = SpikeTurtleMoving
 	}
 
+	if c.state == SpikeTurtleFlipped {
+		c.flipTimer.Update()
+		if c.flipTimer.IsReady() {
+			c.flipTimer.Reset()
+			c.state = SpikeTurtleMoving
+			c.animations[SpikeTurtleMoving].Reset()
+		}
+		return core.UpdateResult{Actions: actions}
+	}
+
 	// Core AI Logic
 	c.updateMovement(level)
 
 	if c.isNearPlayer(player.Location()) && c.state == SpikeTurtleMoving {
-		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), 1)
+		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
 		actions = append(actions, core.Action{
 			Type:         core.ActionCreateDamageSource,
 			DamageSource: ds,

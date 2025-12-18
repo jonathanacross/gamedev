@@ -19,9 +19,6 @@ const (
 	ScreenHeight = 240
 
 	ShowDebugInfo = false
-
-	KnockbackForce    = 3.0
-	KnockbackDuration = 6
 )
 
 type Game struct {

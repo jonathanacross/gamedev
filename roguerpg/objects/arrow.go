@@ -89,5 +89,5 @@ func (b *Arrow) CanRemove() bool {
 
 func (b *Arrow) getActiveDamageSource() *core.DamageSource {
 	worldHitbox := b.damageSource.HitBox.Offset(b.Loc.X, b.Loc.Y)
-	return core.NewDamageSource(core.TagPlayer, worldHitbox, b.damageSource.Damage)
+	return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypePhysical, b.damageSource.Damage)
 }

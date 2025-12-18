@@ -506,17 +506,29 @@ func (p *Player) getActiveDamageSource() *core.DamageSource {
 			// Found an active hitbox config! Create the world-space DamageSource.
 			worldHitbox := config.HitBox.Offset(p.Loc.X, p.Loc.Y)
 
-			// HACK: Damage is different for swords and shields
-			damage := 0
-			if p.state == AttackingSword {
-				damage = config.Damage
+			switch p.state {
+			case AttackingSword:
+				return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypePhysical, config.Damage)
+			case AttackingShield:
+				return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypeStun, 0)
+			default:
+				// Other types of attacks handled by projectiles
+				return nil
 			}
-
-			return core.NewDamageSource(core.TagPlayer, worldHitbox, damage)
 		}
 	}
 
 	return nil
+}
+
+func (p *Player) HandleHit(ds *core.DamageSource) {
+	if ds.Type == core.DamageTypeStun {
+		p.ApplyStun(ds.Duration)
+	} else {
+		p.TakeDamage(ds.Damage)
+		force := core.CalculateKnockbackForce(ds.HitBox.Center(), p.Location(), core.KnockbackForce)
+		p.ApplyKnockback(force, core.KnockbackDuration)
+	}
 }
 
 func (p *Player) TakeDamage(damage int) {

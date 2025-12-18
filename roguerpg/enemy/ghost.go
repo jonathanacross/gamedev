@@ -132,6 +132,16 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 	}
 }
 
+func (c *GhostEnemy) HandleHit(ds *core.DamageSource) {
+	if ds.Type == core.DamageTypeStun {
+		c.ApplyStun(ds.Duration)
+	} else {
+		c.TakeDamage(ds.Damage)
+		force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
+		c.ApplyKnockback(force, core.KnockbackDuration)
+	}
+}
+
 func (c *GhostEnemy) ApplyKnockback(force core.Vector, duration int) {
 	c.BaseCharacter.ApplyKnockback(force, duration)
 
@@ -241,7 +251,7 @@ func (c *GhostEnemy) getActiveDamageSources(player core.Player) []*core.DamageSo
 		if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
 			if config, ok := dirConfigs[animIndex]; ok {
 				worldHitbox := config.HitBox.Offset(c.Loc.X, c.Loc.Y)
-				sources = append(sources, core.NewDamageSource(core.TagEnemy, worldHitbox, config.Damage))
+				sources = append(sources, core.NewDamageSource(core.TagEnemy, worldHitbox, core.DamageTypePhysical, config.Damage))
 			}
 		}
 	}

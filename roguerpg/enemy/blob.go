@@ -92,6 +92,16 @@ func (c *BlobEnemy) ApplyKnockback(force core.Vector, duration int) {
 	}
 }
 
+func (c *BlobEnemy) HandleHit(ds *core.DamageSource) {
+	if ds.Type == core.DamageTypeStun {
+		c.ApplyStun(ds.Duration)
+	} else {
+		c.TakeDamage(ds.Damage)
+		force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
+		c.ApplyKnockback(force, core.KnockbackDuration)
+	}
+}
+
 func (c *BlobEnemy) ApplyStun(duration int) {
 	c.BaseCharacter.ApplyStun(duration)
 	c.state = BlobStunned
@@ -219,7 +229,7 @@ func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 	case BlobAttacking:
 		hitBox := c.GetHurtBox()
 		if c.animations[BlobAttacking].Frame() != 0 {
-			ds := core.NewDamageSource(core.TagEnemy, hitBox, 1)
+			ds := core.NewDamageSource(core.TagEnemy, hitBox, core.DamageTypePhysical, 1)
 			actions = append(actions, core.Action{
 				Type:         core.ActionCreateDamageSource,
 				DamageSource: ds,

@@ -12,41 +12,22 @@ import (
 type MainGameState struct {
 }
 
-// checkDamageAgainstTargets checks a damage source against a list of characters (enemies or player)
-// and applies damage and knockback, returning the characters that were hit.
-func (g *MainGameState) checkDamageAgainstTargets(damageSource *core.DamageSource, targets []core.Character) (hitCharacters []core.Character) {
+// applyDamageToTargets applies damage to a list of characters (enemies or player)
+func (g *MainGameState) applyDamageToTargets(damageSource *core.DamageSource, targets []core.Character) {
 	for _, target := range targets {
 		if target.IsDead() {
 			continue
 		}
 
 		if damageSource.HitBox.Intersects(target.GetHurtBox()) {
-			if damageSource.Type == core.DamageTypeStun {
-				// Apply Stun
-				target.ApplyStun(damageSource.Duration)
-			} else {
-				// Apply damage and knockback (Physical)
-				target.TakeDamage(damageSource.Damage)
-
-				// The attacker's location for knockback calculation is the center of the HitBox.
-				// This is better than the Character location for area-of-effect attacks (like bombs).
-				attackerLoc := core.Location{
-					X: (damageSource.HitBox.Left + damageSource.HitBox.Right) / 2,
-					Y: (damageSource.HitBox.Top + damageSource.HitBox.Bottom) / 2,
-				}
-
-				// KnockbackForce and KnockbackDuration are global constants in main.go
-				force := core.CalculateKnockbackForce(attackerLoc, target.Location(), KnockbackForce)
-				target.ApplyKnockback(force, KnockbackDuration)
-			}
-			hitCharacters = append(hitCharacters, target)
+			// Let the character decide how to react to this specific damage source
+			target.HandleHit(damageSource)
 
 			if damageSource.OnHit != nil {
 				damageSource.OnHit()
 			}
 		}
 	}
-	return hitCharacters
 }
 
 // handleDamageSource checks if a damage source hits the player or any enemy,
@@ -54,13 +35,11 @@ func (g *MainGameState) checkDamageAgainstTargets(damageSource *core.DamageSourc
 func (s *MainGameState) handleDamageSource(ctx *core.GameContext, damageSource *core.DamageSource) {
 	if damageSource.SourceTag == core.TagPlayer {
 		// Player attack hits enemies
-		s.checkDamageAgainstTargets(damageSource, ctx.Level.GetEnemies())
+		s.applyDamageToTargets(damageSource, ctx.Level.GetEnemies())
 	} else if damageSource.SourceTag == core.TagEnemy {
 		// Enemy attack hits the player
-		s.checkDamageAgainstTargets(damageSource, []core.Character{ctx.Player})
+		s.applyDamageToTargets(damageSource, []core.Character{ctx.Player})
 	}
-
-	// TODO: Handle other tags like TagBomb, which could hit both the player and enemies.
 }
 
 func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {

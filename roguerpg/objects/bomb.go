@@ -115,7 +115,7 @@ func (b *BombExplosion) getActiveDamageSource() *core.DamageSource {
 
 	if config, ok := b.attackHitboxes[animIndex]; ok {
 		worldHitbox := config.HitBox.Offset(b.Loc.X, b.Loc.Y)
-		return core.NewDamageSource(core.TagPlayer, worldHitbox, config.Damage)
+		return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypeImpact, config.Damage)
 	}
 
 	return nil

@@ -136,6 +136,16 @@ func NewGoblinEnemy(startLoc core.Location) *GoblinEnemy {
 	}
 }
 
+func (c *GoblinEnemy) HandleHit(ds *core.DamageSource) {
+	if ds.Type == core.DamageTypeStun {
+		c.ApplyStun(ds.Duration)
+	} else {
+		c.TakeDamage(ds.Damage)
+		force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
+		c.ApplyKnockback(force, core.KnockbackDuration)
+	}
+}
+
 func (c *GoblinEnemy) ApplyKnockback(force core.Vector, duration int) {
 	c.BaseCharacter.ApplyKnockback(force, duration)
 
@@ -241,14 +251,14 @@ func (c *GoblinEnemy) getActiveDamageSources(player core.Player) []*core.DamageS
 		if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
 			if config, ok := dirConfigs[animIndex]; ok {
 				worldHitbox := config.HitBox.Offset(c.Loc.X, c.Loc.Y)
-				sources = append(sources, core.NewDamageSource(core.TagEnemy, worldHitbox, config.Damage))
+				sources = append(sources, core.NewDamageSource(core.TagEnemy, worldHitbox, core.DamageTypePhysical, config.Damage))
 			}
 		}
 	}
 
 	// Add goblin pushbox when near player as well.
 	if c.isNearPlayer(player.Location()) && (c.state == GoblinAttacking || c.state == GoblinWalking) {
-		sources = append(sources, core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), 1))
+		sources = append(sources, core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1))
 	}
 
 	return sources

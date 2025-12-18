@@ -99,7 +99,8 @@ func (b *Star) CanRemove() bool {
 
 func (b *Star) getActiveDamageSource() *core.DamageSource {
 	worldHitbox := b.damageSource.HitBox.Offset(b.Loc.X, b.Loc.Y)
-	ds := core.NewDamageSource(core.TagPlayer, worldHitbox, b.damageSource.Damage)
+	// TODO: make this magical damage source and handle in monster hits
+	ds := core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypePhysical, b.damageSource.Damage)
 	ds.OnHit = func() {
 		b.finished = true
 	}

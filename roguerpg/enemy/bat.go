@@ -99,6 +99,16 @@ func (c *BatEnemy) ApplyKnockback(force core.Vector, duration int) {
 	}
 }
 
+func (c *BatEnemy) HandleHit(ds *core.DamageSource) {
+	if ds.Type == core.DamageTypeStun {
+		c.ApplyStun(ds.Duration)
+	} else {
+		c.TakeDamage(ds.Damage)
+		force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
+		c.ApplyKnockback(force, core.KnockbackDuration)
+	}
+}
+
 func (c *BatEnemy) ApplyStun(duration int) {
 	c.BaseCharacter.ApplyStun(duration)
 	c.state = BatStunned
@@ -267,7 +277,7 @@ func (c *BatEnemy) Update(level core.Level, player core.Player) core.UpdateResul
 	c.updateMovement(level)
 
 	if c.isNearPlayer(player.Location()) && c.state == BatFlying {
-		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), 1)
+		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
 		actions = append(actions, core.Action{
 			Type:         core.ActionCreateDamageSource,
 			DamageSource: ds,
