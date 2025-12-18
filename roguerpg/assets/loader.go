@@ -26,6 +26,7 @@ var PlayerAttackBowSpritesImage = loadImage("player/attack_bow.png")
 var PlayerAttackWandSpritesImage = loadImage("player/attack_wand.png")
 
 var BatSpritesImage = loadImage("enemies/bat.png")
+var SpikeTurleSpritesImage = loadImage("enemies/spike_turtle.png")
 var BlobSpritesImage = loadImage("enemies/blob.png")
 var GoblinSpritesImage = loadImage("enemies/goblin.png")
 var GhostSpritesImage = loadImage("enemies/ghost.png")

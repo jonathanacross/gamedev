@@ -18,8 +18,6 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 
-	// TileSize = 16 // Defined in core
-
 	ShowDebugInfo = false
 
 	KnockbackForce    = 3.0
@@ -56,21 +54,22 @@ func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
 	numEnemies := 5 + difficulty*2
 	for range numEnemies {
 		pos := lvl.FindRandomFloorLocation()
-		enemyType := rand.IntN(4)
+		// enemyType := rand.IntN(4)
 		var newEnemy core.Character
+		newEnemy = enemy.NewSpikeTurtleEnemy(pos)
 
-		switch enemyType {
-		case 0:
-			newEnemy = enemy.NewBatEnemy(pos)
-		case 1:
-			newEnemy = enemy.NewBlobEnemy(pos)
-		case 2:
-			newEnemy = enemy.NewGoblinEnemy(pos)
-		case 3:
-			newEnemy = enemy.NewGhostEnemy(pos)
-		default:
-			newEnemy = enemy.NewBatEnemy(pos)
-		}
+		// switch enemyType {
+		// case 0:
+		// 	newEnemy = enemy.NewBatEnemy(pos)
+		// case 1:
+		// 	newEnemy = enemy.NewBlobEnemy(pos)
+		// case 2:
+		// 	newEnemy = enemy.NewGoblinEnemy(pos)
+		// case 3:
+		// 	newEnemy = enemy.NewGhostEnemy(pos)
+		// default:
+		// 	newEnemy = enemy.NewBatEnemy(pos)
+		// }
 		lvl.Enemies = append(lvl.Enemies, newEnemy)
 	}
 }
