@@ -22,6 +22,8 @@ const (
 	SpikeTurtleVelocityFrequency float64 = 0.05
 
 	SpikeTurtleFlipDuration time.Duration = 4000 * time.Millisecond
+	// Delay after a hit before registering another hit
+	SpikeTurtleHitDuration time.Duration = 100 * time.Millisecond
 )
 
 type SpikeTurtleEnemy struct {
@@ -36,6 +38,7 @@ type SpikeTurtleEnemy struct {
 	moveTargetLocation core.Location
 	moveTimeCounter    float64
 	flipTimer          *core.Timer
+	hitTimer           *core.Timer
 }
 
 func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
@@ -86,6 +89,7 @@ func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
 		moveStartLocation:  startLoc,
 		moveTargetLocation: startLoc,
 		flipTimer:          core.NewTimer(SpikeTurtleFlipDuration),
+		hitTimer:           core.NewTimer(SpikeTurtleHitDuration),
 	}
 }
 
@@ -103,6 +107,7 @@ func (c *SpikeTurtleEnemy) HandleHit(ds *core.DamageSource) {
 		if ds.Type == core.DamageTypeImpact {
 			c.state = SpikeTurtleFlipped
 			c.animations[SpikeTurtleFlipped].Reset()
+			c.hitTimer.Reset()
 		}
 		force := core.CalculateKnockbackForce(ds.HitBox.Center(), c.Location(), core.KnockbackForce)
 		c.ApplyKnockback(force, core.KnockbackDuration)
@@ -125,6 +130,10 @@ func (c *SpikeTurtleEnemy) ApplyStun(duration int) {
 
 func (c *SpikeTurtleEnemy) TakeDamage(damage int) {
 	if c.Dead || c.state == SpikeTurtleDying || c.state == SpikeTurtleHurt {
+		return
+	}
+
+	if c.state == SpikeTurtleFlipped && !c.hitTimer.IsReady() {
 		return
 	}
 
@@ -272,6 +281,7 @@ func (c *SpikeTurtleEnemy) Update(level core.Level, player core.Player) core.Upd
 	}
 
 	if c.state == SpikeTurtleFlipped {
+		c.hitTimer.Update()
 		c.flipTimer.Update()
 		if c.flipTimer.IsReady() {
 			c.flipTimer.Reset()
