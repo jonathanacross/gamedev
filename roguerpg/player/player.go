@@ -44,8 +44,8 @@ type Player struct {
 	state             PlayerState
 	direction         core.Direction
 	Velocity          core.Vector
-	swordAttackBoxes  map[core.Direction]map[int]core.DamageSourceConfig // Defines hitboxes for specific animation frames
-	shieldAttackBoxes map[core.Direction]map[int]core.DamageSourceConfig // Defines hitboxes for specific animation frames
+	swordAttackBoxes  map[core.Direction]map[int]core.DamageSourceConfig
+	shieldAttackBoxes map[core.Direction]map[int]core.DamageSourceConfig
 
 	bombCooldownTimer *core.Timer
 	bowCooldownTimer  *core.Timer
@@ -58,49 +58,46 @@ type Player struct {
 }
 
 func NewPlayer() *Player {
-	// TODO: these are attack boxes for the sword; need to add attack boxes for the shield
-
 	// Set up Hitboxes for specific frames of the attack animation.
 	baseSwordDamage := 1
-	swordAttackBoxes := make(map[core.Direction]map[int]core.DamageSourceConfig)
-	swordAttackBoxes[core.Down] = map[int]core.DamageSourceConfig{
-		1: {HitBox: core.Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseSwordDamage},
-		2: {HitBox: core.Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseSwordDamage},
-	}
-	swordAttackBoxes[core.Left] = map[int]core.DamageSourceConfig{
-		1: {HitBox: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseSwordDamage},
-		2: {HitBox: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseSwordDamage},
-	}
-	swordAttackBoxes[core.Right] = map[int]core.DamageSourceConfig{
-		1: {HitBox: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseSwordDamage},
-		2: {HitBox: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseSwordDamage},
-	}
-	swordAttackBoxes[core.Up] = map[int]core.DamageSourceConfig{
-		1: {HitBox: core.Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseSwordDamage},
-		2: {HitBox: core.Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseSwordDamage},
+	swordAttackBoxes := map[core.Direction]map[int]core.DamageSourceConfig{
+		core.Down: {
+			1: {HitBox: core.Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseSwordDamage},
+			2: {HitBox: core.Rect{Left: -16, Top: 0, Right: 16, Bottom: 22}, Damage: baseSwordDamage},
+		},
+		core.Left: {
+			1: {HitBox: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseSwordDamage},
+			2: {HitBox: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8}, Damage: baseSwordDamage},
+		},
+		core.Right: {
+			1: {HitBox: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseSwordDamage},
+			2: {HitBox: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8}, Damage: baseSwordDamage},
+		},
+		core.Up: {
+			1: {HitBox: core.Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseSwordDamage},
+			2: {HitBox: core.Rect{Left: -16, Top: -22, Right: 16, Bottom: 0}, Damage: baseSwordDamage},
+		},
 	}
 
 	// Hitboxes for the shield
 	var baseShieldDamage = 0
-	shieldAttackBoxes := make(map[core.Direction]map[int]core.DamageSourceConfig)
-	shieldAttackBoxes[core.Down] = map[int]core.DamageSourceConfig{
-		0: {HitBox: core.Rect{Left: -3, Top: -6, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
-		1: {HitBox: core.Rect{Left: -3, Top: -6, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
-	}
-	// Left swing
-	shieldAttackBoxes[core.Left] = map[int]core.DamageSourceConfig{
-		0: {HitBox: core.Rect{Left: -9, Top: -7, Right: -1, Bottom: 6}, Damage: baseShieldDamage},
-		1: {HitBox: core.Rect{Left: -9, Top: -7, Right: -1, Bottom: 6}, Damage: baseShieldDamage},
-	}
-	// Right swing
-	shieldAttackBoxes[core.Right] = map[int]core.DamageSourceConfig{
-		0: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 6}, Damage: baseShieldDamage},
-		1: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 7}, Damage: baseShieldDamage},
-	}
-	// Upward swing
-	shieldAttackBoxes[core.Up] = map[int]core.DamageSourceConfig{
-		0: {HitBox: core.Rect{Left: -9, Top: -12, Right: 1, Bottom: 1}, Damage: baseShieldDamage},
-		1: {HitBox: core.Rect{Left: -9, Top: -12, Right: 1, Bottom: 1}, Damage: baseShieldDamage},
+	shieldAttackBoxes := map[core.Direction]map[int]core.DamageSourceConfig{
+		core.Down: {
+			0: {HitBox: core.Rect{Left: -3, Top: -6, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
+			1: {HitBox: core.Rect{Left: -3, Top: -6, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
+		},
+		core.Left: {
+			0: {HitBox: core.Rect{Left: -9, Top: -7, Right: -1, Bottom: 6}, Damage: baseShieldDamage},
+			1: {HitBox: core.Rect{Left: -9, Top: -7, Right: -1, Bottom: 6}, Damage: baseShieldDamage},
+		},
+		core.Right: {
+			0: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 6}, Damage: baseShieldDamage},
+			1: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 7}, Damage: baseShieldDamage},
+		},
+		core.Up: {
+			0: {HitBox: core.Rect{Left: -9, Top: -12, Right: 1, Bottom: 1}, Damage: baseShieldDamage},
+			1: {HitBox: core.Rect{Left: -9, Top: -12, Right: 1, Bottom: 1}, Damage: baseShieldDamage},
+		},
 	}
 
 	ssColumns := 8
@@ -531,11 +528,12 @@ func (p *Player) getActiveDamageSource() *core.DamageSource {
 			// Found an active hitbox config! Create the world-space DamageSource.
 			worldHitbox := config.HitBox.Offset(p.Loc.X, p.Loc.Y)
 
+			// TODO: consider adding damage type to the config to avoid the switch
 			switch p.state {
 			case AttackingSword:
 				return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypePhysical, config.Damage)
 			case AttackingShield:
-				return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypeImpact, 0)
+				return core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypeImpact, config.Damage)
 			default:
 				// Other types of attacks handled by projectiles
 				return nil
