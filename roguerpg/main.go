@@ -39,10 +39,11 @@ func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 	}
 
 	// Add Chests
-	numChests := rand.IntN(3) + 1
+	numChests := 10
 	for range numChests {
+		upgradeType := core.UpgradeType(rand.IntN(7))
 		pos := lvl.FindRandomFloorLocation()
-		lvl.Objects = append(lvl.Objects, objects.NewChest(pos))
+		lvl.Objects = append(lvl.Objects, objects.NewChest(pos, upgradeType))
 	}
 }
 
@@ -259,6 +260,9 @@ func (g *Game) executeActions(actions []core.Action) {
 		case core.ActionDropHeart:
 			newHeart := objects.NewHeart(action.Location)
 			lvl.Objects = append(lvl.Objects, newHeart)
+		case core.ActionShowChestItem:
+			newChestItem := objects.NewChestItem(action.UpgradeType, action.Location)
+			lvl.Objects = append(lvl.Objects, newChestItem)
 		default:
 		}
 	}

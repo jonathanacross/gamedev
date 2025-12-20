@@ -83,6 +83,7 @@ const (
 	ActionGoDownLevel
 	ActionGainXP
 	ActionDropHeart
+	ActionShowChestItem
 )
 
 type WeaponType int
@@ -96,6 +97,23 @@ const (
 	WeaponWand
 )
 
+type UpgradeType int
+
+const (
+	UpgradeTypeSword UpgradeType = iota
+	UpgradeTypeBomb
+	UpgradeTypeBoomerang
+	UpgradeTypeShield
+	UpgradeTypeBow
+	UpgradeTypeWand
+	UpgradeTypeHeart
+)
+
+type PlayerProgression struct {
+	MaxHealth int
+	Weapons   map[WeaponType]int
+}
+
 // Action is the generic struct returned by any GameObject
 // to signal an intent to change the game state.
 // Various other fields are populated depending on the ActionType.
@@ -108,6 +126,7 @@ type Action struct {
 	WeaponType   WeaponType    // only used for ActionSwitchWeapon
 	Experience   int           // only used for ActionGainXP
 	Target       Character     // only used for ActionCreateStar
+	UpgradeType  UpgradeType   // only used for ActionShowChestItem
 }
 
 type UpdateResult struct {

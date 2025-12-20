@@ -12,22 +12,23 @@ const (
 	ChestOpening
 	ChestOpen
 
-	ChestClosedIdx = 4
-	ChestOpenIdx   = 7
+	ChestClosedIdx = 0
+	ChestOpenIdx   = 3
 )
 
 // An openable chest.  Implements Interactable.
 type Chest struct {
 	core.BasePhysical
-	State ChestState
-
+	State         ChestState
+	Contents      core.UpgradeType
 	spriteSheet   *core.SpriteSheet
 	openAnimation *core.Animation
+	releasedItem  bool
 }
 
-func NewChest(location core.Location) *Chest {
+func NewChest(location core.Location, upgradeType core.UpgradeType) *Chest {
 	spriteSheet := core.NewSpriteSheet(core.TileSize, core.TileSize, 4, 2)
-	openAnimation := core.NewAnimation([]int{5, 6}, 20, false)
+	openAnimation := core.NewAnimation([]int{1, 2}, 20, false)
 
 	return &Chest{
 		BasePhysical: core.BasePhysical{
@@ -48,8 +49,10 @@ func NewChest(location core.Location) *Chest {
 			},
 		},
 		State:         ChestClosed,
+		Contents:      upgradeType,
 		spriteSheet:   spriteSheet,
 		openAnimation: openAnimation,
+		releasedItem:  false,
 	}
 }
 
@@ -74,6 +77,14 @@ func (c *Chest) Update(level core.Level, p core.Player) core.UpdateResult {
 		c.SrcRect = c.spriteSheet.Rect(c.openAnimation.Frame())
 		if c.openAnimation.IsFinished() {
 			c.State = ChestOpen
+		}
+		if !c.releasedItem {
+			c.releasedItem = true
+			return core.UpdateResult{Actions: []core.Action{{
+				Type:        core.ActionShowChestItem,
+				Location:    c.Loc,
+				UpgradeType: c.Contents,
+			}}}
 		}
 	case ChestOpen:
 		c.SrcRect = c.spriteSheet.Rect(ChestOpenIdx)
