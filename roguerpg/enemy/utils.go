@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	HeartDropOneInN = 10
+	HeartDropOneInN = 1
 )
 
 func maybeDropHeart(loc core.Location) []core.Action {

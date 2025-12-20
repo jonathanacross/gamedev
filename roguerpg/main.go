@@ -162,6 +162,8 @@ func (g *Game) Update() error {
 		g.Camera.CenterOn(g.Player.Location())
 	}
 
+	PlayMusic()
+
 	return nil
 }
 

@@ -47,6 +47,8 @@ var UiSelectRectImage = loadImage("ui/select_rect.png")
 
 var TextFaceSource = loadFaceSource("m5x7.ttf")
 
+var MusicBytes = loadSoundBytes("music.mp3")
+
 func loadImage(name string) *ebiten.Image {
 	f, err := assetsFS.Open(name)
 	if err != nil {
@@ -73,4 +75,12 @@ func loadFaceSource(name string) *text.GoTextFaceSource {
 		panic(err)
 	}
 	return face
+}
+
+func loadSoundBytes(name string) []byte {
+	content, err := assetsFS.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+	return content
 }
