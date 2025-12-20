@@ -82,6 +82,7 @@ const (
 	ActionGoUpLevel
 	ActionGoDownLevel
 	ActionGainXP
+	ActionDropHeart
 )
 
 type WeaponType int

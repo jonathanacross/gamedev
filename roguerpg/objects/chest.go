@@ -53,6 +53,10 @@ func NewChest(location core.Location) *Chest {
 	}
 }
 
+func (c *Chest) Touch(level core.Level, p core.Player) []core.Action {
+	return []core.Action{}
+}
+
 func (c *Chest) Interact(level core.Level, p core.Player) []core.Action {
 	if c.State == ChestClosed {
 		c.State = ChestOpening

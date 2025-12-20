@@ -253,6 +253,7 @@ func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 				Type:       core.ActionGainXP,
 				Experience: c.Experience,
 			})
+			actions = append(actions, maybeDropHeart(c.Location())...)
 		}
 	}
 

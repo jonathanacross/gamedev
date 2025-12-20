@@ -316,6 +316,7 @@ func (c *GoblinEnemy) Update(level core.Level, player core.Player) core.UpdateRe
 				Type:       core.ActionGainXP,
 				Experience: c.Experience,
 			})
+			actions = append(actions, maybeDropHeart(c.Location())...)
 		}
 		return core.UpdateResult{Actions: actions}
 	}

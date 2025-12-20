@@ -311,6 +311,7 @@ func (c *GhostEnemy) Update(level core.Level, player core.Player) core.UpdateRes
 				Type:       core.ActionGainXP,
 				Experience: c.Experience,
 			})
+			actions = append(actions, maybeDropHeart(c.Location())...)
 		}
 		return core.UpdateResult{Actions: actions}
 	}

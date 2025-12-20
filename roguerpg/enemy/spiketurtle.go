@@ -266,6 +266,7 @@ func (c *SpikeTurtleEnemy) Update(level core.Level, player core.Player) core.Upd
 				Type:       core.ActionGainXP,
 				Experience: c.Experience,
 			})
+			actions = append(actions, maybeDropHeart(c.Location())...)
 		}
 		return core.UpdateResult{Actions: actions}
 	}

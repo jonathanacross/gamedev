@@ -38,9 +38,10 @@ var BoomerangSpritesImage = loadImage("objects/boomerang.png")
 var StarSpritesImage = loadImage("objects/star.png")
 var StairsSpritesImage = loadImage("objects/stairs.png")
 var ChestSpritesImage = loadImage("objects/chest.png")
+var HeartSpritesImage = loadImage("objects/heart.png")
 
-var HealthHeartImage = loadImage("ui/heart.png")
-var WeaponSelectWindowImage = loadImage("ui/weapon_select_window.png")
+var UiHealthHeartImage = loadImage("ui/heart.png")
+var UiWeaponSelectWindowImage = loadImage("ui/weapon_select_window.png")
 var UiIconsImage = loadImage("ui/icons.png")
 var UiSelectRectImage = loadImage("ui/select_rect.png")
 

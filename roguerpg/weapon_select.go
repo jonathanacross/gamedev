@@ -29,8 +29,8 @@ func NewWeaponSelector() *WeaponSelector {
 		core.WeaponWand,
 	}
 
-	windowX := float64(ScreenWidth-assets.WeaponSelectWindowImage.Bounds().Dx()) / 2.0
-	windowY := float64(ScreenHeight-assets.WeaponSelectWindowImage.Bounds().Dy()) / 2.0
+	windowX := float64(ScreenWidth-assets.UiWeaponSelectWindowImage.Bounds().Dx()) / 2.0
+	windowY := float64(ScreenHeight-assets.UiWeaponSelectWindowImage.Bounds().Dy()) / 2.0
 
 	firstStart := 8
 	xStart := 40
@@ -49,7 +49,7 @@ func NewWeaponSelector() *WeaponSelector {
 		secondaryWeapons = append(secondaryWeapons, wb)
 	}
 	return &WeaponSelector{
-		windowImage:      assets.WeaponSelectWindowImage,
+		windowImage:      assets.UiWeaponSelectWindowImage,
 		windowLoc:        core.Location{X: windowX, Y: windowY},
 		weaponTable:      weaponTable,
 		primaryWeapon:    primaryWeapon,

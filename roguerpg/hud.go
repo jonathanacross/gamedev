@@ -26,7 +26,7 @@ type Heart struct {
 
 func newHeart() Heart {
 	return Heart{
-		image:       assets.HealthHeartImage,
+		image:       assets.UiHealthHeartImage,
 		spriteSheet: core.NewSpriteSheet(HeartWidth, HeartHeight, HeartSubdivisions+1, 1),
 	}
 }

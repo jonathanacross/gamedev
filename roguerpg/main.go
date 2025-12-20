@@ -18,7 +18,7 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 
-	ShowDebugInfo = false
+	ShowDebugInfo = true
 )
 
 type Game struct {
@@ -48,25 +48,27 @@ func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 
 // AddEnemiesToLevel populates the level with enemies.
 func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
-	numEnemies := 5 + difficulty*2
+	numEnemies := 15 + difficulty
 	for range numEnemies {
 		pos := lvl.FindRandomFloorLocation()
-		// enemyType := rand.IntN(4)
+		enemyType := rand.IntN(5)
 		var newEnemy core.Character
-		newEnemy = enemy.NewSpikeTurtleEnemy(pos)
+		// newEnemy = enemy.NewSpikeTurtleEnemy(pos)
 
-		// switch enemyType {
-		// case 0:
-		// 	newEnemy = enemy.NewBatEnemy(pos)
-		// case 1:
-		// 	newEnemy = enemy.NewBlobEnemy(pos)
-		// case 2:
-		// 	newEnemy = enemy.NewGoblinEnemy(pos)
-		// case 3:
-		// 	newEnemy = enemy.NewGhostEnemy(pos)
-		// default:
-		// 	newEnemy = enemy.NewBatEnemy(pos)
-		// }
+		switch enemyType {
+		case 0:
+			newEnemy = enemy.NewBatEnemy(pos)
+		case 1:
+			newEnemy = enemy.NewBlobEnemy(pos)
+		case 2:
+			newEnemy = enemy.NewGoblinEnemy(pos)
+		case 3:
+			newEnemy = enemy.NewGhostEnemy(pos)
+		case 4:
+			newEnemy = enemy.NewSpikeTurtleEnemy(pos)
+		default:
+			newEnemy = enemy.NewBatEnemy(pos)
+		}
 		lvl.Enemies = append(lvl.Enemies, newEnemy)
 	}
 }
@@ -252,6 +254,9 @@ func (g *Game) executeActions(actions []core.Action) {
 			// Need cast to *player.Player if I want to access fields?
 			// Or use interface method AddExperience
 			g.Player.AddExperience(action.Experience)
+		case core.ActionDropHeart:
+			newHeart := objects.NewHeart(action.Location)
+			lvl.Objects = append(lvl.Objects, newHeart)
 		default:
 		}
 	}

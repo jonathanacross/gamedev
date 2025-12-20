@@ -42,6 +42,10 @@ func NewStairs(location core.Location, isUpstairs bool) *Stairs {
 	return s
 }
 
+func (s *Stairs) Touch(level core.Level, p core.Player) []core.Action {
+	return []core.Action{}
+}
+
 func (s *Stairs) Interact(level core.Level, p core.Player) []core.Action {
 	if s.IsUpstairs && level != nil {
 		return []core.Action{{Type: core.ActionGoUpLevel}}

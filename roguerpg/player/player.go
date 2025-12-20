@@ -593,13 +593,35 @@ func (p *Player) AddExperience(amount int) {
 	p.Experience += amount
 }
 
+func (p *Player) AddHealth(amount int) {
+	p.Health += amount
+	if p.Health > p.MaxHealth {
+		p.Health = p.MaxHealth
+	}
+}
+
 func (p *Player) GetExperience() int {
 	return p.Experience
+}
+
+func (p *Player) handleObjectPickup(level core.Level) {
+	playerPushBox := p.GetPushBox()
+
+	for _, object := range level.GetObjects() {
+		if interactable, ok := object.(core.Interactable); ok {
+			if playerPushBox.Intersects(interactable.GetPushBox()) {
+				interactable.Touch(level, p)
+				break
+			}
+		}
+	}
 }
 
 func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	// Handle Knockback Physics.
 	p.UpdateKnockback(level)
+
+	p.handleObjectPickup(level)
 
 	// Handle all state transitions.
 	stateActions := p.handleState(level)
