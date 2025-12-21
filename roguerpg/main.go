@@ -254,14 +254,13 @@ func (g *Game) executeActions(actions []core.Action) {
 		case core.ActionGoDownLevel:
 			g.GoDownLevel()
 		case core.ActionGainXP:
-			// Need cast to *player.Player if I want to access fields?
-			// Or use interface method AddExperience
 			g.Player.AddExperience(action.Experience)
 		case core.ActionDropHeart:
 			newHeart := objects.NewHeart(action.Location)
 			lvl.Objects = append(lvl.Objects, newHeart)
 		case core.ActionShowChestItem:
 			newChestItem := objects.NewChestItem(action.UpgradeType, action.Location)
+			g.Player.AddUpgrade(action.UpgradeType)
 			lvl.Objects = append(lvl.Objects, newChestItem)
 		default:
 		}
