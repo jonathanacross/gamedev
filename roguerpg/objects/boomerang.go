@@ -19,6 +19,8 @@ type Boomerang struct {
 }
 
 func NewBoomerang(location core.Location, direction core.Vector, level int) *Boomerang {
+	level = core.Clamp(level, 1, 3)
+
 	spriteSheet := core.NewSpriteSheet(16, 16, 8, 3)
 	var animation *core.Animation = nil
 	var initialVelocity float64

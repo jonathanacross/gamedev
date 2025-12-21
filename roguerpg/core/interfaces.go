@@ -78,6 +78,8 @@ type Player interface {
 	GetPrimaryWeapon() WeaponType
 	GetSecondaryWeapon() WeaponType
 	GetWeaponProgress(weapon WeaponType) float64
+	AddUpgrade(upgradeType UpgradeType)
+	GetUpgrades() *PlayerUpgrades
 }
 
 type Level interface {

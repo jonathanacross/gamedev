@@ -22,12 +22,7 @@ const (
 	arrowRightIndex
 )
 
-const (
-	arrowMaxDistance = 5 * core.TileSize
-	arrowSpeed       = 3.0
-)
-
-func NewArrow(location core.Location, velocity core.Vector) *Arrow {
+func NewArrow(location core.Location, velocity core.Vector, level int) *Arrow {
 	spriteSheet := core.NewSpriteSheet(16, 16, 4, 1)
 	var spriteSheetDir int
 	direction := core.VectorToDirection(velocity)
@@ -46,11 +41,16 @@ func NewArrow(location core.Location, velocity core.Vector) *Arrow {
 		spriteSheetDir = arrowRightIndex
 		hitBox = core.Rect{Left: 0, Top: -2, Right: 8, Bottom: 2}
 	}
+
+	level = core.Clamp(level, 1, 3)
+	arrowMaxDistance := float64((5 + 2*level) * core.TileSize)
+	arrowSpeed := 3.0 + 0.5*float64(level)
+	arrowDamage := 1 << (level - 1)
 	remainingFlightFrames := int(math.Round(arrowMaxDistance / arrowSpeed))
 
 	damageSource := core.DamageSourceConfig{
 		HitBox: hitBox,
-		Damage: 1,
+		Damage: arrowDamage,
 	}
 
 	return &Arrow{

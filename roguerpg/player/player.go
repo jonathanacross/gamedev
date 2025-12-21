@@ -55,9 +55,37 @@ type Player struct {
 	primaryWeapon   core.WeaponType
 	secondaryWeapon core.WeaponType
 	shieldHeld      bool
+
+	currentStats   *core.PlayerUpgrades
+	futureUpgrades *core.PlayerUpgrades
 }
 
 func NewPlayer() *Player {
+	// Player starts with just a sword and 3 hearts
+	currentStats := &core.PlayerUpgrades{
+		Health: 3,
+		Weapons: map[core.WeaponType]int{
+			core.WeaponSword:     1,
+			core.WeaponBomb:      0,
+			core.WeaponBoomerang: 0,
+			core.WeaponShield:    0,
+			core.WeaponBow:       0,
+			core.WeaponWand:      0,
+		},
+	}
+	// Player has no upgrades yet
+	futureUpgrades := &core.PlayerUpgrades{
+		Health: 0,
+		Weapons: map[core.WeaponType]int{
+			core.WeaponSword:     0,
+			core.WeaponBomb:      0,
+			core.WeaponBoomerang: 0,
+			core.WeaponShield:    0,
+			core.WeaponBow:       0,
+			core.WeaponWand:      0,
+		},
+	}
+
 	// Set up Hitboxes for specific frames of the attack animation.
 	baseSwordDamage := 1
 	swordAttackBoxes := map[core.Direction]map[int]core.DamageSourceConfig{
@@ -175,6 +203,8 @@ func NewPlayer() *Player {
 		hasBoomerang:      true,
 		primaryWeapon:     core.WeaponSword,
 		secondaryWeapon:   core.WeaponBoomerang,
+		currentStats:      currentStats,
+		futureUpgrades:    futureUpgrades,
 	}
 }
 
@@ -411,6 +441,25 @@ func (p *Player) GetWeaponProgress(weapon core.WeaponType) float64 {
 	}
 }
 
+func (p *Player) AddUpgrade(upgradeType core.UpgradeType) {
+	switch upgradeType {
+	case core.UpgradeTypeHeart:
+		p.futureUpgrades.Health++
+	case core.UpgradeTypeSword:
+		p.futureUpgrades.Weapons[core.WeaponSword]++
+	case core.UpgradeTypeBomb:
+		p.futureUpgrades.Weapons[core.WeaponBomb]++
+	case core.UpgradeTypeBoomerang:
+		p.futureUpgrades.Weapons[core.WeaponBoomerang]++
+	case core.UpgradeTypeShield:
+		p.futureUpgrades.Weapons[core.WeaponShield]++
+	case core.UpgradeTypeBow:
+		p.futureUpgrades.Weapons[core.WeaponBow]++
+	case core.UpgradeTypeWand:
+		p.futureUpgrades.Weapons[core.WeaponWand]++
+	}
+}
+
 func (p *Player) IsActive() bool {
 	// Input should be blocked if the player is Hurt, Dying, or Dead.
 	// We allow input only when Idle, Walking, or Attacking (to allow chaining/canceling).
@@ -602,6 +651,11 @@ func (p *Player) AddHealth(amount int) {
 
 func (p *Player) GetExperience() int {
 	return p.Experience
+}
+
+func (p *Player) GetUpgrades() *core.PlayerUpgrades {
+	// TODO: Return current instead once weapon upgrades work
+	return p.futureUpgrades
 }
 
 func (p *Player) handleObjectPickup(level core.Level) {

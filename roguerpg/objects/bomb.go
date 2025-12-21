@@ -65,19 +65,39 @@ type BombExplosion struct {
 	attackHitboxes map[int]core.DamageSourceConfig
 }
 
-func NewBombExplosion(location core.Location) *BombExplosion {
-	animation := core.NewAnimation([]int{0, 1, 2, 3, 4, 5}, 5, false)
-	spriteSheet := core.NewSpriteSheet(48, 48, 6, 1)
+func NewBombExplosion(location core.Location, level int) *BombExplosion {
+	spriteSheet := core.NewSpriteSheet(48, 48, 6, 3)
 
-	attackHitboxes := map[int]core.DamageSourceConfig{
-		1: {HitBox: core.Rect{Left: -24, Top: -24, Right: 24, Bottom: 24}, Damage: 2},
+	var explosionDamage int
+	var animation *core.Animation
+	var attackHitboxes map[int]core.DamageSourceConfig
+	level = core.Clamp(level, 1, 3)
+	switch level {
+	case 1:
+		explosionDamage = 2
+		animation = core.NewAnimation([]int{0, 1, 2, 3, 4, 5}, 5, false)
+		attackHitboxes = map[int]core.DamageSourceConfig{
+			1: {HitBox: core.Rect{Left: -16, Top: -16, Right: 16, Bottom: 16}, Damage: explosionDamage},
+		}
+	case 2:
+		explosionDamage = 4
+		animation = core.NewAnimation([]int{6, 7, 8, 9, 10, 11}, 5, false)
+		attackHitboxes = map[int]core.DamageSourceConfig{
+			7: {HitBox: core.Rect{Left: -20, Top: -20, Right: 20, Bottom: 20}, Damage: explosionDamage},
+		}
+	case 3:
+		explosionDamage = 8
+		animation = core.NewAnimation([]int{12, 13, 14, 15, 16, 17}, 5, false)
+		attackHitboxes = map[int]core.DamageSourceConfig{
+			13: {HitBox: core.Rect{Left: -24, Top: -24, Right: 24, Bottom: 24}, Damage: explosionDamage},
+		}
 	}
 
 	return &BombExplosion{
 		BaseSprite: core.BaseSprite{
 			Loc:     location,
 			Image:   assets.BombExplosionSpritesImage,
-			SrcRect: spriteSheet.Rect(0),
+			SrcRect: spriteSheet.Rect(animation.Frame()),
 			DrawOffset: core.Location{
 				X: 24,
 				Y: 24,
@@ -90,7 +110,7 @@ func NewBombExplosion(location core.Location) *BombExplosion {
 	}
 }
 
-func (b *BombExplosion) Update(level core.Level, _ core.Player) core.UpdateResult {
+func (b *BombExplosion) Update(_ core.Level, _ core.Player) core.UpdateResult {
 	b.animation.Update()
 	b.SrcRect = b.spriteSheet.Rect(b.animation.Frame())
 	if b.animation.IsFinished() {

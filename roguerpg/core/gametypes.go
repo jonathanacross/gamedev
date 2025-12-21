@@ -109,9 +109,9 @@ const (
 	UpgradeTypeHeart
 )
 
-type PlayerProgression struct {
-	MaxHealth int
-	Weapons   map[WeaponType]int
+type PlayerUpgrades struct {
+	Health  int
+	Weapons map[WeaponType]int
 }
 
 // Action is the generic struct returned by any GameObject
@@ -122,7 +122,7 @@ type Action struct {
 	Location     Location
 	Direction    Vector
 	GameState    GameState     // only used for ActionPushState
-	DamageSource *DamageSource // only populated for ActionCreateDamageSource
+	DamageSource *DamageSource // only used for ActionCreateDamageSource
 	WeaponType   WeaponType    // only used for ActionSwitchWeapon
 	Experience   int           // only used for ActionGainXP
 	Target       Character     // only used for ActionCreateStar
