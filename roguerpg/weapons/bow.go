@@ -26,7 +26,6 @@ func NewBow() *Bow {
 		core.Down:  0,
 	}
 
-	// Bow animation was index 0,1 (2 frames), speed 6, non-looping
 	animations := core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false)
 
 	return &Bow{
@@ -41,17 +40,13 @@ func (b *Bow) Update(ctx core.PlayerContext) {
 	b.cooldownTimer.Update()
 
 	if b.isAttacking {
-		anim := b.animations[ctx.GetDirection()] // Use current direction? Or lock direction?
-		// Player locks movement/direction during attack usually.
+		anim := b.animations[ctx.GetDirection()]
 		anim.Update()
 
 		if anim.IsFinished() {
 			b.isAttacking = false
 			anim.Reset()
 
-			// Fire Arrow
-			// This happens at END of animation? Or specific frame?
-			// Previously "ActionShootArrow" was returned when animation finished.
 			ctx.AddAction(core.Action{
 				Type:      core.ActionShootArrow,
 				Location:  ctx.Location(),

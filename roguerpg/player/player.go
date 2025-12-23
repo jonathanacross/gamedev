@@ -14,10 +14,6 @@ type PlayerState int
 const (
 	Idle PlayerState = iota
 	Walking
-	AttackingSword // Kept for legacy animation mapping, but logic is largely delegated
-	AttackingShield
-	AttackingBow
-	AttackingWand
 	Hurt
 	Dying
 	Dead
@@ -41,7 +37,6 @@ type Player struct {
 	direction   core.Direction
 	Velocity    core.Vector
 
-	// New Weapon System
 	weapons         map[core.WeaponType]core.Weapon
 	primaryWeapon   core.WeaponType
 	secondaryWeapon core.WeaponType
@@ -91,27 +86,19 @@ func NewPlayer() *Player {
 	}
 
 	animations := map[PlayerState]map[core.Direction]*core.Animation{
-		Idle:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
-		Walking:         core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
-		AttackingSword:  core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
-		AttackingShield: core.NewDirectionAnimationMap([]int{1}, 0, directionOffsets, 6, true),
-		AttackingBow:    core.NewDirectionAnimationMap([]int{0, 1}, 0, directionOffsets, 6, false),
-		AttackingWand:   core.NewDirectionAnimationMap([]int{0, 1, 2}, 0, directionOffsets, 4, false),
-		Hurt:            core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
-		Dying:           core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
-		Dead:            core.NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
+		Idle:    core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
+		Walking: core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 10, true),
+		Hurt:    core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false),
+		Dying:   core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 0, directionOffsets, 8, false),
+		Dead:    core.NewDirectionAnimationMap([]int{7}, 0, directionOffsets, 8, false),
 	}
 
 	charImages := map[PlayerState]*ebiten.Image{
-		Idle:            assets.PlayerIdleSpritesImage,
-		Walking:         assets.PlayerWalkSpritesImage,
-		AttackingSword:  assets.PlayerIdleSpritesImage,
-		AttackingShield: assets.PlayerIdleSpritesImage,
-		AttackingBow:    assets.PlayerIdleSpritesImage,
-		AttackingWand:   assets.PlayerIdleSpritesImage,
-		Hurt:            assets.PlayerHurtSpritesImage,
-		Dying:           assets.PlayerDeathSpritesImage,
-		Dead:            assets.PlayerDeathSpritesImage,
+		Idle:    assets.PlayerIdleSpritesImage,
+		Walking: assets.PlayerWalkSpritesImage,
+		Hurt:    assets.PlayerHurtSpritesImage,
+		Dying:   assets.PlayerDeathSpritesImage,
+		Dead:    assets.PlayerDeathSpritesImage,
 	}
 
 	spriteSheet := core.NewSpriteSheet(48, 64, ssColumns, ssRows)
@@ -201,22 +188,19 @@ func (p *Player) GetCurrentAnimation() *core.Animation {
 }
 
 func (p *Player) Move(moveVector core.Vector) {
-	// Don't change direction or velocity if attacking
-	if p.state != AttackingSword && p.state != AttackingShield && p.state != AttackingBow {
-		// Determine facing direction from the move vector.
-		if moveVector.Y < 0 {
-			p.direction = core.Up
-		} else if moveVector.Y > 0 {
-			p.direction = core.Down
-		} else if moveVector.X < 0 {
-			p.direction = core.Left
-		} else if moveVector.X > 0 {
-			p.direction = core.Right
-		}
-
-		p.Velocity = moveVector.Normalize().Scale(PlayerSpeed)
-		p.TransitionState(Walking)
+	// Determine facing direction from the move vector.
+	if moveVector.Y < 0 {
+		p.direction = core.Up
+	} else if moveVector.Y > 0 {
+		p.direction = core.Down
+	} else if moveVector.X < 0 {
+		p.direction = core.Left
+	} else if moveVector.X > 0 {
+		p.direction = core.Right
 	}
+
+	p.Velocity = moveVector.Normalize().Scale(PlayerSpeed)
+	p.TransitionState(Walking)
 }
 
 func (p *Player) StopMoving() {
@@ -310,14 +294,11 @@ func (p *Player) handleState(level core.Level) []core.Action {
 		p.TransitionState(Idle)
 	}
 
-	// Clean up attacking states if animations finish (Legacy support)
-	// (Shield state cleanup removed as Shield is now a Component)
-
 	switch p.state {
 	case Idle:
 		p.Velocity = core.Vector{}
 	case Walking:
-	case AttackingSword, AttackingShield, Hurt, Dying, Dead:
+	case Hurt, Dying, Dead:
 		p.Velocity = core.Vector{}
 	}
 	return nil
@@ -348,7 +329,6 @@ func (p *Player) TakeDamage(damage int) {
 	if p.state == Dead || p.state == Dying || p.state == Hurt {
 		return
 	}
-	// Simplified blocking check: Shield weapon sets p.shieldHeld
 	if p.shieldHeld {
 		return
 	}
@@ -423,12 +403,6 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	p.Image = p.images[p.state]
 	p.SrcRect = p.spriteSheet.Rect(animation.Frame())
 
-	// Update Weapons
-	// NOTE: Do not clear pendingActions here; they may have been populated by OnAttack during Input phase.
-
-	// Update all equipped weapons? Or just active?
-	// Usually just active+cooldowns for others.
-	// For simplicity, update all in map.
 	for _, w := range p.weapons {
 		w.Update(p)
 	}
@@ -462,17 +436,16 @@ func (p *Player) CanRemove() bool {
 	return false
 }
 
-// Draw method with new Z-ordering
 func (p *Player) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	// 1. Draw Weapons designated as "Behind"
+	// Draw Weapons designated as "Behind"
 	if p.activeWeapon != nil && p.activeWeapon.GetRenderOrder(p.direction) == core.RenderOrderBehind {
 		p.activeWeapon.Draw(screen, cameraMatrix, p.Location(), p.direction, p.GetCurrentAnimation().Frame())
 	}
 
-	// 2. Draw Player Body (Base logic)
+	// Draw Player Body (Base logic)
 	p.BaseCharacter.Draw(screen, cameraMatrix)
 
-	// 3. Draw Weapons designated as "Front"
+	// Draw Weapons designated as "Front"
 	if p.activeWeapon != nil && p.activeWeapon.GetRenderOrder(p.direction) == core.RenderOrderFront {
 		p.activeWeapon.Draw(screen, cameraMatrix, p.Location(), p.direction, p.GetCurrentAnimation().Frame())
 	}

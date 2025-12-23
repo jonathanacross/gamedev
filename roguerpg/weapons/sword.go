@@ -15,11 +15,6 @@ type Sword struct {
 }
 
 func NewSword() *Sword {
-	// ssColumns := 8, ssRows := 6 (from Player)
-	// Actually we might want a dedicated spritesheet for just the weapon later,
-	// but for now we are using the player spritesheet and drawing the "baked in" weapon.
-	// This means we are re-drawing the player Holding the weapon.
-	// This is the "Double Drawing" compromise.
 	spriteSheet := core.NewSpriteSheet(48, 64, 8, 6)
 
 	directionOffsets := map[core.Direction]int{
@@ -31,7 +26,6 @@ func NewSword() *Sword {
 
 	animations := core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false)
 
-	// Hitboxes (Copied from Player)
 	var baseSwordDamage = 1
 	swordAttackBoxes := map[core.Direction]map[int]core.DamageSourceConfig{
 		core.Down: {
@@ -112,9 +106,7 @@ func (s *Sword) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos c
 	frame := anim.Frame()
 	srcRect := s.spriteSheet.Rect(frame)
 
-	// Offset needs to be relative to player position.
-	// Player draw offset is 25, 38.
-	// If we are drawing the same sprite sheet, we can reuse the offset?
+	// Offset same as player offset.
 	drawIdxX := 25.0
 	drawIdxY := 38.0
 
@@ -127,6 +119,6 @@ func (s *Sword) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos c
 }
 
 func (s *Sword) GetCooldownProgress() float64 {
-	// Sword has no cooldown (or very fast). Always ready.
+	// Sword has no cooldown. Always ready.
 	return 1.0
 }

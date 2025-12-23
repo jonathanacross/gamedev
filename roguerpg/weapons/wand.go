@@ -26,7 +26,6 @@ func NewWand() *Wand {
 		core.Down:  0,
 	}
 
-	// Wand animation: 3 frames (0,1,2), speed 4?
 	animations := core.NewDirectionAnimationMap([]int{0, 1, 2}, 0, directionOffsets, 4, false)
 
 	return &Wand{
