@@ -1,4 +1,4 @@
-package objects
+package weapons
 
 import (
 	"roguerpg/core"
@@ -6,21 +6,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type BoomerangWeapon struct {
+type Boomerang struct {
 	hasBoomerang bool
 }
 
-func NewBoomerangWeapon() *BoomerangWeapon {
-	return &BoomerangWeapon{
+func NewBoomerang() *Boomerang {
+	return &Boomerang{
 		hasBoomerang: true,
 	}
 }
 
-func (b *BoomerangWeapon) Update(ctx core.PlayerContext) {
+func (b *Boomerang) Update(ctx core.PlayerContext) {
 	// No update logic needed, purely state based
 }
 
-func (b *BoomerangWeapon) OnAttack(ctx core.PlayerContext) {
+func (b *Boomerang) OnAttack(ctx core.PlayerContext) {
 	if b.hasBoomerang {
 		b.hasBoomerang = false
 
@@ -37,19 +37,19 @@ func (b *BoomerangWeapon) OnAttack(ctx core.PlayerContext) {
 	}
 }
 
-func (b *BoomerangWeapon) Catch() {
+func (b *Boomerang) Catch() {
 	b.hasBoomerang = true
 }
 
-func (b *BoomerangWeapon) GetRenderOrder(playerDirection core.Direction) core.RenderOrder {
+func (b *Boomerang) GetRenderOrder(playerDirection core.Direction) core.RenderOrder {
 	return core.RenderOrderFront
 }
 
-func (b *BoomerangWeapon) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos core.Location, playerDir core.Direction, playerFrame int) {
+func (b *Boomerang) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos core.Location, playerDir core.Direction, playerFrame int) {
 	// No visual for holding yet
 }
 
-func (b *BoomerangWeapon) GetCooldownProgress() float64 {
+func (b *Boomerang) GetCooldownProgress() float64 {
 	if b.hasBoomerang {
 		return 1.0
 	}

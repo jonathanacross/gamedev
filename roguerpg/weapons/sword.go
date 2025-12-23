@@ -1,4 +1,4 @@
-package objects
+package weapons
 
 import (
 	"roguerpg/assets"
@@ -127,5 +127,6 @@ func (s *Sword) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos c
 }
 
 func (s *Sword) GetCooldownProgress() float64 {
+	// Sword has no cooldown (or very fast). Always ready.
 	return 1.0
 }

@@ -1,4 +1,4 @@
-package objects
+package weapons
 
 import (
 	"time"
@@ -8,22 +8,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type BombWeapon struct {
+type Bomb struct {
 	cooldownTimer *core.Timer
 }
 
-func NewBombWeapon() *BombWeapon {
+func NewBomb() *Bomb {
 	// Cooldown was 750ms in player.go
-	return &BombWeapon{
+	return &Bomb{
 		cooldownTimer: core.NewTimer(750 * time.Millisecond),
 	}
 }
 
-func (b *BombWeapon) Update(ctx core.PlayerContext) {
+func (b *Bomb) Update(ctx core.PlayerContext) {
 	b.cooldownTimer.Update()
 }
 
-func (b *BombWeapon) OnAttack(ctx core.PlayerContext) {
+func (b *Bomb) OnAttack(ctx core.PlayerContext) {
 	if b.cooldownTimer.IsReady() {
 		b.cooldownTimer.Reset()
 
@@ -41,14 +41,14 @@ func (b *BombWeapon) OnAttack(ctx core.PlayerContext) {
 	}
 }
 
-func (b *BombWeapon) GetRenderOrder(playerDirection core.Direction) core.RenderOrder {
+func (b *Bomb) GetRenderOrder(playerDirection core.Direction) core.RenderOrder {
 	return core.RenderOrderFront
 }
 
-func (b *BombWeapon) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos core.Location, playerDir core.Direction, playerFrame int) {
+func (b *Bomb) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos core.Location, playerDir core.Direction, playerFrame int) {
 	// No visual for holding the bomb yet (it just appears)
 }
 
-func (b *BombWeapon) GetCooldownProgress() float64 {
+func (b *Bomb) GetCooldownProgress() float64 {
 	return b.cooldownTimer.GetProgress()
 }

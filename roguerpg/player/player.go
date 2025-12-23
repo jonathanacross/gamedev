@@ -4,7 +4,7 @@ import (
 	"roguerpg/assets"
 	"roguerpg/character"
 	"roguerpg/core"
-	"roguerpg/objects"
+	"roguerpg/weapons"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -123,13 +123,13 @@ func NewPlayer() *Player {
 	}
 
 	// Initialize Weapons
-	weapons := make(map[core.WeaponType]core.Weapon)
-	weapons[core.WeaponSword] = objects.NewSword()
-	weapons[core.WeaponBow] = objects.NewBow()
-	weapons[core.WeaponWand] = objects.NewWand()
-	weapons[core.WeaponShield] = objects.NewShield()
-	weapons[core.WeaponBomb] = objects.NewBombWeapon()
-	weapons[core.WeaponBoomerang] = objects.NewBoomerangWeapon()
+	weaponMap := make(map[core.WeaponType]core.Weapon)
+	weaponMap[core.WeaponSword] = weapons.NewSword()
+	weaponMap[core.WeaponBow] = weapons.NewBow()
+	weaponMap[core.WeaponWand] = weapons.NewWand()
+	weaponMap[core.WeaponShield] = weapons.NewShield()
+	weaponMap[core.WeaponBomb] = weapons.NewBomb()
+	weaponMap[core.WeaponBoomerang] = weapons.NewBoomerang()
 
 	return &Player{
 		BaseCharacter: character.BaseCharacter{
@@ -161,8 +161,8 @@ func NewPlayer() *Player {
 		secondaryWeapon: core.WeaponBoomerang,
 		currentStats:    currentStats,
 		futureUpgrades:  futureUpgrades,
-		weapons:         weapons,
-		activeWeapon:    weapons[core.WeaponSword], // Default
+		weapons:         weaponMap,
+		activeWeapon:    weaponMap[core.WeaponSword], // Default
 	}
 }
 
@@ -373,7 +373,7 @@ func (p *Player) ReturnBoomerang() {
 	// Find the boomerang weapon in the map and call its specific method.
 	// We need type assertion since the generic Weapon interface doesn't have Catch.
 	if w, ok := p.weapons[core.WeaponBoomerang]; ok {
-		if bw, ok := w.(*objects.BoomerangWeapon); ok {
+		if bw, ok := w.(*weapons.Boomerang); ok {
 			bw.Catch()
 		}
 	}
