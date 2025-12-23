@@ -51,8 +51,6 @@ type Player struct {
 	pendingActions       []core.Action
 	pendingDamageSources []*core.DamageSource
 
-	hasBoomerang bool // Leaving as is for now, Boomerang object logic can be refactored similarly later
-
 	currentStats   *core.PlayerUpgrades
 	futureUpgrades *core.PlayerUpgrades
 }
@@ -130,6 +128,8 @@ func NewPlayer() *Player {
 	weapons[core.WeaponBow] = objects.NewBow()
 	weapons[core.WeaponWand] = objects.NewWand()
 	weapons[core.WeaponShield] = objects.NewShield()
+	weapons[core.WeaponBomb] = objects.NewBombWeapon()
+	weapons[core.WeaponBoomerang] = objects.NewBoomerangWeapon()
 
 	return &Player{
 		BaseCharacter: character.BaseCharacter{
@@ -157,7 +157,6 @@ func NewPlayer() *Player {
 		animations:      animations,
 		state:           Idle,
 		direction:       core.Down,
-		hasBoomerang:    true,
 		primaryWeapon:   core.WeaponSword,
 		secondaryWeapon: core.WeaponBoomerang,
 		currentStats:    currentStats,
@@ -227,19 +226,10 @@ func (p *Player) StopMoving() {
 }
 
 func (p *Player) attackWith(weaponType core.WeaponType) *core.Action {
-	// 1. Check if it's a refactored weapon
 	if weapon, ok := p.weapons[weaponType]; ok {
 		p.activeWeapon = weapon
 		weapon.OnAttack(p)
 		return nil
-	}
-
-	// 2. Legacy fallback
-	switch weaponType {
-	case core.WeaponBomb:
-		return p.UseBomb()
-	case core.WeaponBoomerang:
-		return p.UseBoomerang()
 	}
 	return nil
 }
@@ -250,35 +240,6 @@ func (p *Player) PrimaryAttack() *core.Action {
 
 func (p *Player) SecondaryAttack() *core.Action {
 	return p.attackWith(p.secondaryWeapon)
-}
-
-// Legacy Methods (Bomb, Boomerang)
-
-func (p *Player) UseBomb() *core.Action {
-	// Re-implement simplified Bomb logic logic or keep simplistic cooldown since we removed the field
-	// Wait, I removed bombCooldownTimer field in the struct definition above.
-	// I should probably restore it or quickly add a 'Bomb' struct in weapons map too if I want it to work.
-	// Or just hack it back in for now.
-	// Let's add the timer back to struct to avoid breaking Bomb/Shield/Boomerang which I didn't refactor.
-	// actually, 'bomb.go' was an object, not a weapon.
-	// I'll add the timer back to the struct to minimize breakage for non-refactored items.
-	return nil
-}
-
-// Restoring timer fields I deleted in thought but need for legacy support if not refactoring everything at once
-// I'll add them to the struct definition in the file write.
-
-func (p *Player) UseBoomerang() *core.Action {
-	if p.hasBoomerang {
-		p.hasBoomerang = false
-		loc := core.Vector(p.Location()).Plus(core.DirectionToVector(p.direction).Scale(float64(core.TileSize)))
-		return &core.Action{
-			Type:      core.ActionThrowBoomerang,
-			Location:  core.Location(loc),
-			Direction: core.DirectionToVector(p.direction),
-		}
-	}
-	return nil
 }
 
 func (p *Player) SwitchWeapon(weapon core.WeaponType) {
@@ -293,8 +254,10 @@ func (p *Player) GetSecondaryWeapon() core.WeaponType {
 	return p.secondaryWeapon
 }
 
-func (p *Player) GetWeaponProgress(weapon core.WeaponType) float64 {
-	// TODO: Ask the specific weapon instance for progress
+func (p *Player) GetWeaponProgress(weaponType core.WeaponType) float64 {
+	if weapon, ok := p.weapons[weaponType]; ok {
+		return weapon.GetCooldownProgress()
+	}
 	return 0.0
 }
 
@@ -407,7 +370,13 @@ func (p *Player) ApplyKnockback(force core.Vector, duration int) {
 }
 
 func (p *Player) ReturnBoomerang() {
-	p.hasBoomerang = true
+	// Find the boomerang weapon in the map and call its specific method.
+	// We need type assertion since the generic Weapon interface doesn't have Catch.
+	if w, ok := p.weapons[core.WeaponBoomerang]; ok {
+		if bw, ok := w.(*objects.BoomerangWeapon); ok {
+			bw.Catch()
+		}
+	}
 }
 
 func (p *Player) AddExperience(amount int) {
@@ -455,8 +424,7 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	p.SrcRect = p.spriteSheet.Rect(animation.Frame())
 
 	// Update Weapons
-	p.pendingActions = []core.Action{}
-	p.pendingDamageSources = []*core.DamageSource{}
+	// NOTE: Do not clear pendingActions here; they may have been populated by OnAttack during Input phase.
 
 	// Update all equipped weapons? Or just active?
 	// Usually just active+cooldowns for others.
@@ -471,6 +439,7 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	}
 	if len(p.pendingActions) > 0 {
 		actions = append(actions, p.pendingActions...)
+		p.pendingActions = nil // Reset after consuming
 	}
 
 	// Convert pending damage sources to Actions
@@ -482,6 +451,8 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 			DamageSource: ds,
 		})
 	}
+	// Reset damage sources after consuming
+	p.pendingDamageSources = nil
 
 	p.shieldHeld = false
 	return core.UpdateResult{Actions: actions}

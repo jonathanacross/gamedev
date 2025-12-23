@@ -127,4 +127,7 @@ type Weapon interface {
 
 	// Draw renders the weapon relative to the player
 	Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos Location, playerDir Direction, playerFrame int)
+
+	// GetCooldownProgress returns 0.0 to 1.0 indicating how ready the weapon is (1.0 = ready)
+	GetCooldownProgress() float64
 }

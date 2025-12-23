@@ -129,3 +129,7 @@ func (s *Shield) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos 
 	img := assets.PlayerAttackShieldSpritesImage.SubImage(srcRect).(*ebiten.Image)
 	screen.DrawImage(img, op)
 }
+
+func (s *Shield) GetCooldownProgress() float64 {
+	return 1.0
+}

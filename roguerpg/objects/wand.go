@@ -10,11 +10,10 @@ import (
 )
 
 type Wand struct {
-	cooldownTimer    *core.Timer
-	isAttacking      bool
-	currentAnimation *core.Animation
-	spriteSheet      *core.SpriteSheet
-	animations       map[core.Direction]*core.Animation
+	spriteSheet   *core.SpriteSheet
+	animations    map[core.Direction]*core.Animation
+	cooldownTimer *core.Timer
+	isAttacking   bool
 }
 
 func NewWand() *Wand {
@@ -27,13 +26,13 @@ func NewWand() *Wand {
 		core.Down:  0,
 	}
 
+	// Wand animation: 3 frames (0,1,2), speed 4?
 	animations := core.NewDirectionAnimationMap([]int{0, 1, 2}, 0, directionOffsets, 4, false)
 
 	return &Wand{
-		// WandCooldown was 2000ms in player.go
-		cooldownTimer: core.NewTimer(2000 * time.Millisecond),
 		spriteSheet:   spriteSheet,
 		animations:    animations,
+		cooldownTimer: core.NewTimer(1000 * time.Millisecond),
 		isAttacking:   false,
 	}
 }
@@ -41,37 +40,31 @@ func NewWand() *Wand {
 func (w *Wand) Update(ctx core.PlayerContext) {
 	w.cooldownTimer.Update()
 
-	if w.isAttacking && w.currentAnimation != nil {
-		w.currentAnimation.Update()
-		if w.currentAnimation.IsFinished() {
-			// Animation finished -> Shoot Star
+	if w.isAttacking {
+		anim := w.animations[ctx.GetDirection()]
+		anim.Update()
+
+		if anim.IsFinished() {
+			w.isAttacking = false
+			anim.Reset()
+
+			// Fire Star
+			// Previously "ActionCreateStar" was returned.
+			// Logic was: find nearest enemy, fire at it.
+			// The PlayerContext doesn't expose "FindNearestEnemy" or Level.
+			// Compromise: Fire straight for now, or add "Target" to Action if Player handles it?
+			// But Player logic was just creating the star.
+			// Let's fire straight.
+
 			loc := ctx.Location()
 			dir := ctx.GetDirection()
-			starStartOffset := core.Vector{X: 0, Y: -4}
-			spawnLoc := core.Vector(loc).Plus(starStartOffset).Plus(core.DirectionToVector(dir).Scale(float64(core.TileSize)))
-
-			// Note: Finding nearest enemy is usually done in Action handling or passed in.
-			// Ideally, we'd find the target here if we had access to Level through context.
-			// But PlayerContext only exposes what we defined.
-			// For this refactor, we will emit the ActionCreateStar without a target for now,
-			// or we can Expand PlayerContext to include Level or FindTarget capability.
-			// However, `ActionCreateStar` handling in main.go already expects `action.Target`.
-			// Since we can't easily get the target here without expanding the context significantly,
-			// we will rely on the Game Engine to potentially handle targeting or just fire straight.
-			// *Correction*: In player.go, it did: target = level.FindNearestEnemy...
-			// To preserve this, we should add FindNearestEnemy to PlayerContext or accept it.
-			// But for now, let's keep it simple and just fire blindly (or change context next).
+			spawnLoc := core.Vector(loc).Plus(core.DirectionToVector(dir).Scale(float64(core.TileSize)))
 
 			ctx.AddAction(core.Action{
 				Type:      core.ActionCreateStar,
 				Location:  core.Location(spawnLoc),
 				Direction: core.DirectionToVector(dir),
-				// Target: nil, // Will just go straight
 			})
-
-			w.isAttacking = false
-			w.currentAnimation.Reset()
-			w.currentAnimation = nil
 		}
 	}
 }
@@ -80,9 +73,8 @@ func (w *Wand) OnAttack(ctx core.PlayerContext) {
 	if w.cooldownTimer.IsReady() && !w.isAttacking {
 		w.cooldownTimer.Reset()
 		w.isAttacking = true
-		dir := ctx.GetDirection()
-		w.currentAnimation = w.animations[dir]
-		w.currentAnimation.Reset()
+		anim := w.animations[ctx.GetDirection()]
+		anim.Reset()
 	}
 }
 
@@ -94,11 +86,12 @@ func (w *Wand) GetRenderOrder(playerDirection core.Direction) core.RenderOrder {
 }
 
 func (w *Wand) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos core.Location, playerDir core.Direction, playerFrame int) {
-	if !w.isAttacking || w.currentAnimation == nil {
+	if !w.isAttacking {
 		return
 	}
 
-	frame := w.currentAnimation.Frame()
+	anim := w.animations[playerDir]
+	frame := anim.Frame()
 	srcRect := w.spriteSheet.Rect(frame)
 
 	drawIdxX := 25.0
@@ -110,4 +103,8 @@ func (w *Wand) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos co
 
 	img := assets.PlayerAttackWandSpritesImage.SubImage(srcRect).(*ebiten.Image)
 	screen.DrawImage(img, op)
+}
+
+func (w *Wand) GetCooldownProgress() float64 {
+	return w.cooldownTimer.GetProgress()
 }
