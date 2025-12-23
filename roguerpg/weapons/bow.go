@@ -36,7 +36,7 @@ func NewBow() *Bow {
 	}
 }
 
-func (b *Bow) Update(ctx core.PlayerContext) {
+func (b *Bow) Update(ctx core.PlayerContext, level core.Level) {
 	b.cooldownTimer.Update()
 
 	if b.isAttacking {

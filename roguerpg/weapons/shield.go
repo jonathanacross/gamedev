@@ -59,7 +59,7 @@ func NewShield() *Shield {
 	}
 }
 
-func (s *Shield) Update(ctx core.PlayerContext) {
+func (s *Shield) Update(ctx core.PlayerContext, level core.Level) {
 	// Latch input state to active state for this frame logic
 	s.isActive = s.isBlocking
 	// Reset input state for next frame
@@ -73,8 +73,6 @@ func (s *Shield) Update(ctx core.PlayerContext) {
 		targetAnim := s.animations[dir]
 		if s.currentAnimation != targetAnim {
 			s.currentAnimation = targetAnim
-			// Optional: s.currentAnimation.Reset() if we want to restart animation on turn.
-			// Since it's a loop or single frame, it might not matter much, but Reset is safer visually.
 			s.currentAnimation.Reset()
 		}
 
@@ -93,8 +91,6 @@ func (s *Shield) Update(ctx core.PlayerContext) {
 		}
 	} else {
 		ctx.SetBlocking(false)
-		// Don't nil out currentAnimation immediately if we want to support transition out?
-		// But existing logic did, so preserving that.
 		if s.currentAnimation != nil {
 			s.currentAnimation.Reset()
 			s.currentAnimation = nil

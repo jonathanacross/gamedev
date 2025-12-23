@@ -117,7 +117,7 @@ type PlayerContext interface {
 
 type Weapon interface {
 	// Update handles weapon logic (cooldowns, etc.) and returns actions if needed
-	Update(ctx PlayerContext)
+	Update(ctx PlayerContext, level Level)
 
 	// OnAttack is called when the player triggers the weapon
 	OnAttack(ctx PlayerContext)

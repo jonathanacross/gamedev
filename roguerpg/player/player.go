@@ -404,7 +404,7 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	p.SrcRect = p.spriteSheet.Rect(animation.Frame())
 
 	for _, w := range p.weapons {
-		w.Update(p)
+		w.Update(p, level)
 	}
 
 	actions := []core.Action{}
@@ -442,7 +442,7 @@ func (p *Player) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 		p.activeWeapon.Draw(screen, cameraMatrix, p.Location(), p.direction, p.GetCurrentAnimation().Frame())
 	}
 
-	// Draw Player Body (Base logic)
+	// Draw Player Body
 	p.BaseCharacter.Draw(screen, cameraMatrix)
 
 	// Draw Weapons designated as "Front"

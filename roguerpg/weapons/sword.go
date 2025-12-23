@@ -58,7 +58,7 @@ func NewSword() *Sword {
 	}
 }
 
-func (s *Sword) Update(ctx core.PlayerContext) {
+func (s *Sword) Update(ctx core.PlayerContext, level core.Level) {
 	if s.isAttacking {
 		anim := s.animations[ctx.GetDirection()]
 		anim.Update()

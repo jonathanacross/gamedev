@@ -16,7 +16,7 @@ func NewBoomerang() *Boomerang {
 	}
 }
 
-func (b *Boomerang) Update(ctx core.PlayerContext) {
+func (b *Boomerang) Update(ctx core.PlayerContext, level core.Level) {
 	// No update logic needed, purely state based
 }
 
@@ -46,7 +46,7 @@ func (b *Boomerang) GetRenderOrder(playerDirection core.Direction) core.RenderOr
 }
 
 func (b *Boomerang) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos core.Location, playerDir core.Direction, playerFrame int) {
-	// No visual for holding yet
+	// No visual for holding.
 }
 
 func (b *Boomerang) GetCooldownProgress() float64 {

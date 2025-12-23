@@ -18,7 +18,7 @@ func NewBomb() *Bomb {
 	}
 }
 
-func (b *Bomb) Update(ctx core.PlayerContext) {
+func (b *Bomb) Update(ctx core.PlayerContext, level core.Level) {
 	b.cooldownTimer.Update()
 }
 

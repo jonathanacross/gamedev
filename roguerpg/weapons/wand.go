@@ -36,7 +36,7 @@ func NewWand() *Wand {
 	}
 }
 
-func (w *Wand) Update(ctx core.PlayerContext) {
+func (w *Wand) Update(ctx core.PlayerContext, level core.Level) {
 	w.cooldownTimer.Update()
 
 	if w.isAttacking {
@@ -47,22 +47,16 @@ func (w *Wand) Update(ctx core.PlayerContext) {
 			w.isAttacking = false
 			anim.Reset()
 
-			// Fire Star
-			// Previously "ActionCreateStar" was returned.
-			// Logic was: find nearest enemy, fire at it.
-			// The PlayerContext doesn't expose "FindNearestEnemy" or Level.
-			// Compromise: Fire straight for now, or add "Target" to Action if Player handles it?
-			// But Player logic was just creating the star.
-			// Let's fire straight.
-
 			loc := ctx.Location()
 			dir := ctx.GetDirection()
 			spawnLoc := core.Vector(loc).Plus(core.DirectionToVector(dir).Scale(float64(core.TileSize)))
+			target := level.FindNearestEnemy(loc, core.TileSize*6)
 
 			ctx.AddAction(core.Action{
 				Type:      core.ActionCreateStar,
 				Location:  core.Location(spawnLoc),
 				Direction: core.DirectionToVector(dir),
+				Target:    target,
 			})
 		}
 	}
