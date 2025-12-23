@@ -99,3 +99,32 @@ type Camera interface {
 	GetViewRect() Rect
 	CenterOn(loc Location)
 }
+
+type RenderOrder int
+
+const (
+	RenderOrderBehind RenderOrder = iota
+	RenderOrderFront
+)
+
+type PlayerContext interface {
+	Location() Location
+	GetDirection() Direction
+	AddAction(action Action)
+	CreateDamageSource(ds *DamageSource)
+	SetBlocking(active bool)
+}
+
+type Weapon interface {
+	// Update handles weapon logic (cooldowns, etc.) and returns actions if needed
+	Update(ctx PlayerContext)
+
+	// OnAttack is called when the player triggers the weapon
+	OnAttack(ctx PlayerContext)
+
+	// GetRenderOrder returns whether the weapon should be drawn behind or in front of the player
+	GetRenderOrder(playerDirection Direction) RenderOrder
+
+	// Draw renders the weapon relative to the player
+	Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos Location, playerDir Direction, playerFrame int)
+}
