@@ -231,24 +231,23 @@ func (g *Game) executeActions(actions []core.Action) {
 		case core.ActionCreateDamageSource:
 			g.DamageSources = append(g.DamageSources, action.DamageSource)
 		case core.ActionDropBomb:
-			newBomb := objects.NewBomb(action.Location)
+			newBomb := objects.NewBomb(action.Location, action.Level)
 			lvl.Objects = append(lvl.Objects, newBomb)
 		case core.ActionShootArrow:
-			arrowLevel := g.Player.GetUpgrades().Weapons[core.WeaponBow]
-			newArrow := objects.NewArrow(action.Location, action.Direction, arrowLevel)
+			newArrow := objects.NewArrow(action.Location, action.Direction, action.Level)
 			lvl.Objects = append(lvl.Objects, newArrow)
 		case core.ActionThrowBoomerang:
-			boomerangLevel := g.Player.GetUpgrades().Weapons[core.WeaponBoomerang]
-			newBoomerang := objects.NewBoomerang(action.Location, action.Direction, boomerangLevel)
+			newBoomerang := objects.NewBoomerang(action.Location, action.Direction, action.Level)
 			lvl.Objects = append(lvl.Objects, newBoomerang)
 		case core.ActionCreateStar:
-			newStar := objects.NewStar(action.Location, action.Direction, action.Target)
-			lvl.Objects = append(lvl.Objects, newStar)
+			newStars := objects.NewStarSet(action.Location, action.Direction, action.Target, action.Level)
+			for _, s := range newStars {
+				lvl.Objects = append(lvl.Objects, s)
+			}
 		case core.ActionReturnBoomerang:
 			g.Player.ReturnBoomerang()
 		case core.ActionExplosion:
-			bombLevel := g.Player.GetUpgrades().Weapons[core.WeaponBomb]
-			newBombExplosion := objects.NewBombExplosion(action.Location, bombLevel)
+			newBombExplosion := objects.NewBombExplosion(action.Location, action.Level)
 			lvl.Objects = append(lvl.Objects, newBombExplosion)
 		case core.ActionSwitchWeapon:
 			g.Player.SwitchWeapon(action.WeaponType)

@@ -14,6 +14,7 @@ type Bow struct {
 	animations    map[core.Direction]*core.Animation
 	cooldownTimer *core.Timer
 	isAttacking   bool
+	level         int
 }
 
 func NewBow() *Bow {
@@ -31,9 +32,24 @@ func NewBow() *Bow {
 	return &Bow{
 		spriteSheet:   spriteSheet,
 		animations:    animations,
-		cooldownTimer: core.NewTimer(500 * time.Millisecond), // Re-adding cooldown logic here
+		cooldownTimer: core.NewTimer(500 * time.Millisecond),
 		isAttacking:   false,
+		level:         1,
 	}
+}
+
+func (b *Bow) SetLevel(level int) {
+	b.level = level
+	var arrowCooldown time.Duration
+	switch level {
+	case 1:
+		arrowCooldown = 500 * time.Millisecond
+	case 2:
+		arrowCooldown = 400 * time.Millisecond
+	default:
+		arrowCooldown = 300 * time.Millisecond
+	}
+	b.cooldownTimer = core.NewTimer(arrowCooldown)
 }
 
 func (b *Bow) Update(ctx core.PlayerContext, level core.Level) {
@@ -51,6 +67,7 @@ func (b *Bow) Update(ctx core.PlayerContext, level core.Level) {
 				Type:      core.ActionShootArrow,
 				Location:  ctx.Location(),
 				Direction: core.DirectionToVector(ctx.GetDirection()),
+				Level:     b.level,
 			})
 		}
 	}

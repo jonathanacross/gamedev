@@ -13,6 +13,7 @@ type Wand struct {
 	spriteSheet   *core.SpriteSheet
 	animations    map[core.Direction]*core.Animation
 	cooldownTimer *core.Timer
+	level         int
 	isAttacking   bool
 }
 
@@ -32,8 +33,13 @@ func NewWand() *Wand {
 		spriteSheet:   spriteSheet,
 		animations:    animations,
 		cooldownTimer: core.NewTimer(1000 * time.Millisecond),
+		level:         1,
 		isAttacking:   false,
 	}
+}
+
+func (w *Wand) SetLevel(level int) {
+	w.level = level
 }
 
 func (w *Wand) Update(ctx core.PlayerContext, level core.Level) {
@@ -57,6 +63,7 @@ func (w *Wand) Update(ctx core.PlayerContext, level core.Level) {
 				Location:  core.Location(spawnLoc),
 				Direction: core.DirectionToVector(dir),
 				Target:    target,
+				Level:     w.level,
 			})
 		}
 	}

@@ -10,10 +10,11 @@ type Bomb struct {
 	core.BaseSprite
 	spriteSheet *core.SpriteSheet
 	animation   *core.Animation
+	level       int
 	exploded    bool
 }
 
-func NewBomb(location core.Location) *Bomb {
+func NewBomb(location core.Location, level int) *Bomb {
 	animation := core.NewAnimation([]int{
 		0, 1, 0, 1, 2, 3, 2, 3,
 		0, 1, 0, 1, 2, 3, 2, 3,
@@ -35,6 +36,7 @@ func NewBomb(location core.Location) *Bomb {
 		},
 		spriteSheet: spriteSheet,
 		animation:   animation,
+		level:       level,
 		exploded:    false,
 	}
 }
@@ -48,6 +50,7 @@ func (b *Bomb) Update(level core.Level, _ core.Player) core.UpdateResult {
 		return core.UpdateResult{Actions: []core.Action{{
 			Type:     core.ActionExplosion,
 			Location: b.Loc,
+			Level:    b.level,
 		}}}
 	}
 	return core.UpdateResult{}

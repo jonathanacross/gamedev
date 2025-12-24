@@ -130,4 +130,7 @@ type Weapon interface {
 
 	// GetCooldownProgress returns 0.0 to 1.0 indicating how ready the weapon is (1.0 = ready)
 	GetCooldownProgress() float64
+
+	// SetLevel sets the weapon level
+	SetLevel(level int)
 }

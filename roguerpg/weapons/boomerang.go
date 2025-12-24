@@ -8,12 +8,18 @@ import (
 
 type Boomerang struct {
 	hasBoomerang bool
+	level        int
 }
 
 func NewBoomerang() *Boomerang {
 	return &Boomerang{
 		hasBoomerang: true,
+		level:        1,
 	}
+}
+
+func (b *Boomerang) SetLevel(level int) {
+	b.level = level
 }
 
 func (b *Boomerang) Update(ctx core.PlayerContext, level core.Level) {
@@ -33,6 +39,7 @@ func (b *Boomerang) OnAttack(ctx core.PlayerContext) {
 			Type:      core.ActionThrowBoomerang,
 			Location:  core.Location(spawnLoc),
 			Direction: core.DirectionToVector(dir),
+			Level:     b.level,
 		})
 	}
 }

@@ -249,18 +249,25 @@ func (p *Player) AddUpgrade(upgradeType core.UpgradeType) {
 	switch upgradeType {
 	case core.UpgradeTypeHeart:
 		p.futureUpgrades.Health++
+		p.MaxHealth = 3 + p.futureUpgrades.Health
 	case core.UpgradeTypeSword:
 		p.futureUpgrades.Weapons[core.WeaponSword]++
+		p.weapons[core.WeaponSword].SetLevel(p.futureUpgrades.Weapons[core.WeaponSword])
 	case core.UpgradeTypeBomb:
 		p.futureUpgrades.Weapons[core.WeaponBomb]++
+		p.weapons[core.WeaponBomb].SetLevel(p.futureUpgrades.Weapons[core.WeaponBomb])
 	case core.UpgradeTypeBoomerang:
 		p.futureUpgrades.Weapons[core.WeaponBoomerang]++
+		p.weapons[core.WeaponBoomerang].SetLevel(p.futureUpgrades.Weapons[core.WeaponBoomerang])
 	case core.UpgradeTypeShield:
 		p.futureUpgrades.Weapons[core.WeaponShield]++
+		p.weapons[core.WeaponShield].SetLevel(p.futureUpgrades.Weapons[core.WeaponShield])
 	case core.UpgradeTypeBow:
 		p.futureUpgrades.Weapons[core.WeaponBow]++
+		p.weapons[core.WeaponBow].SetLevel(p.futureUpgrades.Weapons[core.WeaponBow])
 	case core.UpgradeTypeWand:
 		p.futureUpgrades.Weapons[core.WeaponWand]++
+		p.weapons[core.WeaponWand].SetLevel(p.futureUpgrades.Weapons[core.WeaponWand])
 	}
 }
 

@@ -121,12 +121,13 @@ type Action struct {
 	Type         ActionType
 	Location     Location
 	Direction    Vector
-	GameState    GameState     // only used for ActionPushState
-	DamageSource *DamageSource // only used for ActionCreateDamageSource
-	WeaponType   WeaponType    // only used for ActionSwitchWeapon
-	Experience   int           // only used for ActionGainXP
-	Target       Character     // only used for ActionCreateStar
-	UpgradeType  UpgradeType   // only used for ActionShowChestItem
+	GameState    GameState     // used for ActionPushState
+	DamageSource *DamageSource // used for ActionCreateDamageSource
+	WeaponType   WeaponType    // used for ActionSwitchWeapon
+	Experience   int           // used for ActionGainXP
+	Target       Character     // used for ActionCreateStar
+	UpgradeType  UpgradeType   // used for ActionShowChestItem
+	Level        int           // used for weapon attacks
 }
 
 type UpdateResult struct {

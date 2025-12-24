@@ -10,12 +10,18 @@ import (
 
 type Bomb struct {
 	cooldownTimer *core.Timer
+	level         int
 }
 
 func NewBomb() *Bomb {
 	return &Bomb{
 		cooldownTimer: core.NewTimer(750 * time.Millisecond),
+		level:         1,
 	}
+}
+
+func (b *Bomb) SetLevel(level int) {
+	b.level = level
 }
 
 func (b *Bomb) Update(ctx core.PlayerContext, level core.Level) {
@@ -32,9 +38,9 @@ func (b *Bomb) OnAttack(ctx core.PlayerContext) {
 		spawnLoc := core.Vector(loc).Plus(core.DirectionToVector(dir).Scale(float64(core.TileSize)))
 
 		ctx.AddAction(core.Action{
-			Type:      core.ActionDropBomb,
-			Location:  core.Location(spawnLoc),
-			Direction: core.DirectionToVector(dir),
+			Type:     core.ActionDropBomb,
+			Location: core.Location(spawnLoc),
+			Level:    b.level,
 		})
 	}
 }

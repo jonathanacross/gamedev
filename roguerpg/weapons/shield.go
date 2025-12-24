@@ -11,6 +11,7 @@ type Shield struct {
 	spriteSheet    *core.SpriteSheet
 	animations     map[core.Direction]*core.Animation
 	attackHitboxes map[core.Direction]map[int]core.DamageSourceConfig
+	level          int
 
 	isBlocking bool // Input received this frame
 	isActive   bool // State for Update/Draw (latched from Input)
@@ -54,9 +55,14 @@ func NewShield() *Shield {
 		spriteSheet:    spriteSheet,
 		animations:     animations,
 		attackHitboxes: shieldAttackBoxes,
+		level:          1,
 		isBlocking:     false,
 		isActive:       false,
 	}
+}
+
+func (s *Shield) SetLevel(level int) {
+	s.level = level
 }
 
 func (s *Shield) Update(ctx core.PlayerContext, level core.Level) {

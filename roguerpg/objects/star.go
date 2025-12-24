@@ -1,6 +1,7 @@
 package objects
 
 import (
+	"math"
 	"roguerpg/assets"
 	"roguerpg/core"
 	"time"
@@ -19,17 +20,27 @@ type Star struct {
 	damageSource core.DamageSourceConfig
 }
 
-func NewStar(location core.Location, direction core.Vector, target core.Character) *Star {
+func NewStar(location core.Location, direction core.Vector, target core.Character, level int) *Star {
 	spriteSheet := core.NewSpriteSheet(16, 16, 4, 3)
 	var animation *core.Animation = nil
 
-	//animation = NewAnimation([]int{0, 1, 2, 3}, 5, true)
 	animation = core.NewAnimation([]int{0, 4, 1, 5, 2, 6, 3, 7}, 5, true)
 
+	// TODO: figure out how to make more powerful as level goes up
 	hitBox := core.Rect{Left: -7, Top: -7, Right: 7, Bottom: 7}
 	damageSource := core.DamageSourceConfig{
 		HitBox: hitBox,
 		Damage: 1,
+	}
+
+	var starDuration time.Duration
+	switch level {
+	case 1:
+		starDuration = 1500 * time.Millisecond
+	case 2:
+		starDuration = 2000 * time.Millisecond
+	default:
+		starDuration = 2500 * time.Millisecond
 	}
 
 	return &Star{
@@ -44,12 +55,35 @@ func NewStar(location core.Location, direction core.Vector, target core.Characte
 		},
 		spriteSheet:  spriteSheet,
 		animation:    animation,
-		target:       target, // Checks nil in original code
+		target:       target,
 		direction:    direction.Normalize(),
 		speed:        1.0,
 		finished:     false,
-		idleTimer:    core.NewTimer(1500 * time.Millisecond),
+		idleTimer:    core.NewTimer(starDuration),
 		damageSource: damageSource,
+	}
+}
+
+func NewStarSet(location core.Location, direction core.Vector, target core.Character, level int) []*Star {
+	dirMinus := direction.Rotate(-math.Pi / 4)
+	dirPlus := direction.Rotate(math.Pi / 4)
+
+	switch level {
+	case 1:
+		return []*Star{
+			NewStar(location, direction, target, level),
+		}
+	case 2:
+		return []*Star{
+			NewStar(location, dirMinus, target, level),
+			NewStar(location, dirPlus, target, level),
+		}
+	default:
+		return []*Star{
+			NewStar(location, dirMinus, target, level),
+			NewStar(location, direction, target, level),
+			NewStar(location, dirPlus, target, level),
+		}
 	}
 }
 

@@ -10,7 +10,9 @@ import (
 type Sword struct {
 	spriteSheet    *core.SpriteSheet
 	animations     map[core.Direction]*core.Animation
-	attackHitboxes map[core.Direction]map[int]core.DamageSourceConfig
+	attackHitboxes map[core.Direction]map[int]core.Rect
+	level          int
+	damage         int
 	isAttacking    bool
 }
 
@@ -26,27 +28,26 @@ func NewSword() *Sword {
 
 	animations := core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false)
 
-	var baseSwordDamage = 1
-	swordAttackBoxes := map[core.Direction]map[int]core.DamageSourceConfig{
+	swordAttackBoxes := map[core.Direction]map[int]core.Rect{
 		core.Down: {
-			1: {HitBox: core.Rect{Left: 6, Top: 15, Right: 24, Bottom: 30}, Damage: baseSwordDamage},
-			2: {HitBox: core.Rect{Left: -10, Top: 25, Right: 10, Bottom: 35}, Damage: baseSwordDamage},
-			3: {HitBox: core.Rect{Left: -24, Top: 10, Right: -6, Bottom: 30}, Damage: baseSwordDamage},
+			1: core.Rect{Left: 6, Top: 15, Right: 24, Bottom: 30},
+			2: core.Rect{Left: -10, Top: 25, Right: 10, Bottom: 35},
+			3: core.Rect{Left: -24, Top: 10, Right: -6, Bottom: 30},
 		},
 		core.Left: {
-			1: {HitBox: core.Rect{Left: -24, Top: -10, Right: -5, Bottom: 5}, Damage: baseSwordDamage},
-			2: {HitBox: core.Rect{Left: -24, Top: 5, Right: -10, Bottom: 20}, Damage: baseSwordDamage},
-			3: {HitBox: core.Rect{Left: -20, Top: 15, Right: -4, Bottom: 27}, Damage: baseSwordDamage},
+			1: core.Rect{Left: -24, Top: -10, Right: -5, Bottom: 5},
+			2: core.Rect{Left: -24, Top: 5, Right: -10, Bottom: 20},
+			3: core.Rect{Left: -20, Top: 15, Right: -4, Bottom: 27},
 		},
 		core.Right: {
-			1: {HitBox: core.Rect{Left: 5, Top: -10, Right: 24, Bottom: 5}, Damage: baseSwordDamage},
-			2: {HitBox: core.Rect{Left: 10, Top: 5, Right: 24, Bottom: 20}, Damage: baseSwordDamage},
-			3: {HitBox: core.Rect{Left: 4, Top: 15, Right: 20, Bottom: 27}, Damage: baseSwordDamage},
+			1: core.Rect{Left: 5, Top: -10, Right: 24, Bottom: 5},
+			2: core.Rect{Left: 10, Top: 5, Right: 24, Bottom: 20},
+			3: core.Rect{Left: 4, Top: 15, Right: 20, Bottom: 27},
 		},
 		core.Up: {
-			1: {HitBox: core.Rect{Left: -24, Top: -15, Right: -6, Bottom: 2}, Damage: baseSwordDamage},
-			2: {HitBox: core.Rect{Left: -10, Top: -24, Right: 10, Bottom: -15}, Damage: baseSwordDamage},
-			3: {HitBox: core.Rect{Left: 6, Top: -15, Right: 24, Bottom: 2}, Damage: baseSwordDamage},
+			1: core.Rect{Left: -24, Top: -15, Right: -6, Bottom: 2},
+			2: core.Rect{Left: -10, Top: -24, Right: 10, Bottom: -15},
+			3: core.Rect{Left: 6, Top: -15, Right: 24, Bottom: 2},
 		},
 	}
 
@@ -54,8 +55,16 @@ func NewSword() *Sword {
 		spriteSheet:    spriteSheet,
 		animations:     animations,
 		attackHitboxes: swordAttackBoxes,
+		level:          1,
+		damage:         1,
 		isAttacking:    false,
 	}
+}
+
+func (s *Sword) SetLevel(level int) {
+	level = core.Clamp(level, 1, 3)
+	s.level = level
+	s.damage = 1 << level
 }
 
 func (s *Sword) Update(ctx core.PlayerContext, level core.Level) {
@@ -70,10 +79,10 @@ func (s *Sword) Update(ctx core.PlayerContext, level core.Level) {
 			frame := anim.CurrentFrameIndex()
 			dir := ctx.GetDirection()
 			if dirBoxes, ok := s.attackHitboxes[dir]; ok {
-				if config, ok := dirBoxes[frame]; ok {
+				if hitBox, ok := dirBoxes[frame]; ok {
 					playerLoc := ctx.Location()
-					worldHitbox := config.HitBox.Offset(playerLoc.X, playerLoc.Y)
-					ds := core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypePhysical, config.Damage)
+					worldHitbox := hitBox.Offset(playerLoc.X, playerLoc.Y)
+					ds := core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypePhysical, s.damage)
 					ctx.CreateDamageSource(ds)
 				}
 			}

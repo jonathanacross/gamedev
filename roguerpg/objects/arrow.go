@@ -45,7 +45,7 @@ func NewArrow(location core.Location, velocity core.Vector, level int) *Arrow {
 	level = core.Clamp(level, 1, 3)
 	arrowMaxDistance := float64((5 + 2*level) * core.TileSize)
 	arrowSpeed := 3.0 + 0.5*float64(level)
-	arrowDamage := 1 << (level - 1)
+	arrowDamage := 2 * level
 	remainingFlightFrames := int(math.Round(arrowMaxDistance / arrowSpeed))
 
 	damageSource := core.DamageSourceConfig{
