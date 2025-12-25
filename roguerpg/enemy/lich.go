@@ -6,6 +6,7 @@ import (
 	"roguerpg/assets"
 	"roguerpg/character"
 	"roguerpg/core"
+	"time"
 )
 
 type LichEnemyState int
@@ -22,19 +23,21 @@ const (
 	LichWalkSpeed  float64 = 0.6
 	LichRunSpeed   float64 = 1.2
 	LichTurnFrames int     = 60 * 3 // every 3 seconds
+
+	LichFireCooldown time.Duration = 3000 * time.Millisecond
 )
 
 type LichEnemy struct {
 	character.BaseCharacter
-	spriteSheet    *core.SpriteSheet
-	animations     map[LichEnemyState]map[core.Direction]*core.Animation
-	attackHitboxes map[core.Direction]map[int]core.DamageSourceConfig
+	spriteSheet *core.SpriteSheet
+	animations  map[LichEnemyState]map[core.Direction]*core.Animation
 
 	// AI
 	state           LichEnemyState
 	velocity        core.Vector
 	direction       core.Direction
 	turnTimeCounter int
+	fireCooldown    *core.Timer
 }
 
 // Shared code with goblin
@@ -75,34 +78,10 @@ func NewLichEnemy(startLoc core.Location) *LichEnemy {
 
 	spriteSheet := core.NewSpriteSheet(64, 64, ssColumns, ssRows)
 	hitbox := core.Rect{
-		Left:   -7,
-		Top:    -7,
-		Right:  7,
-		Bottom: 7,
-	}
-	// Define a simple attack hitbox that's only active on the 2nd and 3rd frames (index 1 and 2 in the short animation array)
-	attackHitboxes := make(map[core.Direction]map[int]core.DamageSourceConfig)
-	baseDmg := 1
-
-	attackHitboxes[core.Up] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: 3, Top: -24, Right: 13, Bottom: 4}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
-	}
-	attackHitboxes[core.Down] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: -13, Top: -4, Right: -3, Bottom: 24}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
-	}
-	attackHitboxes[core.Left] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: -25, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-	}
-	attackHitboxes[core.Right] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: -6, Top: 0, Right: 25, Bottom: 10}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
+		Left:   -8,
+		Top:    -8,
+		Right:  8,
+		Bottom: 10,
 	}
 
 	return &LichEnemy{
@@ -127,11 +106,11 @@ func NewLichEnemy(startLoc core.Location) *LichEnemy {
 		},
 		spriteSheet:     spriteSheet,
 		animations:      animations,
-		attackHitboxes:  attackHitboxes,
 		state:           LichWalking,
 		direction:       core.Left,
 		velocity:        getRandomVelocity(),
 		turnTimeCounter: rand.Intn(LichTurnFrames),
+		fireCooldown:    core.NewTimer(LichFireCooldown),
 	}
 }
 
@@ -174,12 +153,21 @@ func (c *LichEnemy) TakeDamage(damage int) {
 	}
 }
 
+// TODO: refactor to a generic function that's shared with goblin
 func (c *LichEnemy) shouldAttackPlayer(player core.Player) bool {
 	// Player should be near the lich, and aligned either horizontally or vertically
 	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
 	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
 	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
 	return dist.Length() <= float64(core.TileSize)*5 && (alignedHorizontally || alignedVertically)
+}
+
+func (c *LichEnemy) shouldShootPlayer(player core.Player) bool {
+	// Player should be near the lich, and aligned either horizontally or vertically
+	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
+	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
+	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
+	return dist.Length() <= float64(core.TileSize)*7 && (alignedHorizontally || alignedVertically)
 }
 
 func (c *LichEnemy) getAttackVector(player core.Player) core.Vector {
@@ -239,23 +227,6 @@ func (c *LichEnemy) isNearPlayer(playerLoc core.Location) bool {
 func (c *LichEnemy) getActiveDamageSources(player core.Player) []*core.DamageSource {
 	sources := []*core.DamageSource{}
 
-	if c.state == LichAttacking {
-		anim := c.animations[LichAttacking][c.direction]
-		if anim == nil {
-			return nil
-		}
-
-		// Check if we have an attack config for the current direction and animation frame index
-		animIndex := anim.CurrentFrameIndex()
-		if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
-			if config, ok := dirConfigs[animIndex]; ok {
-				worldHitbox := config.HitBox.Offset(c.Loc.X, c.Loc.Y)
-				sources = append(sources, core.NewDamageSource(core.TagEnemy, worldHitbox, core.DamageTypePhysical, config.Damage))
-			}
-		}
-	}
-
-	// Add lich pushbox when near player as well.
 	if c.isNearPlayer(player.Location()) && (c.state == LichAttacking || c.state == LichWalking) {
 		sources = append(sources, core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1))
 	}
@@ -277,6 +248,24 @@ func (c *LichEnemy) updateAttack(level core.Level, player core.Player) {
 	v.X = c.HandleTileCollisions(level, core.AxisX, c.velocity.X)
 	v.Y = c.HandleTileCollisions(level, core.AxisY, c.velocity.Y)
 	c.direction = core.VectorToDirection(v)
+}
+
+func (c *LichEnemy) updateFire(player core.Player) []core.Action {
+	c.fireCooldown.Update()
+
+	if !c.fireCooldown.IsReady() || !c.shouldShootPlayer(player) {
+		return []core.Action{}
+	}
+
+	c.fireCooldown.Reset()
+	fireDirection := c.getAttackVector(player)
+	return []core.Action{
+		{
+			Type:      core.ActionCreateFire,
+			Location:  c.Location(),
+			Direction: fireDirection.Normalize(),
+		},
+	}
 }
 
 func (c *LichEnemy) Update(level core.Level, player core.Player) core.UpdateResult {
@@ -332,6 +321,9 @@ func (c *LichEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 	}
 
 	// Core AI Logic
+
+	actions = append(actions, c.updateFire(player)...)
+
 	switch c.state {
 	case LichWalking:
 		c.updateWalk(level, player)

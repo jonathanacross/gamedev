@@ -249,6 +249,9 @@ func (g *Game) executeActions(actions []core.Action) {
 		case core.ActionExplosion:
 			newBombExplosion := objects.NewBombExplosion(action.Location, action.Level)
 			lvl.Objects = append(lvl.Objects, newBombExplosion)
+		case core.ActionCreateFire:
+			newFire := objects.NewFire(action.Location, action.Direction)
+			lvl.Objects = append(lvl.Objects, newFire)
 		case core.ActionSwitchWeapon:
 			g.Player.SwitchWeapon(action.WeaponType)
 		case core.ActionGoUpLevel:
