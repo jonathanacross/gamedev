@@ -54,7 +54,7 @@ func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
 		pos := lvl.FindRandomFloorLocation()
 		enemyType := rand.IntN(6)
 		var newEnemy core.Character
-		// newEnemy = enemy.NewLichEnemy(pos)
+		// newEnemy = enemy.NewBlobEnemy(pos)
 
 		switch enemyType {
 		case 0:

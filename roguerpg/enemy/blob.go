@@ -10,12 +10,11 @@ import (
 type BlobEnemyState int
 
 const (
-	BlobIdle BlobEnemyState = iota
-	BlobMoving
+	BlobMoving BlobEnemyState = iota
 	BlobAttacking
 	BlobHurt
-	BlobDying
 	BlobStunned
+	BlobDying
 
 	// Movement constants
 	BlobMoveSpeed float64 = 0.5
@@ -30,6 +29,7 @@ type BlobEnemy struct {
 	// AI
 	state BlobEnemyState
 
+	idling             bool
 	moveStartLocation  core.Location
 	moveTargetLocation core.Location
 	currentFrame       int // Frame counter for the current move or wait action
@@ -39,22 +39,16 @@ type BlobEnemy struct {
 func NewBlobEnemy(startLoc core.Location) *BlobEnemy {
 
 	animations := map[BlobEnemyState]*core.Animation{
-		BlobIdle:      core.NewAnimation([]int{0, 1, 2}, 20, true),
 		BlobMoving:    core.NewAnimation([]int{0, 1, 2}, 20, true),
-		BlobAttacking: core.NewAnimation([]int{15, 16, 17, 18}, 15, false),
+		BlobAttacking: core.NewAnimation([]int{15, 16, 17, 18}, 10, false),
 		BlobHurt:      core.NewAnimation([]int{5, 6, 5, 6}, 10, false),
 		BlobDying:     core.NewAnimation([]int{5, 6, 10, 11, 12, 13, 14}, 10, false),
 		BlobStunned:   core.NewAnimation([]int{5, 6}, 10, true),
 	}
-	animations[BlobIdle].SetRandomFrame()
+	animations[BlobMoving].SetRandomFrame()
 
-	spriteSheet := core.NewSpriteSheet(16, 16, 5, 3)
-	hitbox := core.Rect{
-		Left:   -6,
-		Top:    -6,
-		Right:  6,
-		Bottom: 6,
-	}
+	spriteSheet := core.NewSpriteSheet(32, 32, 5, 3)
+	hitbox := core.Rect{Left: -7, Top: -8, Right: 8, Bottom: 5}
 
 	return &BlobEnemy{
 		BaseCharacter: character.BaseCharacter{
@@ -62,8 +56,8 @@ func NewBlobEnemy(startLoc core.Location) *BlobEnemy {
 				BaseSprite: core.BaseSprite{
 					Loc: startLoc,
 					DrawOffset: core.Location{
-						X: 8,
-						Y: 8,
+						X: 16,
+						Y: 16,
 					},
 					SrcRect: spriteSheet.Rect(0),
 					Image:   assets.BlobSpritesImage,
@@ -78,7 +72,8 @@ func NewBlobEnemy(startLoc core.Location) *BlobEnemy {
 		},
 		spriteSheet: spriteSheet,
 		animations:  animations,
-		state:       BlobIdle,
+		state:       BlobMoving,
+		idling:      true,
 		waitFrames:  rand.Intn(MaxWaitFrames) + 1,
 	}
 }
@@ -162,6 +157,37 @@ func (c *BlobEnemy) isNearPlayer(playerLoc core.Location) bool {
 	return dist.Length() <= 3*core.TileSize
 }
 
+func (c *BlobEnemy) updateMovement(level core.Level) {
+	if c.idling {
+		c.waitFrames--
+		if c.waitFrames <= 0 {
+			// Wait time is over. Look for a new target tile.
+			if c.findNewTargetTile(level) {
+				c.idling = false
+			} else {
+				// Enemy is cornered or blocked. Wait again.
+				c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+			}
+		}
+	} else {
+		target := core.Vector(c.moveTargetLocation).Minus(core.Vector(c.Location()))
+
+		distance := target.Length()
+		if distance <= BlobMoveSpeed {
+			// We are close enough to snap to the target.
+			c.SetLocation(c.moveTargetLocation)
+
+			// Wait for a short time.
+			c.idling = true
+			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+		}
+
+		velocity := target.Normalize().Scale(BlobMoveSpeed)
+		c.HandleTileCollisions(level, core.AxisX, velocity.X)
+		c.HandleTileCollisions(level, core.AxisY, velocity.Y)
+	}
+}
+
 func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResult {
 	c.animations[c.state].Update()
 	c.SrcRect = c.spriteSheet.Rect(c.animations[c.state].Frame())
@@ -170,7 +196,8 @@ func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 	if c.UpdateKnockback(level) {
 		// Ensure the BlobHurt animation can finish, even during knockback
 		if c.state == BlobHurt && c.animations[BlobHurt].IsFinished() {
-			c.state = BlobIdle
+			c.state = BlobMoving
+			c.animations[BlobMoving].Reset()
 		}
 
 		if c.state != BlobDying {
@@ -182,48 +209,16 @@ func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 		c.state = BlobStunned
 		return core.UpdateResult{Actions: actions}
 	} else if c.state == BlobStunned {
-		c.state = BlobIdle
+		c.state = BlobMoving
 	}
 
-	switch c.state {
-	case BlobIdle:
-		if c.isNearPlayer(player.Location()) {
-			c.state = BlobAttacking
-			c.animations[BlobAttacking].Reset()
-		} else {
-			c.waitFrames--
-			if c.waitFrames <= 0 {
-				// Wait time is over. Look for a new target tile.
-				if c.findNewTargetTile(level) {
-					c.state = BlobMoving
-				} else {
-					// Enemy is cornered or blocked. Wait again.
-					c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-				}
-			}
-		}
+	c.updateMovement(level)
 
+	switch c.state {
 	case BlobMoving:
 		if c.isNearPlayer(player.Location()) {
 			c.state = BlobAttacking
 			c.animations[BlobAttacking].Reset()
-		} else {
-			target := core.Vector(c.moveTargetLocation).Minus(core.Vector(c.Location()))
-
-			distance := target.Length()
-			if distance <= BlobMoveSpeed {
-				// We are close enough to snap to the target.
-				c.SetLocation(c.moveTargetLocation)
-
-				// Wait for a short time.
-				c.state = BlobIdle
-				c.waitFrames = rand.Intn(MaxWaitFrames) + 1
-				return core.UpdateResult{Actions: actions}
-			}
-
-			velocity := target.Normalize().Scale(BlobMoveSpeed)
-			c.HandleTileCollisions(level, core.AxisX, velocity.X)
-			c.HandleTileCollisions(level, core.AxisY, velocity.Y)
 		}
 
 	case BlobAttacking:
@@ -237,13 +232,12 @@ func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 		}
 
 		if c.animations[BlobAttacking].IsFinished() {
-			c.state = BlobIdle
-			c.waitFrames = rand.Intn(MaxWaitFrames) + 1
+			c.state = BlobMoving
 		}
 
 	case BlobHurt:
 		if c.animations[BlobHurt].IsFinished() {
-			c.state = BlobIdle
+			c.state = BlobMoving
 		}
 
 	case BlobDying:
