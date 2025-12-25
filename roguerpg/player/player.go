@@ -20,7 +20,8 @@ const (
 )
 
 const (
-	PlayerSpeed = 2.0
+	PlayerSpeed      = 2.0
+	PlayerBaseHealth = 6
 )
 
 type PlayerAnimationKey struct {
@@ -134,8 +135,8 @@ func NewPlayer() *Player {
 				},
 				PushBoxOffset: pushBox,
 			},
-			Health:          8,
-			MaxHealth:       8,
+			Health:          PlayerBaseHealth,
+			MaxHealth:       PlayerBaseHealth,
 			Experience:      0,
 			KnockbackFrames: 0,
 		},
@@ -249,7 +250,8 @@ func (p *Player) AddUpgrade(upgradeType core.UpgradeType) {
 	switch upgradeType {
 	case core.UpgradeTypeHeart:
 		p.futureUpgrades.Health++
-		p.MaxHealth = 3 + p.futureUpgrades.Health
+		p.MaxHealth += 2
+		p.Health += 2
 	case core.UpgradeTypeSword:
 		p.futureUpgrades.Weapons[core.WeaponSword]++
 		p.weapons[core.WeaponSword].SetLevel(p.futureUpgrades.Weapons[core.WeaponSword])
