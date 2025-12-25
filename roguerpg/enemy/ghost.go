@@ -14,22 +14,20 @@ const (
 	GhostIdle GhostEnemyState = iota
 	GhostHurt
 	GhostDying
-	GhostAttacking
 	GhostMoving
 	GhostStunned
 
 	// Movement constants
 	GhostMaxFloatSpeed float64 = 0.8
-	GhostAttackSpeed   float64 = 0.8
+	GhostAttractSpeed  float64 = 0.7
 	GhostXFrequency    float64 = 0.02 // radians per frame
 	GhostYFrequency    float64 = 0.03 // radians per frame
 )
 
 type GhostEnemy struct {
 	character.BaseCharacter
-	spriteSheet    *core.SpriteSheet
-	animations     map[GhostEnemyState]map[core.Direction]*core.Animation
-	attackHitboxes map[core.Direction]map[int]core.DamageSourceConfig
+	spriteSheet *core.SpriteSheet
+	animations  map[GhostEnemyState]map[core.Direction]*core.Animation
 
 	// AI
 	state         GhostEnemyState
@@ -50,12 +48,11 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 	framesPerState := ssColumns * len(directionOffsets)
 
 	animations := map[GhostEnemyState]map[core.Direction]*core.Animation{
-		GhostIdle:      core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*framesPerState, directionOffsets, 10, true),
-		GhostMoving:    core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
-		GhostAttacking: core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 2*framesPerState, directionOffsets, 8, true),
-		GhostHurt:      core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, false),
-		GhostDying:     core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 8, false),
-		GhostStunned:   core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, true),
+		GhostIdle:    core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0*framesPerState, directionOffsets, 10, true),
+		GhostMoving:  core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5}, 1*framesPerState, directionOffsets, 10, true),
+		GhostHurt:    core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, false),
+		GhostDying:   core.NewDirectionAnimationMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 4*framesPerState, directionOffsets, 8, false),
+		GhostStunned: core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 3*framesPerState, directionOffsets, 10, true),
 	}
 
 	animations[GhostMoving][core.Up].SetRandomFrame()
@@ -69,37 +66,6 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 		Top:    -21,
 		Right:  7,
 		Bottom: 0,
-	}
-	attackHitboxes := make(map[core.Direction]map[int]core.DamageSourceConfig)
-	baseDmg := 1
-
-	attackHitboxes[core.Up] = map[int]core.DamageSourceConfig{
-		3: {HitBox: core.Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -10, Top: -30, Right: 10, Bottom: -6}, Damage: baseDmg},
-		5: {HitBox: core.Rect{Left: -11, Top: -11, Right: 10, Bottom: 13}, Damage: baseDmg},
-		6: {HitBox: core.Rect{Left: -11, Top: -9, Right: 10, Bottom: 13}, Damage: baseDmg},
-		7: {HitBox: core.Rect{Left: -11, Top: -11, Right: 10, Bottom: 11}, Damage: baseDmg},
-	}
-	attackHitboxes[core.Down] = map[int]core.DamageSourceConfig{
-		3: {HitBox: core.Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -10, Top: -30, Right: 10, Bottom: -6}, Damage: baseDmg},
-		5: {HitBox: core.Rect{Left: -11, Top: 5, Right: 10, Bottom: 20}, Damage: baseDmg},
-		6: {HitBox: core.Rect{Left: -11, Top: -2, Right: 10, Bottom: 20}, Damage: baseDmg},
-		7: {HitBox: core.Rect{Left: -11, Top: -4, Right: 10, Bottom: 18}, Damage: baseDmg},
-	}
-	attackHitboxes[core.Left] = map[int]core.DamageSourceConfig{
-		3: {HitBox: core.Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -4, Top: -30, Right: 16, Bottom: -5}, Damage: baseDmg},
-		5: {HitBox: core.Rect{Left: -24, Top: -6, Right: -3, Bottom: 16}, Damage: baseDmg},
-		6: {HitBox: core.Rect{Left: -24, Top: -6, Right: -3, Bottom: 16}, Damage: baseDmg},
-		7: {HitBox: core.Rect{Left: -24, Top: -8, Right: -3, Bottom: 14}, Damage: baseDmg},
-	}
-	attackHitboxes[core.Right] = map[int]core.DamageSourceConfig{
-		3: {HitBox: core.Rect{Left: -9, Top: -26, Right: 9, Bottom: -3}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -16, Top: -30, Right: 4, Bottom: -5}, Damage: baseDmg},
-		5: {HitBox: core.Rect{Left: 3, Top: -6, Right: 24, Bottom: 16}, Damage: baseDmg},
-		6: {HitBox: core.Rect{Left: 3, Top: -6, Right: 24, Bottom: 16}, Damage: baseDmg},
-		7: {HitBox: core.Rect{Left: 3, Top: -8, Right: 24, Bottom: 14}, Damage: baseDmg},
 	}
 
 	return &GhostEnemy{
@@ -122,13 +88,12 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 			Dead:            false,
 			KnockbackFrames: 0,
 		},
-		spriteSheet:    spriteSheet,
-		animations:     animations,
-		attackHitboxes: attackHitboxes,
-		state:          GhostMoving,
-		direction:      core.Left,
-		velocity:       core.Vector{X: 0, Y: 0},
-		movementTimer:  rand.Float64() * 100,
+		spriteSheet:   spriteSheet,
+		animations:    animations,
+		state:         GhostMoving,
+		direction:     core.Left,
+		velocity:      core.Vector{X: 0, Y: 0},
+		movementTimer: rand.Float64() * 100,
 	}
 }
 
@@ -171,42 +136,8 @@ func (c *GhostEnemy) TakeDamage(damage int) {
 	}
 }
 
-func (c *GhostEnemy) shouldAttackPlayer(player core.Player) bool {
-	// Player should be near the ghost, and aligned either horizontally or vertically
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	return dist.Length() <= float64(core.TileSize)*5 && (alignedHorizontally || alignedVertically)
-}
-
-func (c *GhostEnemy) getAttackVector(player core.Player) core.Vector {
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	if alignedHorizontally {
-		if dist.X < 0 {
-			return core.Vector{X: -1, Y: 0}
-		} else {
-			return core.Vector{X: 1, Y: 0}
-		}
-	} else if alignedVertically {
-		if dist.Y < 0 {
-			return core.Vector{X: 0, Y: -1}
-		} else {
-			return core.Vector{X: 0, Y: 1}
-		}
-	}
-	return core.Vector{X: 0, Y: 0}
-}
-
 // updateMovement handles the movement logic and target finding.
 func (c *GhostEnemy) updateWalk(level core.Level, player core.Player) {
-	if c.shouldAttackPlayer(player) {
-		c.state = GhostAttacking
-		c.animations[GhostAttacking][c.direction].Reset()
-		c.velocity = c.getAttackVector(player).Scale(GhostAttackSpeed)
-		return
-	}
 
 	c.movementTimer++
 
@@ -215,6 +146,17 @@ func (c *GhostEnemy) updateWalk(level core.Level, player core.Player) {
 	// velocity.y = maxGhostVelocity * sin(yFrequency * t)
 	vx := GhostMaxFloatSpeed * math.Cos(GhostXFrequency*c.movementTimer)
 	vy := GhostMaxFloatSpeed * math.Sin(GhostYFrequency*c.movementTimer)
+	playerAttraction := 0.0
+	if c.isNearPlayer(player.Location(), 7) {
+		playerAttraction = 0.5
+	}
+	if c.isNearPlayer(player.Location(), 5) {
+		playerAttraction = 1.0
+	}
+	dirToPlayer := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
+	dirToPlayer = dirToPlayer.Normalize().Scale(GhostAttractSpeed * playerAttraction)
+	vx += dirToPlayer.X
+	vy += dirToPlayer.Y
 	c.velocity = core.Vector{X: vx, Y: vy}
 
 	// Apply movement and handle collisions
@@ -230,49 +172,22 @@ func (c *GhostEnemy) updateWalk(level core.Level, player core.Player) {
 	}
 }
 
-func (c *GhostEnemy) isNearPlayer(playerLoc core.Location) bool {
+// TODO: move to general utility function?
+func (c *GhostEnemy) isNearPlayer(playerLoc core.Location, distanceTiles float64) bool {
 	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= core.TileSize
+	return dist.Length() <= distanceTiles*core.TileSize
 }
 
 func (c *GhostEnemy) getActiveDamageSources(player core.Player) []*core.DamageSource {
 	sources := []*core.DamageSource{}
 
-	if c.state == GhostAttacking {
-		anim := c.animations[GhostAttacking][c.direction]
-		if anim == nil {
-			return nil
-		}
-
-		// Check if we have an attack config for the current direction and animation frame index
-		// Note: the ghost does not hurt the player when it is near them except during attack
-		animIndex := anim.CurrentFrameIndex()
-
-		if dirConfigs, ok := c.attackHitboxes[c.direction]; ok {
-			if config, ok := dirConfigs[animIndex]; ok {
-				worldHitbox := config.HitBox.Offset(c.Loc.X, c.Loc.Y)
-				sources = append(sources, core.NewDamageSource(core.TagEnemy, worldHitbox, core.DamageTypePhysical, config.Damage))
-			}
-		}
+	// Add source for hitting the ghost
+	if c.isNearPlayer(player.Location(), 1) {
+		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
+		return []*core.DamageSource{ds}
 	}
 
 	return sources
-}
-
-func (c *GhostEnemy) updateAttack(level core.Level, player core.Player) {
-	if (c.velocity.X < 0 && c.Loc.X <= player.Location().X-core.TileSize) ||
-		(c.velocity.X > 0 && c.Loc.X >= player.Location().X+core.TileSize) ||
-		(c.velocity.Y < 0 && c.Loc.Y <= player.Location().Y-core.TileSize) ||
-		(c.velocity.Y > 0 && c.Loc.Y >= player.Location().Y+core.TileSize) {
-		// Passed the player
-		c.state = GhostMoving
-		return
-	}
-
-	var v core.Vector
-	v.X = c.HandleTileCollisions(level, core.AxisX, c.velocity.X)
-	v.Y = c.HandleTileCollisions(level, core.AxisY, c.velocity.Y)
-	c.direction = core.VectorToDirection(v)
 }
 
 func (c *GhostEnemy) Update(level core.Level, player core.Player) core.UpdateResult {
@@ -328,11 +243,8 @@ func (c *GhostEnemy) Update(level core.Level, player core.Player) core.UpdateRes
 	}
 
 	// Core AI Logic
-	switch c.state {
-	case GhostMoving:
+	if c.state == GhostMoving {
 		c.updateWalk(level, player)
-	case GhostAttacking:
-		c.updateAttack(level, player)
 	}
 
 	for _, ds := range c.getActiveDamageSources(player) {
