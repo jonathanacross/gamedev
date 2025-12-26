@@ -18,8 +18,7 @@ const (
 	SpikeTurtleDying
 
 	// Movement constants
-	SpikeTurtleMoveSpeed         float64 = 0.8
-	SpikeTurtleVelocityFrequency float64 = 0.05
+	SpikeTurtleMoveSpeed float64 = 0.5
 
 	SpikeTurtleFlipDuration time.Duration = 4000 * time.Millisecond
 	// Delay after a hit before registering another hit
@@ -36,25 +35,24 @@ type SpikeTurtleEnemy struct {
 	direction          core.Direction
 	moveStartLocation  core.Location
 	moveTargetLocation core.Location
-	moveTimeCounter    float64
 	flipTimer          *core.Timer
 	hitTimer           *core.Timer
 }
 
 func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
 
-	ssColumns := 4
+	ssColumns := 5
 	ssRows := 4
 	animations := map[SpikeTurtleEnemyState]*core.Animation{
 		SpikeTurtleMoving:  core.NewAnimation([]int{0, 1}, 10, true),
-		SpikeTurtleFlipped: core.NewAnimation([]int{4, 5}, 10, true),
-		SpikeTurtleHurt:    core.NewAnimation([]int{8, 10, 9, 11}, 10, false),
-		SpikeTurtleDying:   core.NewAnimation([]int{12, 13, 14, 15}, 10, false),
+		SpikeTurtleFlipped: core.NewAnimation([]int{5, 6}, 10, true),
+		SpikeTurtleHurt:    core.NewAnimation([]int{10, 11, 12, 13}, 10, false),
+		SpikeTurtleDying:   core.NewAnimation([]int{15, 16, 17, 18, 19}, 10, false),
 	}
 
 	animations[SpikeTurtleMoving].SetRandomFrame()
 
-	spriteSheet := core.NewSpriteSheet(16, 32, ssColumns, ssRows)
+	spriteSheet := core.NewSpriteSheet(32, 32, ssColumns, ssRows)
 	hitbox := core.Rect{
 		Left:   -8,
 		Top:    -8,
@@ -68,8 +66,8 @@ func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
 				BaseSprite: core.BaseSprite{
 					Loc: startLoc,
 					DrawOffset: core.Location{
-						X: 8,
-						Y: 11,
+						X: 16,
+						Y: 16,
 					},
 					SrcRect: spriteSheet.Rect(0),
 					Image:   assets.SpikeTurleSpritesImage,
@@ -147,7 +145,7 @@ func (c *SpikeTurtleEnemy) TakeDamage(damage int) {
 }
 
 // findNewTargetTile attempts to find a random, adjacent, non-solid tile.
-func (c *SpikeTurtleEnemy) findNewTargetTile(level core.Level) bool {
+func (c *SpikeTurtleEnemy) findNewTargetTile(playerLoc core.Location, level core.Level) bool {
 	// Get current tile coordinates
 	tx, ty := level.WorldToTile(c.Location())
 
@@ -158,6 +156,20 @@ func (c *SpikeTurtleEnemy) findNewTargetTile(level core.Level) bool {
 		for dy := -radius; dy <= radius; dy++ {
 			nearbySquares = append(nearbySquares, core.Point{X: dx, Y: dy})
 		}
+	}
+
+	vectorToPlayer := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
+	if vectorToPlayer.Length() <= 5*core.TileSize {
+		// If the player is within 5 tiles, move towards them
+		c.moveStartLocation = c.Location()
+		c.moveTargetLocation = playerLoc
+
+		if c.moveTargetLocation.X < c.Location().X {
+			c.direction = core.Left
+		} else if c.moveTargetLocation.X > c.Location().X {
+			c.direction = core.Right
+		}
+		return true
 	}
 
 	// Shuffle nearbySquares to pick a random one first
@@ -193,24 +205,16 @@ func (c *SpikeTurtleEnemy) isNearPlayer(playerLoc core.Location) bool {
 }
 
 // updateMovement handles the movement logic and target finding.
-func (c *SpikeTurtleEnemy) updateMovement(level core.Level) {
-	c.moveTimeCounter += SpikeTurtleVelocityFrequency
-	if c.moveTimeCounter > 2*math.Pi {
-		c.moveTimeCounter -= 2 * math.Pi
-	}
-
-	// Calculate Speed
-	speedMultiplier := (math.Sin(c.moveTimeCounter) + 1.0) * 0.5
-	currentSpeed := speedMultiplier * SpikeTurtleMoveSpeed
+func (c *SpikeTurtleEnemy) updateMovement(playerLoc core.Location, level core.Level) {
+	currentSpeed := SpikeTurtleMoveSpeed
 
 	// Calculate Movement Vector
 	targetVector := core.Vector(c.moveTargetLocation).Minus(core.Vector(c.Location()))
 	distance := targetVector.Length()
 
 	if distance <= currentSpeed {
-		// Arrival at Target: find a new place to go
-		c.findNewTargetTile(level)
-		c.moveTimeCounter = 0.0
+		// Arrival at target: find a new place to go
+		c.findNewTargetTile(playerLoc, level)
 
 	} else {
 		// Continue Movement
@@ -225,7 +229,7 @@ func (c *SpikeTurtleEnemy) updateMovement(level core.Level) {
 		// If we hit a wall (velocity blocked), pick a new target immediately to avoid getting stuck
 		if (math.Abs(originalVelocity.X) > 0.001 && velocity.X == 0) ||
 			(math.Abs(originalVelocity.Y) > 0.001 && velocity.Y == 0) {
-			c.findNewTargetTile(level)
+			c.findNewTargetTile(playerLoc, level)
 		}
 
 		// Update Direction for Animation
@@ -293,7 +297,7 @@ func (c *SpikeTurtleEnemy) Update(level core.Level, player core.Player) core.Upd
 	}
 
 	// Core AI Logic
-	c.updateMovement(level)
+	c.updateMovement(player.Location(), level)
 
 	if c.isNearPlayer(player.Location()) && c.state == SpikeTurtleMoving {
 		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
