@@ -79,6 +79,7 @@ const (
 	ActionReturnBoomerang
 	ActionExplosion
 	ActionCreateFire
+	ActionThrowBoulder
 	ActionSwitchWeapon
 	ActionGoUpLevel
 	ActionGoDownLevel

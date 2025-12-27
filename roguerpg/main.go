@@ -52,26 +52,28 @@ func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
 	numEnemies := 15 + difficulty
 	for range numEnemies {
 		pos := lvl.FindRandomFloorLocation()
-		enemyType := rand.IntN(6)
+		// enemyType := rand.IntN(7)
 		var newEnemy core.Character
-		// newEnemy = enemy.NewBlobEnemy(pos)
+		newEnemy = enemy.NewGolemEnemy(pos)
 
-		switch enemyType {
-		case 0:
-			newEnemy = enemy.NewBatEnemy(pos)
-		case 1:
-			newEnemy = enemy.NewBlobEnemy(pos)
-		case 2:
-			newEnemy = enemy.NewGoblinEnemy(pos)
-		case 3:
-			newEnemy = enemy.NewGhostEnemy(pos)
-		case 4:
-			newEnemy = enemy.NewSpikeTurtleEnemy(pos)
-		case 5:
-			newEnemy = enemy.NewLichEnemy(pos)
-		default:
-			newEnemy = enemy.NewBatEnemy(pos)
-		}
+		// switch enemyType {
+		// case 0:
+		// 	newEnemy = enemy.NewBatEnemy(pos)
+		// case 1:
+		// 	newEnemy = enemy.NewBlobEnemy(pos)
+		// case 2:
+		// 	newEnemy = enemy.NewGoblinEnemy(pos)
+		// case 3:
+		// 	newEnemy = enemy.NewGhostEnemy(pos)
+		// case 4:
+		// 	newEnemy = enemy.NewSpikeTurtleEnemy(pos)
+		// case 5:
+		// 	newEnemy = enemy.NewLichEnemy(pos)
+		// case 6:
+		// 	newEnemy = enemy.NewGolemEnemy(pos)
+		// default:
+		// 	newEnemy = enemy.NewBatEnemy(pos)
+		// }
 		lvl.Enemies = append(lvl.Enemies, newEnemy)
 	}
 }
@@ -254,6 +256,9 @@ func (g *Game) executeActions(actions []core.Action) {
 		case core.ActionCreateFire:
 			newFire := objects.NewFire(action.Location, action.Direction)
 			lvl.Objects = append(lvl.Objects, newFire)
+		case core.ActionThrowBoulder:
+			newBoulder := objects.NewBoulder(action.Location, action.Direction)
+			lvl.Objects = append(lvl.Objects, newBoulder)
 		case core.ActionSwitchWeapon:
 			g.Player.SwitchWeapon(action.WeaponType)
 		case core.ActionGoUpLevel:
