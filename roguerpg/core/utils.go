@@ -1,6 +1,11 @@
 package core
 
-import "math"
+import (
+	"math"
+	"math/rand"
+	"sort"
+	"time"
+)
 
 type Point struct {
 	X int
@@ -57,6 +62,63 @@ func Clamp(n int, min int, max int) int {
 		return max
 	}
 	return n
+}
+
+// DDEvent represents a possible outcome and its associated weight/probability.
+type DDEvent struct {
+	Value  int
+	Weight float64
+}
+
+// DiscreteDistribution holds the cumulative probabilities for fast sampling.
+type DiscreteDistribution struct {
+	values      []int
+	prefixSums  []float64
+	totalWeight float64
+	rng         *rand.Rand
+}
+
+// NewDiscreteDistribution initializes the distribution.
+// It pre-calculates cumulative weights to allow O(log n) sampling.
+func NewDiscreteDistribution(events []DDEvent) *DiscreteDistribution {
+	if len(events) == 0 {
+		return nil
+	}
+
+	values := make([]int, len(events))
+	prefixSums := make([]float64, len(events))
+	sum := 0.0
+
+	for i, e := range events {
+		sum += e.Weight
+		values[i] = e.Value
+		prefixSums[i] = sum
+	}
+
+	return &DiscreteDistribution{
+		values:      values,
+		prefixSums:  prefixSums,
+		totalWeight: sum,
+		// Using a local RNG source is safer for games than the global rand
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+}
+
+// Sample returns an int value based on the weighted distribution.
+func (dd *DiscreteDistribution) Sample() int {
+	if dd == nil || len(dd.values) == 0 {
+		return 0
+	}
+
+	// Pick a random point in the range [0, totalWeight)
+	r := dd.rng.Float64() * dd.totalWeight
+
+	// Binary search to find the first prefix sum greater than our random number
+	idx := sort.Search(len(dd.prefixSums), func(i int) bool {
+		return dd.prefixSums[i] > r
+	})
+
+	return dd.values[idx]
 }
 
 // Helper for calculating knockback force (originally in types.go)

@@ -49,32 +49,56 @@ func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 
 // AddEnemiesToLevel populates the level with enemies.
 func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
-	numEnemies := 15 + difficulty
+	// level difficuly to weight, for each enemy
+	enemyLevelWeights := [][]float64{
+		{50, 40, 30, 20, 10}, // blob
+		{50, 50, 40, 30, 20}, // bat
+		{10, 50, 50, 40, 30}, // goblin
+		{5, 10, 50, 50, 40},  // spike turtle
+		{2, 5, 10, 50, 50},   // ghost
+		{0, 2, 5, 10, 50},    // lich
+	}
+
+	numEnemies := 20
+	eventDist := []core.DDEvent{}
+	for enemyId, weights := range enemyLevelWeights {
+		event := core.DDEvent{Value: enemyId, Weight: weights[difficulty]}
+		eventDist = append(eventDist, event)
+	}
+	dist := core.NewDiscreteDistribution(eventDist)
+
 	for range numEnemies {
 		pos := lvl.FindRandomFloorLocation()
+		enemyId := dist.Sample()
 		// enemyType := rand.IntN(7)
 		var newEnemy core.Character
 		newEnemy = enemy.NewGolemEnemy(pos)
 
-		// switch enemyType {
-		// case 0:
-		// 	newEnemy = enemy.NewBatEnemy(pos)
-		// case 1:
-		// 	newEnemy = enemy.NewBlobEnemy(pos)
-		// case 2:
-		// 	newEnemy = enemy.NewGoblinEnemy(pos)
-		// case 3:
-		// 	newEnemy = enemy.NewGhostEnemy(pos)
-		// case 4:
-		// 	newEnemy = enemy.NewSpikeTurtleEnemy(pos)
-		// case 5:
-		// 	newEnemy = enemy.NewLichEnemy(pos)
-		// case 6:
-		// 	newEnemy = enemy.NewGolemEnemy(pos)
-		// default:
-		// 	newEnemy = enemy.NewBatEnemy(pos)
-		// }
+		switch enemyId {
+		case 0:
+			newEnemy = enemy.NewBatEnemy(pos)
+		case 1:
+			newEnemy = enemy.NewBlobEnemy(pos)
+		case 2:
+			newEnemy = enemy.NewGoblinEnemy(pos)
+		case 3:
+			newEnemy = enemy.NewSpikeTurtleEnemy(pos)
+		case 4:
+			newEnemy = enemy.NewGhostEnemy(pos)
+		case 5:
+			newEnemy = enemy.NewLichEnemy(pos)
+		default:
+			log.Printf("Invalid enemy type: %d", enemyId)
+			newEnemy = enemy.NewBatEnemy(pos)
+		}
 		lvl.Enemies = append(lvl.Enemies, newEnemy)
+	}
+
+	// Add the golem on the final level
+	if difficulty == 4 {
+		pos := lvl.FindRandomFloorLocation()
+		golem := enemy.NewGolemEnemy(pos)
+		lvl.Enemies = append(lvl.Enemies, golem)
 	}
 }
 

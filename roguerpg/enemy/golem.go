@@ -87,24 +87,20 @@ func NewGolemEnemy(startLoc core.Location) *GolemEnemy {
 	baseDmg := 1
 
 	attackHitboxes[core.Up] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: 3, Top: -24, Right: 13, Bottom: 4}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: 3, Top: -27, Right: 13, Bottom: 4}, Damage: baseDmg},
+		6: {HitBox: core.Rect{Left: -39, Top: -11, Right: 39, Bottom: 27}, Damage: baseDmg},
+		7: {HitBox: core.Rect{Left: -39, Top: -11, Right: 39, Bottom: 27}, Damage: baseDmg},
 	}
 	attackHitboxes[core.Down] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: -13, Top: -4, Right: -3, Bottom: 24}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -13, Top: -4, Right: -3, Bottom: 27}, Damage: baseDmg},
+		6: {HitBox: core.Rect{Left: -39, Top: -11, Right: 39, Bottom: 27}, Damage: baseDmg},
+		7: {HitBox: core.Rect{Left: -39, Top: -11, Right: 39, Bottom: 27}, Damage: baseDmg},
 	}
 	attackHitboxes[core.Left] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: -25, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -28, Top: 0, Right: 6, Bottom: 10}, Damage: baseDmg},
+		6: {HitBox: core.Rect{Left: -27, Top: -9, Right: 8, Bottom: 29}, Damage: baseDmg},
+		7: {HitBox: core.Rect{Left: -27, Top: -9, Right: 8, Bottom: 29}, Damage: baseDmg},
 	}
 	attackHitboxes[core.Right] = map[int]core.DamageSourceConfig{
-		2: {HitBox: core.Rect{Left: -6, Top: 0, Right: 25, Bottom: 10}, Damage: baseDmg},
-		3: {HitBox: core.Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
-		4: {HitBox: core.Rect{Left: -6, Top: 0, Right: 28, Bottom: 10}, Damage: baseDmg},
+		6: {HitBox: core.Rect{Left: -8, Top: -9, Right: 27, Bottom: 29}, Damage: baseDmg},
+		7: {HitBox: core.Rect{Left: -8, Top: -9, Right: 27, Bottom: 29}, Damage: baseDmg},
 	}
 
 	return &GolemEnemy{
