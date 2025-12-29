@@ -35,9 +35,6 @@ func (bs *BaseSprite) GetX() float64 { return bs.Loc.X }
 func (bs *BaseSprite) GetY() float64 { return bs.Loc.Y }
 
 func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	if !ShowDebugInfo {
-		return
-	}
 	// Using global variables from same package (debugutils.go)
 	if DotImage == nil {
 		return
@@ -96,9 +93,6 @@ func (bp *BasePhysical) GetPushBox() Rect {
 
 // DrawDebugInfo overrides the BaseSprite version to draw the PushBox.
 func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	if !ShowDebugInfo {
-		return
-	}
 	if DotImage == nil {
 		return
 	}

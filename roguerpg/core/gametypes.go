@@ -44,8 +44,6 @@ type DamageSource struct {
 	OnHit     func()     // Callback when damage source hits a target
 }
 
-var ShowDebugInfo bool = false
-
 func NewDamageSource(sourceTag EntityTag, hitBox Rect, damageType DamageType, damage int) *DamageSource {
 	return &DamageSource{
 		SourceTag: sourceTag,
@@ -137,10 +135,6 @@ type UpdateResult struct {
 }
 
 func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	if !ShowDebugInfo {
-		return
-	}
-
 	// Draw the Hitbox rectangle
 	hb := ds.HitBox
 	debugImage := GetDebugRectImage(hb)
