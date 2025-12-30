@@ -40,7 +40,7 @@ func NewWeaponSelector() *WeaponSelector {
 	primaryWeapon := NewWeaponBox(core.Location{
 		X: windowX + float64(firstStart),
 		Y: windowY + float64(yStart)},
-		UiIconSword, false)
+		core.WeaponSword, false)
 	secondaryWeapons := []*WeaponBox{}
 	for i, weapon := range weaponTable {
 		wb := NewWeaponBox(

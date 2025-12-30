@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	UiIconSelect = iota
+	UiIconHeart = iota
 	UiIconSword
 	UiIconBoomerang
 	UiIconShield
