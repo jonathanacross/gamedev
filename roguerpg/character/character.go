@@ -199,3 +199,8 @@ func (c *BaseCharacter) UpdateKnockback(level core.Level) bool {
 
 	return true // Knockback was active this frame
 }
+
+func (c *BaseCharacter) IsNearTo(other core.Character, minDistInTiles float64) bool {
+	dist := core.Vector(other.Location()).Minus(core.Vector(c.Location()))
+	return dist.Length() <= core.TileSize*minDistInTiles
+}

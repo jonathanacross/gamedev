@@ -147,10 +147,10 @@ func (c *GhostEnemy) updateWalk(level core.Level, player core.Player) {
 	vx := GhostMaxFloatSpeed * math.Cos(GhostXFrequency*c.movementTimer)
 	vy := GhostMaxFloatSpeed * math.Sin(GhostYFrequency*c.movementTimer)
 	playerAttraction := 0.0
-	if c.isNearPlayer(player.Location(), 7) {
+	if c.IsNearTo(player, 7) {
 		playerAttraction = 0.5
 	}
-	if c.isNearPlayer(player.Location(), 5) {
+	if c.IsNearTo(player, 5) {
 		playerAttraction = 1.0
 	}
 	dirToPlayer := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
@@ -172,17 +172,11 @@ func (c *GhostEnemy) updateWalk(level core.Level, player core.Player) {
 	}
 }
 
-// TODO: move to general utility function?
-func (c *GhostEnemy) isNearPlayer(playerLoc core.Location, distanceTiles float64) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= distanceTiles*core.TileSize
-}
-
 func (c *GhostEnemy) getActiveDamageSources(player core.Player) []*core.DamageSource {
 	sources := []*core.DamageSource{}
 
 	// Add source for hitting the ghost
-	if c.isNearPlayer(player.Location(), 1) {
+	if c.IsNearTo(player, 1) {
 		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
 		return []*core.DamageSource{ds}
 	}

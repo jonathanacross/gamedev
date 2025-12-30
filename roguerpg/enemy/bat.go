@@ -170,11 +170,6 @@ func (c *BatEnemy) findNewTargetTile(level core.Level) bool {
 	return false
 }
 
-func (c *BatEnemy) isNearPlayer(playerLoc core.Location) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= core.TileSize
-}
-
 // updateMovement handles the movement logic and target finding.
 func (c *BatEnemy) updateMovement(level core.Level) {
 	c.moveTimeCounter += BatVelocityFrequency
@@ -277,7 +272,7 @@ func (c *BatEnemy) Update(level core.Level, player core.Player) core.UpdateResul
 	// Core AI Logic
 	c.updateMovement(level)
 
-	if c.isNearPlayer(player.Location()) && c.state == BatFlying {
+	if c.IsNearTo(player, 3) && c.state == BatFlying {
 		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
 		actions = append(actions, core.Action{
 			Type:         core.ActionCreateDamageSource,

@@ -199,11 +199,6 @@ func (c *SpikeTurtleEnemy) findNewTargetTile(playerLoc core.Location, level core
 	return false
 }
 
-func (c *SpikeTurtleEnemy) isNearPlayer(playerLoc core.Location) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= core.TileSize
-}
-
 // updateMovement handles the movement logic and target finding.
 func (c *SpikeTurtleEnemy) updateMovement(playerLoc core.Location, level core.Level) {
 	currentSpeed := SpikeTurtleMoveSpeed
@@ -299,7 +294,7 @@ func (c *SpikeTurtleEnemy) Update(level core.Level, player core.Player) core.Upd
 	// Core AI Logic
 	c.updateMovement(player.Location(), level)
 
-	if c.isNearPlayer(player.Location()) && c.state == SpikeTurtleMoving {
+	if c.IsNearTo(player, 1) && c.state == SpikeTurtleMoving {
 		ds := core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1)
 		actions = append(actions, core.Action{
 			Type:         core.ActionCreateDamageSource,

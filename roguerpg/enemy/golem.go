@@ -250,11 +250,6 @@ func (c *GolemEnemy) updateWalk(level core.Level, player core.Player) {
 	c.direction = core.VectorToDirection(v)
 }
 
-func (c *GolemEnemy) isNearPlayer(playerLoc core.Location) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= core.TileSize
-}
-
 func (c *GolemEnemy) getActiveDamageSources(player core.Player) []*core.DamageSource {
 	sources := []*core.DamageSource{}
 
@@ -275,7 +270,7 @@ func (c *GolemEnemy) getActiveDamageSources(player core.Player) []*core.DamageSo
 	}
 
 	// Add goblin pushbox when near player as well.
-	if c.isNearPlayer(player.Location()) && (c.state == GolemAttacking || c.state == GolemWalking) {
+	if c.IsNearTo(player, 1) && (c.state == GolemAttacking || c.state == GolemWalking) {
 		sources = append(sources, core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1))
 	}
 

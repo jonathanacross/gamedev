@@ -152,11 +152,6 @@ func (c *BlobEnemy) findNewTargetTile(level core.Level) bool {
 	return false
 }
 
-func (c *BlobEnemy) isNearPlayer(playerLoc core.Location) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= 3*core.TileSize
-}
-
 func (c *BlobEnemy) updateMovement(level core.Level) {
 	if c.idling {
 		c.waitFrames--
@@ -216,7 +211,7 @@ func (c *BlobEnemy) Update(level core.Level, player core.Player) core.UpdateResu
 
 	switch c.state {
 	case BlobMoving:
-		if c.isNearPlayer(player.Location()) {
+		if c.IsNearTo(player, 3) {
 			c.state = BlobAttacking
 			c.animations[BlobAttacking].Reset()
 		}

@@ -175,32 +175,9 @@ func (c *GoblinEnemy) TakeDamage(damage int) {
 	}
 }
 
+// Player should be near the goblin, and aligned either horizontally or vertically
 func (c *GoblinEnemy) shouldAttackPlayer(player core.Player) bool {
-	// Player should be near the goblin, and aligned either horizontally or vertically
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	return dist.Length() <= float64(core.TileSize)*5 && (alignedHorizontally || alignedVertically)
-}
-
-func (c *GoblinEnemy) getAttackVector(player core.Player) core.Vector {
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	if alignedHorizontally {
-		if dist.X < 0 {
-			return core.Vector{X: -1, Y: 0}
-		} else {
-			return core.Vector{X: 1, Y: 0}
-		}
-	} else if alignedVertically {
-		if dist.Y < 0 {
-			return core.Vector{X: 0, Y: -1}
-		} else {
-			return core.Vector{X: 0, Y: 1}
-		}
-	}
-	return core.Vector{X: 0, Y: 0}
+	return c.IsNearTo(player, 5) && AreAligned(c, player)
 }
 
 // updateMovement handles the movement logic and target finding.
@@ -208,7 +185,7 @@ func (c *GoblinEnemy) updateWalk(level core.Level, player core.Player) {
 	if c.shouldAttackPlayer(player) {
 		c.state = GoblinAttacking
 		c.animations[GoblinAttacking][c.direction].Reset()
-		c.velocity = c.getAttackVector(player).Scale(GoblinRunSpeed)
+		c.velocity = GetAttackVector(c, player).Scale(GoblinRunSpeed)
 		return
 	}
 
@@ -232,11 +209,6 @@ func (c *GoblinEnemy) updateWalk(level core.Level, player core.Player) {
 	c.direction = core.VectorToDirection(v)
 }
 
-func (c *GoblinEnemy) isNearPlayer(playerLoc core.Location) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= core.TileSize
-}
-
 func (c *GoblinEnemy) getActiveDamageSources(player core.Player) []*core.DamageSource {
 	sources := []*core.DamageSource{}
 
@@ -257,7 +229,7 @@ func (c *GoblinEnemy) getActiveDamageSources(player core.Player) []*core.DamageS
 	}
 
 	// Add goblin pushbox when near player as well.
-	if c.isNearPlayer(player.Location()) && (c.state == GoblinAttacking || c.state == GoblinWalking) {
+	if c.IsNearTo(player, 1) && (c.state == GoblinAttacking || c.state == GoblinWalking) {
 		sources = append(sources, core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1))
 	}
 

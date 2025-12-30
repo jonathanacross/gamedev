@@ -153,41 +153,14 @@ func (c *LichEnemy) TakeDamage(damage int) {
 	}
 }
 
-// TODO: refactor to a generic function that's shared with goblin
+// Player should be near the lich, and aligned either horizontally or vertically
 func (c *LichEnemy) shouldAttackPlayer(player core.Player) bool {
-	// Player should be near the lich, and aligned either horizontally or vertically
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	return dist.Length() <= float64(core.TileSize)*5 && (alignedHorizontally || alignedVertically)
+	return c.IsNearTo(player, 5) && AreAligned(c, player)
 }
 
+// Player should be somewhat near the lich, and aligned either horizontally or vertically
 func (c *LichEnemy) shouldShootPlayer(player core.Player) bool {
-	// Player should be near the lich, and aligned either horizontally or vertically
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	return dist.Length() <= float64(core.TileSize)*7 && (alignedHorizontally || alignedVertically)
-}
-
-func (c *LichEnemy) getAttackVector(player core.Player) core.Vector {
-	dist := core.Vector(player.Location()).Minus(core.Vector(c.Location()))
-	alignedHorizontally := math.Abs(dist.Y) < float64(core.TileSize)/2
-	alignedVertically := math.Abs(dist.X) < float64(core.TileSize)/2
-	if alignedHorizontally {
-		if dist.X < 0 {
-			return core.Vector{X: -1, Y: 0}
-		} else {
-			return core.Vector{X: 1, Y: 0}
-		}
-	} else if alignedVertically {
-		if dist.Y < 0 {
-			return core.Vector{X: 0, Y: -1}
-		} else {
-			return core.Vector{X: 0, Y: 1}
-		}
-	}
-	return core.Vector{X: 0, Y: 0}
+	return c.IsNearTo(player, 7) && AreAligned(c, player)
 }
 
 // updateMovement handles the movement logic and target finding.
@@ -195,7 +168,7 @@ func (c *LichEnemy) updateWalk(level core.Level, player core.Player) {
 	if c.shouldAttackPlayer(player) {
 		c.state = LichAttacking
 		c.animations[LichAttacking][c.direction].Reset()
-		c.velocity = c.getAttackVector(player).Scale(LichRunSpeed)
+		c.velocity = GetAttackVector(c, player).Scale(LichRunSpeed)
 		return
 	}
 
@@ -219,15 +192,10 @@ func (c *LichEnemy) updateWalk(level core.Level, player core.Player) {
 	c.direction = core.VectorToDirection(v)
 }
 
-func (c *LichEnemy) isNearPlayer(playerLoc core.Location) bool {
-	dist := core.Vector(playerLoc).Minus(core.Vector(c.Location()))
-	return dist.Length() <= core.TileSize
-}
-
 func (c *LichEnemy) getActiveDamageSources(player core.Player) []*core.DamageSource {
 	sources := []*core.DamageSource{}
 
-	if c.isNearPlayer(player.Location()) && (c.state == LichAttacking || c.state == LichWalking) {
+	if c.IsNearTo(player, 1) && (c.state == LichAttacking || c.state == LichWalking) {
 		sources = append(sources, core.NewDamageSource(core.TagEnemy, c.GetHurtBox(), core.DamageTypePhysical, 1))
 	}
 
@@ -258,7 +226,7 @@ func (c *LichEnemy) updateFire(player core.Player) []core.Action {
 	}
 
 	c.fireCooldown.Reset()
-	fireDirection := c.getAttackVector(player)
+	fireDirection := GetAttackVector(c, player)
 	return []core.Action{
 		{
 			Type:      core.ActionCreateFire,
