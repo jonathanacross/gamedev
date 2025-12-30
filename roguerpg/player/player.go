@@ -437,7 +437,6 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	// Reset damage sources after consuming
 	p.pendingDamageSources = nil
 
-	p.shieldHeld = false
 	return core.UpdateResult{Actions: actions}
 }
 
