@@ -1,6 +1,10 @@
 package core
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // EntityTag is used to categorize game objects for collision filtering (e.g., friendly fire)
 type EntityTag int
@@ -139,15 +143,6 @@ type UpdateResult struct {
 }
 
 func (ds *DamageSource) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	// Draw the Hitbox rectangle
-	hb := ds.HitBox
-	debugImage := GetDebugRectImage(hb)
-	if debugImage == nil {
-		return
-	}
-
-	opRect := &ebiten.DrawImageOptions{}
-	opRect.GeoM.Translate(hb.Left, hb.Top)
-	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(debugImage, opRect)
+	hitBoxColor := color.RGBA{R: 255, G: 255, B: 0, A: 255}
+	DrawDebugRect(screen, ds.HitBox, hitBoxColor, cameraMatrix)
 }

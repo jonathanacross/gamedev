@@ -2,6 +2,7 @@ package core
 
 import (
 	"image"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -35,28 +36,9 @@ func (bs *BaseSprite) GetX() float64 { return bs.Loc.X }
 func (bs *BaseSprite) GetY() float64 { return bs.Loc.Y }
 
 func (bs *BaseSprite) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	// Using global variables from same package (debugutils.go)
-	if DotImage == nil {
-		return
-	}
-
-	// Draw the bounds rectangle
-	hb := bs.GetBounds()
-	debugImage := GetDebugRectImage(hb)
-	if debugImage == nil {
-		return
-	}
-
-	opRect := &ebiten.DrawImageOptions{}
-	opRect.GeoM.Translate(hb.Left, hb.Top)
-	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(debugImage, opRect)
-
-	// Draw the Location Dot
-	opDot := &ebiten.DrawImageOptions{}
-	opDot.GeoM.Translate(bs.Loc.X-1.5, bs.Loc.Y-1.5) // Assuming dotSize approx 3-4, centering.
-	opDot.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(DotImage, opDot)
+	boundsColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	DrawDebugRect(screen, bs.GetBounds(), boundsColor, cameraMatrix)
+	DrawLocationDot(screen, bs.Loc, cameraMatrix)
 }
 
 func (bs *BaseSprite) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
@@ -93,28 +75,11 @@ func (bp *BasePhysical) GetPushBox() Rect {
 
 // DrawDebugInfo overrides the BaseSprite version to draw the PushBox.
 func (bp *BasePhysical) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	if DotImage == nil {
-		return
-	}
-
-	// Draw the PushBox rectangle
-	pb := bp.GetPushBox()
-	debugImagePB := GetDebugRectImage(pb)
-	if debugImagePB == nil {
-		return
-	}
-
-	opRect := &ebiten.DrawImageOptions{}
-	opRect.GeoM.Translate(pb.Left, pb.Top)
-
-	opRect.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(debugImagePB, opRect)
-
-	// Draw the Location Dot
-	opDot := &ebiten.DrawImageOptions{}
-	opDot.GeoM.Translate(bp.Loc.X-1.5, bp.Loc.Y-1.5)
-	opDot.GeoM.Concat(cameraMatrix)
-	screen.DrawImage(DotImage, opDot)
+	boundsColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	pushBoxColor := color.RGBA{R: 0, G: 0, B: 255, A: 255}
+	DrawDebugRect(screen, bp.GetBounds(), boundsColor, cameraMatrix)
+	DrawDebugRect(screen, bp.GetPushBox(), pushBoxColor, cameraMatrix)
+	DrawLocationDot(screen, bp.Loc, cameraMatrix)
 }
 
 // Tile

@@ -38,11 +38,12 @@ type Player struct {
 	direction   core.Direction
 	Velocity    core.Vector
 
-	weapons         map[core.WeaponType]core.Weapon
-	primaryWeapon   core.WeaponType
-	secondaryWeapon core.WeaponType
-	activeWeapon    core.Weapon // The weapon instance currently being updated/used
-	shieldHeld      bool
+	weapons             map[core.WeaponType]core.Weapon
+	primaryWeapon       core.WeaponType
+	secondaryWeapon     core.WeaponType
+	activeWeapon        core.Weapon // The weapon instance currently being updated/used
+	shieldHeld          bool
+	hurtBoxesWithShield map[core.Direction]core.Rect
 
 	pendingActions       []core.Action
 	pendingDamageSources []*core.DamageSource
@@ -103,11 +104,12 @@ func NewPlayer() *Player {
 	}
 
 	spriteSheet := core.NewSpriteSheet(48, 64, ssColumns, ssRows)
-	pushBox := core.Rect{
-		Left:   -6,
-		Top:    -6,
-		Right:  6,
-		Bottom: 6,
+	pushBox := core.Rect{Left: -6, Top: -6, Right: 6, Bottom: 6}
+	hurtBoxesWithShield := map[core.Direction]core.Rect{
+		core.Left:  core.Rect{Left: 2, Top: -6, Right: 6, Bottom: 6},
+		core.Right: core.Rect{Left: -6, Top: -6, Right: -2, Bottom: 6},
+		core.Up:    core.Rect{Left: -6, Top: 2, Right: 6, Bottom: 6},
+		core.Down:  core.Rect{Left: -6, Top: -6, Right: 6, Bottom: -2},
 	}
 
 	// Initialize Weapons
@@ -123,15 +125,9 @@ func NewPlayer() *Player {
 		BaseCharacter: character.BaseCharacter{
 			BasePhysical: core.BasePhysical{
 				BaseSprite: core.BaseSprite{
-					Loc: core.Location{
-						X: 0,
-						Y: 0,
-					},
-					DrawOffset: core.Location{
-						X: 25,
-						Y: 38,
-					},
-					SrcRect: spriteSheet.Rect(0),
+					Loc:        core.Location{X: 0, Y: 0},
+					DrawOffset: core.Location{X: 25, Y: 38},
+					SrcRect:    spriteSheet.Rect(0),
 				},
 				PushBoxOffset: pushBox,
 			},
@@ -140,17 +136,18 @@ func NewPlayer() *Player {
 			Experience:      0,
 			KnockbackFrames: 0,
 		},
-		images:          charImages,
-		spriteSheet:     spriteSheet,
-		animations:      animations,
-		state:           Idle,
-		direction:       core.Down,
-		primaryWeapon:   core.WeaponSword,
-		secondaryWeapon: core.WeaponBoomerang,
-		currentStats:    currentStats,
-		futureUpgrades:  futureUpgrades,
-		weapons:         weaponMap,
-		activeWeapon:    weaponMap[core.WeaponSword], // Default
+		images:              charImages,
+		spriteSheet:         spriteSheet,
+		animations:          animations,
+		hurtBoxesWithShield: hurtBoxesWithShield,
+		state:               Idle,
+		direction:           core.Down,
+		primaryWeapon:       core.WeaponSword,
+		secondaryWeapon:     core.WeaponBoomerang,
+		currentStats:        currentStats,
+		futureUpgrades:      futureUpgrades,
+		weapons:             weaponMap,
+		activeWeapon:        weaponMap[core.WeaponSword], // Default
 	}
 }
 
@@ -277,7 +274,14 @@ func (p *Player) IsActive() bool {
 	return p.state != Hurt && p.state != Dying && p.state != Dead
 }
 
-func (p *Player) handleState(level core.Level) []core.Action {
+func (p *Player) GetHurtBox() core.Rect {
+	if !p.shieldHeld {
+		return p.GetPushBox()
+	}
+	return p.hurtBoxesWithShield[p.direction]
+}
+
+func (p *Player) handleState() []core.Action {
 	animation := p.GetCurrentAnimation()
 	if animation == nil {
 		p.state = Idle
@@ -338,15 +342,13 @@ func (p *Player) TakeDamage(damage int) {
 	if p.state == Dead || p.state == Dying || p.state == Hurt {
 		return
 	}
-	if p.shieldHeld {
-		return
-	}
 	p.TransitionState(Hurt)
 	p.Health -= damage
 }
 
 func (p *Player) ApplyKnockback(force core.Vector, duration int) {
 	if p.shieldHeld {
+		// TODO: remove this?
 		return
 	}
 	p.BaseCharacter.ApplyKnockback(force, duration)
@@ -402,7 +404,7 @@ func (p *Player) handleObjectPickup(level core.Level) {
 func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	p.UpdateKnockback(level)
 	p.handleObjectPickup(level)
-	stateActions := p.handleState(level)
+	stateActions := p.handleState()
 
 	p.Velocity.X = p.HandleTileCollisions(level, core.AxisX, p.Velocity.X)
 	p.Velocity.Y = p.HandleTileCollisions(level, core.AxisY, p.Velocity.Y)

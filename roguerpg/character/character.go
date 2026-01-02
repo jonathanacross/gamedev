@@ -1,8 +1,11 @@
 package character
 
 import (
+	"image/color"
 	"math"
 	"roguerpg/core"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // BaseCharacter holds the common state and logic for any combat-capable entity.
@@ -203,4 +206,14 @@ func (c *BaseCharacter) UpdateKnockback(level core.Level) bool {
 func (c *BaseCharacter) IsNearTo(other core.Character, minDistInTiles float64) bool {
 	dist := core.Vector(other.Location()).Minus(core.Vector(c.Location()))
 	return dist.Length() <= core.TileSize*minDistInTiles
+}
+
+func (bp *BaseCharacter) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
+	boundsColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	pushBoxColor := color.RGBA{R: 0, G: 0, B: 255, A: 255}
+	hurtBoxColor := color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	core.DrawDebugRect(screen, bp.GetBounds(), boundsColor, cameraMatrix)
+	core.DrawDebugRect(screen, bp.GetPushBox(), pushBoxColor, cameraMatrix)
+	core.DrawDebugRect(screen, bp.GetHurtBox(), hurtBoxColor, cameraMatrix)
+	core.DrawLocationDot(screen, bp.Loc, cameraMatrix)
 }

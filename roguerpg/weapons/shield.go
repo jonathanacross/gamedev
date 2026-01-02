@@ -34,8 +34,8 @@ func NewShield() *Shield {
 	var baseShieldDamage = 0
 	shieldAttackBoxes := map[core.Direction]map[int]core.DamageSourceConfig{
 		core.Down: {
-			0: {HitBox: core.Rect{Left: -3, Top: -6, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
-			1: {HitBox: core.Rect{Left: -3, Top: -6, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
+			0: {HitBox: core.Rect{Left: -3, Top: -1, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
+			1: {HitBox: core.Rect{Left: -3, Top: -1, Right: 7, Bottom: 7}, Damage: baseShieldDamage},
 		},
 		core.Left: {
 			0: {HitBox: core.Rect{Left: -9, Top: -7, Right: -1, Bottom: 6}, Damage: baseShieldDamage},
@@ -43,7 +43,7 @@ func NewShield() *Shield {
 		},
 		core.Right: {
 			0: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 6}, Damage: baseShieldDamage},
-			1: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 7}, Damage: baseShieldDamage},
+			1: {HitBox: core.Rect{Left: 1, Top: -7, Right: 9, Bottom: 6}, Damage: baseShieldDamage},
 		},
 		core.Up: {
 			0: {HitBox: core.Rect{Left: -9, Top: -12, Right: 1, Bottom: 1}, Damage: baseShieldDamage},
@@ -92,7 +92,9 @@ func (s *Shield) Update(ctx core.PlayerContext, level core.Level) {
 				playerLoc := ctx.Location()
 				worldHitbox := config.HitBox.Offset(playerLoc.X, playerLoc.Y)
 				ds := core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypeImpact, config.Damage)
-				ds.IsReflector = true
+				if s.level > 1 {
+					ds.IsReflector = true
+				}
 				ds.Direction = dir
 				ctx.CreateDamageSource(ds)
 			}
