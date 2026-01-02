@@ -18,7 +18,7 @@ const (
 	ScreenWidth  = 384
 	ScreenHeight = 240
 
-	ShowDebugInfo = true
+	ShowDebugInfo = false
 )
 
 type Game struct {

@@ -1,6 +1,7 @@
 package player
 
 import (
+	"image/color"
 	"roguerpg/assets"
 	"roguerpg/character"
 	"roguerpg/core"
@@ -106,10 +107,10 @@ func NewPlayer() *Player {
 	spriteSheet := core.NewSpriteSheet(48, 64, ssColumns, ssRows)
 	pushBox := core.Rect{Left: -6, Top: -6, Right: 6, Bottom: 6}
 	hurtBoxesWithShield := map[core.Direction]core.Rect{
-		core.Left:  {Left: 2, Top: -6, Right: 6, Bottom: 6},
-		core.Right: {Left: -6, Top: -6, Right: -2, Bottom: 6},
-		core.Up:    {Left: -6, Top: 2, Right: 6, Bottom: 6},
-		core.Down:  {Left: -6, Top: -6, Right: 6, Bottom: -2},
+		core.Left:  {Left: 1, Top: -6, Right: 6, Bottom: 6},
+		core.Right: {Left: -6, Top: -6, Right: -1, Bottom: 6},
+		core.Up:    {Left: -6, Top: 1, Right: 6, Bottom: 6},
+		core.Down:  {Left: -6, Top: -6, Right: 6, Bottom: -1},
 	}
 
 	// Initialize Weapons
@@ -282,7 +283,7 @@ func (p *Player) GetHurtBox() core.Rect {
 	if !p.shieldHeld {
 		return p.GetPushBox()
 	}
-	return p.hurtBoxesWithShield[p.direction]
+	return p.hurtBoxesWithShield[p.direction].Offset(p.Loc.X, p.Loc.Y)
 }
 
 func (p *Player) handleState() []core.Action {
@@ -465,5 +466,13 @@ func (p *Player) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
 }
 
 func (p *Player) DrawDebugInfo(screen *ebiten.Image, cameraMatrix ebiten.GeoM) {
-	p.BaseCharacter.DrawDebugInfo(screen, cameraMatrix)
+	// Note this is the same code as in BaseCharacter, but we need to re-implmement
+	// it because we need to call Player.GetHurtBox() instead of Character.GetHurtBox().
+	boundsColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	pushBoxColor := color.RGBA{R: 0, G: 0, B: 255, A: 255}
+	hurtBoxColor := color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	core.DrawDebugRect(screen, p.GetBounds(), boundsColor, cameraMatrix)
+	core.DrawDebugRect(screen, p.GetPushBox(), pushBoxColor, cameraMatrix)
+	core.DrawDebugRect(screen, p.GetHurtBox(), hurtBoxColor, cameraMatrix)
+	core.DrawLocationDot(screen, p.Location(), cameraMatrix)
 }

@@ -29,25 +29,21 @@ func NewSword() *Sword {
 	animations := core.NewDirectionAnimationMap([]int{0, 1, 2, 3}, 0, directionOffsets, 6, false)
 
 	swordAttackBoxes := map[core.Direction]map[int]core.Rect{
+		core.Up: {
+			1: core.Rect{Left: -16, Top: -26, Right: 16, Bottom: -4},
+			2: core.Rect{Left: -16, Top: -26, Right: 16, Bottom: -4},
+		},
 		core.Down: {
-			1: core.Rect{Left: 6, Top: 15, Right: 24, Bottom: 30},
-			2: core.Rect{Left: -10, Top: 25, Right: 10, Bottom: 35},
-			3: core.Rect{Left: -24, Top: 10, Right: -6, Bottom: 30},
+			1: core.Rect{Left: -16, Top: -4, Right: 16, Bottom: 18},
+			2: core.Rect{Left: -16, Top: -4, Right: 16, Bottom: 18},
 		},
 		core.Left: {
-			1: core.Rect{Left: -24, Top: -10, Right: -5, Bottom: 5},
-			2: core.Rect{Left: -24, Top: 5, Right: -10, Bottom: 20},
-			3: core.Rect{Left: -20, Top: 15, Right: -4, Bottom: 27},
+			1: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8},
+			2: core.Rect{Left: -22, Top: -24, Right: 0, Bottom: 8},
 		},
 		core.Right: {
-			1: core.Rect{Left: 5, Top: -10, Right: 24, Bottom: 5},
-			2: core.Rect{Left: 10, Top: 5, Right: 24, Bottom: 20},
-			3: core.Rect{Left: 4, Top: 15, Right: 20, Bottom: 27},
-		},
-		core.Up: {
-			1: core.Rect{Left: -24, Top: -15, Right: -6, Bottom: 2},
-			2: core.Rect{Left: -10, Top: -24, Right: 10, Bottom: -15},
-			3: core.Rect{Left: 6, Top: -15, Right: 24, Bottom: 2},
+			1: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8},
+			2: core.Rect{Left: 0, Top: -24, Right: 22, Bottom: 8},
 		},
 	}
 
