@@ -106,10 +106,10 @@ func NewPlayer() *Player {
 	spriteSheet := core.NewSpriteSheet(48, 64, ssColumns, ssRows)
 	pushBox := core.Rect{Left: -6, Top: -6, Right: 6, Bottom: 6}
 	hurtBoxesWithShield := map[core.Direction]core.Rect{
-		core.Left:  core.Rect{Left: 2, Top: -6, Right: 6, Bottom: 6},
-		core.Right: core.Rect{Left: -6, Top: -6, Right: -2, Bottom: 6},
-		core.Up:    core.Rect{Left: -6, Top: 2, Right: 6, Bottom: 6},
-		core.Down:  core.Rect{Left: -6, Top: -6, Right: 6, Bottom: -2},
+		core.Left:  {Left: 2, Top: -6, Right: 6, Bottom: 6},
+		core.Right: {Left: -6, Top: -6, Right: -2, Bottom: 6},
+		core.Up:    {Left: -6, Top: 2, Right: 6, Bottom: 6},
+		core.Down:  {Left: -6, Top: -6, Right: 6, Bottom: -2},
 	}
 
 	// Initialize Weapons
@@ -208,6 +208,10 @@ func (p *Player) StopMoving() {
 }
 
 func (p *Player) attackWith(weaponType core.WeaponType) *core.Action {
+	if p.activeWeapon != nil && p.activeWeapon != p.weapons[weaponType] && p.activeWeapon.IsAttacking() {
+		return nil
+	}
+
 	if weapon, ok := p.weapons[weaponType]; ok {
 		p.activeWeapon = weapon
 		weapon.OnAttack(p)
@@ -348,7 +352,6 @@ func (p *Player) TakeDamage(damage int) {
 
 func (p *Player) ApplyKnockback(force core.Vector, duration int) {
 	if p.shieldHeld {
-		// TODO: remove this?
 		return
 	}
 	p.BaseCharacter.ApplyKnockback(force, duration)

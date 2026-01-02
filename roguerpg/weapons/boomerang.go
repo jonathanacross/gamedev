@@ -62,3 +62,7 @@ func (b *Boomerang) GetCooldownProgress() float64 {
 	}
 	return 0.0
 }
+
+func (b *Boomerang) IsAttacking() bool {
+	return false
+}

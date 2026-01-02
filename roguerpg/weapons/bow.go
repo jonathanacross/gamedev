@@ -112,3 +112,7 @@ func (b *Bow) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos cor
 func (b *Bow) GetCooldownProgress() float64 {
 	return b.cooldownTimer.GetProgress()
 }
+
+func (b *Bow) IsAttacking() bool {
+	return b.isAttacking
+}

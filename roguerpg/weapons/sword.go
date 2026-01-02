@@ -131,3 +131,7 @@ func (s *Sword) GetCooldownProgress() float64 {
 	// Sword has no cooldown. Always ready.
 	return 1.0
 }
+
+func (s *Sword) IsAttacking() bool {
+	return s.isAttacking
+}

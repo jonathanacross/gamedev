@@ -150,3 +150,7 @@ func (s *Shield) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos 
 func (s *Shield) GetCooldownProgress() float64 {
 	return 1.0
 }
+
+func (s *Shield) IsAttacking() bool {
+	return s.isActive
+}

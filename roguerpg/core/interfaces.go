@@ -133,4 +133,7 @@ type Weapon interface {
 
 	// SetLevel sets the weapon level
 	SetLevel(level int)
+
+	// IsAttacking returns true if the weapon is currently in an attack animation
+	IsAttacking() bool
 }

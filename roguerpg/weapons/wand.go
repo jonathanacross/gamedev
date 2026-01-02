@@ -108,3 +108,7 @@ func (w *Wand) Draw(screen *ebiten.Image, cameraMatrix ebiten.GeoM, playerPos co
 func (w *Wand) GetCooldownProgress() float64 {
 	return w.cooldownTimer.GetProgress()
 }
+
+func (w *Wand) IsAttacking() bool {
+	return w.isAttacking
+}
