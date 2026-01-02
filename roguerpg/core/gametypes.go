@@ -36,12 +36,16 @@ type DamageSourceConfig struct {
 
 // DamageSource is a generic struct for anything that deals damage or applies effects (like stun).
 type DamageSource struct {
-	SourceTag EntityTag  // e.g., TagPlayer, TagEnemy
-	HitBox    Rect       // The current world-space hitbox of the attack
-	Damage    int        // Used for DamageTypePhysical
-	Type      DamageType // Physical or Stun
-	Duration  int        // Used for DamageTypeStun (in frames)
-	OnHit     func()     // Callback when damage source hits a target
+	SourceTag     EntityTag // e.g., TagPlayer, TagEnemy
+	HitBox        Rect      // The current world-space hitbox of the attack
+	Damage        int       // Used for DamageTypePhysical
+	Type          DamageType
+	Duration      int                           // Used for DamageTypeStun (in frames)
+	OnHit         func()                        // Callback when damage source hits a target
+	IsReflectable bool                          // Can be reflected by a reflector
+	IsReflector   bool                          // Can reflect reflectable sources
+	Direction     Direction                     // Direction of the source (needed for reflection axis)
+	OnReflect     func(reflector *DamageSource) // Callback when reflected
 }
 
 func NewDamageSource(sourceTag EntityTag, hitBox Rect, damageType DamageType, damage int) *DamageSource {

@@ -20,6 +20,7 @@ type Boulder struct {
 	remainingFlightFrames int
 	velocity              core.Vector
 	damageSource          core.DamageSourceConfig
+	reflected             bool
 }
 
 func NewBoulder(location core.Location, velocity core.Vector) *Boulder {
@@ -60,7 +61,23 @@ func (b *Boulder) Update(level core.Level, _ core.Player) core.UpdateResult {
 
 	// Create a damage source at the boulder's location
 	worldHitbox := b.damageSource.HitBox.Offset(b.Loc.X, b.Loc.Y)
-	ds := core.NewDamageSource(core.TagEnemy, worldHitbox, core.DamageTypePhysical, b.damageSource.Damage)
+	sourceTag := core.TagEnemy
+	if b.reflected {
+		sourceTag = core.TagPlayer
+	}
+	ds := core.NewDamageSource(sourceTag, worldHitbox, core.DamageTypePhysical, b.damageSource.Damage)
+
+	if !b.reflected {
+		ds.IsReflectable = true
+		ds.OnReflect = func(reflector *core.DamageSource) {
+			b.reflected = true
+			if reflector.Direction == core.Up || reflector.Direction == core.Down {
+				b.velocity.Y = -b.velocity.Y
+			} else {
+				b.velocity.X = -b.velocity.X
+			}
+		}
+	}
 	actions := []core.Action{{
 		Type:         core.ActionCreateDamageSource,
 		DamageSource: ds,

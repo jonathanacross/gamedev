@@ -37,8 +37,26 @@ func (s *MainGameState) handleDamageSource(ctx *core.GameContext, damageSource *
 		// Player attack hits enemies
 		s.applyDamageToTargets(damageSource, ctx.Level.GetEnemies())
 	} else if damageSource.SourceTag == core.TagEnemy {
-		// Enemy attack hits the player
-		s.applyDamageToTargets(damageSource, []core.Character{ctx.Player})
+		reflected := false
+		// Check for reflection against player reflectors (e.g. Shield)
+		if damageSource.IsReflectable {
+			for _, otherDS := range ctx.DamageSources {
+				if otherDS.SourceTag == core.TagPlayer && otherDS.IsReflector {
+					if damageSource.HitBox.Intersects(otherDS.HitBox) {
+						if damageSource.OnReflect != nil {
+							damageSource.OnReflect(otherDS)
+							reflected = true
+							break
+						}
+					}
+				}
+			}
+		}
+
+		if !reflected {
+			// Enemy attack hits the player
+			s.applyDamageToTargets(damageSource, []core.Character{ctx.Player})
+		}
 	}
 }
 

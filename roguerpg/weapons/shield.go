@@ -92,6 +92,8 @@ func (s *Shield) Update(ctx core.PlayerContext, level core.Level) {
 				playerLoc := ctx.Location()
 				worldHitbox := config.HitBox.Offset(playerLoc.X, playerLoc.Y)
 				ds := core.NewDamageSource(core.TagPlayer, worldHitbox, core.DamageTypeImpact, config.Damage)
+				ds.IsReflector = true
+				ds.Direction = dir
 				ctx.CreateDamageSource(ds)
 			}
 		}

@@ -20,10 +20,13 @@ type Fire struct {
 	state                 FireState
 	spriteSheet           *core.SpriteSheet
 	remainingFlightFrames int
+	flyAnimations         map[core.Direction]*core.Animation
+	hitAnimations         map[core.Direction]*core.Animation
 	flyAnimation          *core.Animation
 	hitAnimation          *core.Animation
 	velocity              core.Vector
 	damageSource          core.DamageSourceConfig
+	reflected             bool
 }
 
 const (
@@ -85,6 +88,8 @@ func NewFire(location core.Location, velocity core.Vector) *Fire {
 		},
 		state:                 fireStateFlying,
 		spriteSheet:           spriteSheet,
+		flyAnimations:         flightAnimations,
+		hitAnimations:         hitAnimations,
 		flyAnimation:          flightAnimations[direction],
 		hitAnimation:          hitAnimations[direction],
 		remainingFlightFrames: remainingFlightFrames,
@@ -127,5 +132,29 @@ func (b *Fire) CanRemove() bool {
 
 func (b *Fire) getActiveDamageSource() *core.DamageSource {
 	worldHitbox := b.damageSource.HitBox.Offset(b.Loc.X, b.Loc.Y)
-	return core.NewDamageSource(core.TagEnemy, worldHitbox, core.DamageTypePhysical, b.damageSource.Damage)
+	sourceTag := core.TagEnemy
+	if b.reflected {
+		sourceTag = core.TagPlayer
+	}
+	ds := core.NewDamageSource(sourceTag, worldHitbox, core.DamageTypePhysical, b.damageSource.Damage)
+
+	if !b.reflected {
+		ds.IsReflectable = true
+		ds.OnReflect = func(reflector *core.DamageSource) {
+			b.reflected = true
+			if reflector.Direction == core.Up || reflector.Direction == core.Down {
+				b.velocity.Y = -b.velocity.Y
+			} else {
+				b.velocity.X = -b.velocity.X
+			}
+
+			// Update animations based on new velocity
+			newDir := core.VectorToDirection(b.velocity)
+			b.flyAnimation = b.flyAnimations[newDir]
+			b.hitAnimation = b.hitAnimations[newDir]
+			b.flyAnimation.Reset()
+			b.hitAnimation.Reset()
+		}
+	}
+	return ds
 }
