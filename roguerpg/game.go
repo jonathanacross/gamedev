@@ -70,10 +70,17 @@ func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {
 
 	// Open Weapon Selector Menu
 	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
-		// This remains an action to modify the global game state stack
 		action := core.Action{
 			Type:      core.ActionPushState,
 			GameState: WeaponSelectorInstance,
+		}
+		actions = append(actions, action)
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
+		action := core.Action{
+			Type:      core.ActionPushState,
+			GameState: UpgradeSelectorInstance,
 		}
 		actions = append(actions, action)
 	}

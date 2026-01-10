@@ -17,6 +17,9 @@ const (
 	UiIconBow
 	UiIconWand
 	UiIconEmpty
+
+	UiIconUpgradeOffset         = 8
+	UiIconDisabledUpgradeOffset = 16
 )
 
 var progressBarImage *ebiten.Image = createProgressBarImage(assets.UiSelectRectImage.Bounds().Dx(), 2)

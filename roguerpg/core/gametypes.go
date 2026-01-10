@@ -115,6 +115,7 @@ const (
 	UpgradeTypeBow
 	UpgradeTypeWand
 	UpgradeTypeHeart
+	UpgradeTypeNone
 )
 
 type PlayerUpgrades struct {
