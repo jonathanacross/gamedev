@@ -80,7 +80,7 @@ func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {
 	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
 		action := core.Action{
 			Type:      core.ActionPushState,
-			GameState: UpgradeSelectorInstance,
+			GameState: NewUpgradeSelector(player),
 		}
 		actions = append(actions, action)
 	}

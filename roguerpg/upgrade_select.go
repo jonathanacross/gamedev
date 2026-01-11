@@ -27,6 +27,7 @@ type Upgrade struct {
 	UpgradeType core.UpgradeType
 	WeaponLevel int
 	NeededExp   int
+	HasUpgrade  bool
 }
 
 // Implements GameState
@@ -37,33 +38,52 @@ type UpgradeSelector struct {
 	currIdx  int
 }
 
-var UpgradeSelectorInstance *UpgradeSelector = NewUpgradeSelector()
+type UpgradeExp struct {
+	UpgradeType core.UpgradeType
+	ExpLevels   []int
+}
 
-func NewUpgradeSelector() *UpgradeSelector {
+func getPlayerUpgrades(player core.Player) []Upgrade {
+	upgradeExps := []UpgradeExp{
+		{core.UpgradeTypeNone, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeHeart, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeSword, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeBoomerang, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeBow, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeShield, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeBomb, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeWand, []int{0, 2, 10, 50}},
+	}
+
+	playerStats := player.GetCurrentStats()
+	playerUpgradeMaterials := player.GetFutureUpgrades()
+
+	upgrades := []Upgrade{}
+	for _, upgradeExp := range upgradeExps {
+		upgradeType := upgradeExp.UpgradeType
+		playerLevel := playerStats[upgradeType]
+		upgrade := Upgrade{
+			UpgradeType: upgradeType,
+			WeaponLevel: playerStats[upgradeType],
+			NeededExp:   upgradeExp.ExpLevels[playerLevel],
+			HasUpgrade:  playerUpgradeMaterials[upgradeType] > 0,
+		}
+		upgrades = append(upgrades, upgrade)
+	}
+	return upgrades
+}
+
+func NewUpgradeSelector(player core.Player) *UpgradeSelector {
 	windowX := float64(ScreenWidth-windowWidth) / 2.0
 	windowY := float64(ScreenHeight-windowHeight) / 2.0
 	currIdx := 0
-	// TODO: put these in same order as in weapon select
-	upgradeTypes := []core.UpgradeType{
-		core.UpgradeTypeNone,
-		core.UpgradeTypeHeart,
-		core.UpgradeTypeSword,
-		core.UpgradeTypeBoomerang,
-		core.UpgradeTypeBow,
-		core.UpgradeTypeShield,
-		core.UpgradeTypeBomb,
-		core.UpgradeTypeWand,
-	}
-	upgrades := []Upgrade{}
-	for i, upgradeType := range upgradeTypes {
-		upgrades = append(upgrades, Upgrade{UpgradeType: upgradeType, WeaponLevel: 1, NeededExp: 10 + 2*i})
-	}
+	upgrades := getPlayerUpgrades(player)
 	buttons := []*UpgradeButton{}
 	for i, u := range upgrades {
 		loc := core.Location{X: windowX + buttonGroupXOffset, Y: windowY + float64(buttonGroupYOffset+i*buttonSpacing)}
-		availableExp := 15
+		availableExp := player.GetExperience()
 		maxLevel := 3
-		hasUpgradeMaterials := true
+		hasUpgradeMaterials := u.HasUpgrade
 		button := NewUpgradeButton(
 			loc,
 			u.UpgradeType,
@@ -100,14 +120,25 @@ func (w *UpgradeSelector) Update(context *core.GameContext) []core.Action {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		return []core.Action{
 			{Type: core.ActionPopState},
+			{Type: core.ActionDoUpgrade, UpgradeType: w.upgrades[w.currIdx].UpgradeType},
 		}
 	}
 	numUpgrades := len(w.upgrades)
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
-		w.currIdx = (w.currIdx + numUpgrades - 1) % numUpgrades
+		for {
+			w.currIdx = (w.currIdx + numUpgrades - 1) % numUpgrades
+			if !w.buttons[w.currIdx].isDisabled {
+				break
+			}
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
-		w.currIdx = (w.currIdx + 1) % numUpgrades
+		for {
+			w.currIdx = (w.currIdx + 1) % numUpgrades
+			if !w.buttons[w.currIdx].isDisabled {
+				break
+			}
+		}
 	}
 
 	// TODO: this is a bit hacky.  Should have function to change button state
@@ -139,7 +170,7 @@ func NewUpgradeButton(
 	neededExp int, availableExp int) *UpgradeButton {
 
 	isDisabled := (upgradeType != core.UpgradeTypeNone) && (!hasUpgradeMaterials || neededExp > availableExp)
-	weaponImage := getIconImage(upgradeType, false, false)
+	weaponImage := getIconImage(upgradeType, false, isDisabled)
 	upgradeImage := getIconImage(upgradeType, true, !hasUpgradeMaterials)
 	return &UpgradeButton{
 		buttonBackground:    core.NewButton(core.Rect{Left: location.X, Top: location.Y, Right: location.X + buttonWidth, Bottom: location.Y + buttonHeight}),
@@ -162,7 +193,7 @@ func getIconIndex(upgradeType core.UpgradeType, isUpgrade bool, grayed bool) int
 		offset += uiIconTilesetWidth
 	}
 	if grayed {
-		offset += uiIconTilesetWidth
+		offset += 2 * uiIconTilesetWidth
 	}
 
 	switch upgradeType {
@@ -198,29 +229,36 @@ func drawIcon(screen *ebiten.Image, location core.Location, icon *ebiten.Image) 
 	screen.DrawImage(icon, op)
 }
 
+func getTextColor(isDisabled bool) color.RGBA {
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	gray := color.RGBA{R: 128, G: 128, B: 128, A: 255}
+	if isDisabled {
+		return gray
+	}
+	return white
+}
+
 func (b *UpgradeButton) Draw(screen *ebiten.Image) {
 	b.buttonBackground.Draw(screen)
-	textColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	grayedTextColor := color.RGBA{R: 128, G: 128, B: 128, A: 255}
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
 
 	if b.upgradeType == core.UpgradeTypeNone {
-		drawTextAt(screen, "no upgrade", b.location.X+18, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
+		drawTextAt(screen, "no upgrade", b.location.X+22, b.location.Y+buttonTextOffsetY, text.AlignStart, white)
 		return
 	}
 
-	weaponBoxLoc := core.Location{X: b.location.X + 1, Y: b.location.Y + buttonIconOffsetY}
+	weaponBoxLoc := core.Location{X: b.location.X + 3, Y: b.location.Y + buttonIconOffsetY}
 	drawIcon(screen, weaponBoxLoc, b.weaponImage)
 
 	levString := fmt.Sprintf("L%d/%d:", b.nextLevel, b.maxLevel)
-	drawTextAt(screen, levString, b.location.X+18, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
+	textColor := getTextColor(b.isDisabled)
+	drawTextAt(screen, levString, b.location.X+22, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
 
-	upgradeBoxLoc := core.Location{X: b.location.X + 48, Y: b.location.Y + buttonIconOffsetY}
+	upgradeBoxLoc := core.Location{X: b.location.X + 50, Y: b.location.Y + buttonIconOffsetY}
 	drawIcon(screen, upgradeBoxLoc, b.upgradeImage)
 
-	drawTextAt(screen, "+", b.location.X+64, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
+	drawTextAt(screen, "+", b.location.X+70, b.location.Y+buttonTextOffsetY, text.AlignStart, white)
 	expString := fmt.Sprintf("Exp: %d", b.neededExp)
-	if b.availableExp < b.neededExp {
-		textColor = grayedTextColor
-	}
-	drawTextAt(screen, expString, b.location.X+76, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
+	textColor = getTextColor(b.availableExp < b.neededExp)
+	drawTextAt(screen, expString, b.location.X+82, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
 }

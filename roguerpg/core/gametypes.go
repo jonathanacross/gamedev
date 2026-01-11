@@ -92,6 +92,7 @@ const (
 	ActionGainXP
 	ActionDropHeart
 	ActionShowChestItem
+	ActionDoUpgrade
 )
 
 type WeaponType int
@@ -118,10 +119,7 @@ const (
 	UpgradeTypeNone
 )
 
-type PlayerUpgrades struct {
-	Health  int
-	Weapons map[WeaponType]int
-}
+type PlayerUpgrades map[UpgradeType]int
 
 // Action is the generic struct returned by any GameObject
 // to signal an intent to change the game state.

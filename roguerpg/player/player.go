@@ -49,34 +49,30 @@ type Player struct {
 	pendingActions       []core.Action
 	pendingDamageSources []*core.DamageSource
 
-	currentStats   *core.PlayerUpgrades
-	futureUpgrades *core.PlayerUpgrades
+	currentStats   core.PlayerUpgrades
+	futureUpgrades core.PlayerUpgrades
 }
 
 func NewPlayer() *Player {
 	// Player starts with just a sword and 3 hearts
-	currentStats := &core.PlayerUpgrades{
-		Health: 3,
-		Weapons: map[core.WeaponType]int{
-			core.WeaponSword:     1,
-			core.WeaponBomb:      0,
-			core.WeaponBoomerang: 0,
-			core.WeaponShield:    0,
-			core.WeaponBow:       0,
-			core.WeaponWand:      0,
-		},
+	currentStats := core.PlayerUpgrades{
+		core.UpgradeTypeHeart:     3,
+		core.UpgradeTypeSword:     1,
+		core.UpgradeTypeBomb:      0,
+		core.UpgradeTypeBoomerang: 0,
+		core.UpgradeTypeShield:    0,
+		core.UpgradeTypeBow:       0,
+		core.UpgradeTypeWand:      0,
 	}
 	// Player has no upgrades yet
-	futureUpgrades := &core.PlayerUpgrades{
-		Health: 0,
-		Weapons: map[core.WeaponType]int{
-			core.WeaponSword:     0,
-			core.WeaponBomb:      0,
-			core.WeaponBoomerang: 0,
-			core.WeaponShield:    0,
-			core.WeaponBow:       0,
-			core.WeaponWand:      0,
-		},
+	futureUpgrades := core.PlayerUpgrades{
+		core.UpgradeTypeHeart:     0,
+		core.UpgradeTypeSword:     0,
+		core.UpgradeTypeBomb:      0,
+		core.UpgradeTypeBoomerang: 0,
+		core.UpgradeTypeShield:    0,
+		core.UpgradeTypeBow:       0,
+		core.UpgradeTypeWand:      0,
 	}
 
 	ssColumns := 8
@@ -249,29 +245,35 @@ func (p *Player) GetWeaponProgress(weaponType core.WeaponType) float64 {
 }
 
 func (p *Player) AddUpgrade(upgradeType core.UpgradeType) {
+	p.futureUpgrades[upgradeType]++
+}
+
+func (p *Player) DoUpgrade(upgradeType core.UpgradeType) {
+	if upgradeType == core.UpgradeTypeNone {
+		return
+	}
+	if p.futureUpgrades[upgradeType] <= 0 {
+		return
+	}
+	p.futureUpgrades[upgradeType]--
+	p.currentStats[upgradeType]++
+
 	switch upgradeType {
 	case core.UpgradeTypeHeart:
-		p.futureUpgrades.Health++
 		p.MaxHealth += 2
 		p.Health += 2
 	case core.UpgradeTypeSword:
-		p.futureUpgrades.Weapons[core.WeaponSword]++
-		p.weapons[core.WeaponSword].SetLevel(p.futureUpgrades.Weapons[core.WeaponSword])
+		p.weapons[core.WeaponSword].SetLevel(p.currentStats[core.UpgradeTypeSword])
 	case core.UpgradeTypeBomb:
-		p.futureUpgrades.Weapons[core.WeaponBomb]++
-		p.weapons[core.WeaponBomb].SetLevel(p.futureUpgrades.Weapons[core.WeaponBomb])
+		p.weapons[core.WeaponBomb].SetLevel(p.currentStats[core.UpgradeTypeBomb])
 	case core.UpgradeTypeBoomerang:
-		p.futureUpgrades.Weapons[core.WeaponBoomerang]++
-		p.weapons[core.WeaponBoomerang].SetLevel(p.futureUpgrades.Weapons[core.WeaponBoomerang])
+		p.weapons[core.WeaponBoomerang].SetLevel(p.currentStats[core.UpgradeTypeBoomerang])
 	case core.UpgradeTypeShield:
-		p.futureUpgrades.Weapons[core.WeaponShield]++
-		p.weapons[core.WeaponShield].SetLevel(p.futureUpgrades.Weapons[core.WeaponShield])
+		p.weapons[core.WeaponShield].SetLevel(p.currentStats[core.UpgradeTypeShield])
 	case core.UpgradeTypeBow:
-		p.futureUpgrades.Weapons[core.WeaponBow]++
-		p.weapons[core.WeaponBow].SetLevel(p.futureUpgrades.Weapons[core.WeaponBow])
+		p.weapons[core.WeaponBow].SetLevel(p.currentStats[core.UpgradeTypeBow])
 	case core.UpgradeTypeWand:
-		p.futureUpgrades.Weapons[core.WeaponWand]++
-		p.weapons[core.WeaponWand].SetLevel(p.futureUpgrades.Weapons[core.WeaponWand])
+		p.weapons[core.WeaponWand].SetLevel(p.currentStats[core.UpgradeTypeWand])
 	}
 }
 
@@ -389,7 +391,11 @@ func (p *Player) GetExperience() int {
 	return p.Experience
 }
 
-func (p *Player) GetUpgrades() *core.PlayerUpgrades {
+func (p *Player) GetCurrentStats() core.PlayerUpgrades {
+	return p.currentStats
+}
+
+func (p *Player) GetFutureUpgrades() core.PlayerUpgrades {
 	return p.futureUpgrades
 }
 

@@ -298,6 +298,8 @@ func (g *Game) executeActions(actions []core.Action) {
 			newChestItem := objects.NewChestItem(action.UpgradeType, action.Location)
 			g.Player.AddUpgrade(action.UpgradeType)
 			lvl.Objects = append(lvl.Objects, newChestItem)
+		case core.ActionDoUpgrade:
+			g.Player.DoUpgrade(action.UpgradeType)
 		default:
 		}
 	}
