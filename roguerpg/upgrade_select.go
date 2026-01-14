@@ -26,6 +26,7 @@ const (
 type Upgrade struct {
 	UpgradeType core.UpgradeType
 	WeaponLevel int
+	MaxLevel    int
 	NeededExp   int
 	HasUpgrade  bool
 }
@@ -46,11 +47,11 @@ type UpgradeExp struct {
 func getPlayerUpgrades(player core.Player) []Upgrade {
 	upgradeExps := []UpgradeExp{
 		{core.UpgradeTypeNone, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeHeart, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeHeart, []int{0, 0, 0, 0, 2, 10, 50}},
 		{core.UpgradeTypeSword, []int{0, 2, 10, 50}},
 		{core.UpgradeTypeBoomerang, []int{0, 2, 10, 50}},
 		{core.UpgradeTypeBow, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeShield, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeShield, []int{0, 2, 10}},
 		{core.UpgradeTypeBomb, []int{0, 2, 10, 50}},
 		{core.UpgradeTypeWand, []int{0, 2, 10, 50}},
 	}
@@ -65,6 +66,7 @@ func getPlayerUpgrades(player core.Player) []Upgrade {
 		upgrade := Upgrade{
 			UpgradeType: upgradeType,
 			WeaponLevel: playerStats[upgradeType],
+			MaxLevel:    len(upgradeExp.ExpLevels) - 1,
 			NeededExp:   upgradeExp.ExpLevels[playerLevel],
 			HasUpgrade:  playerUpgradeMaterials[upgradeType] > 0,
 		}
@@ -82,7 +84,7 @@ func NewUpgradeSelector(player core.Player) *UpgradeSelector {
 	for i, u := range upgrades {
 		loc := core.Location{X: windowX + buttonGroupXOffset, Y: windowY + float64(buttonGroupYOffset+i*buttonSpacing)}
 		availableExp := player.GetExperience()
-		maxLevel := 3
+		maxLevel := u.MaxLevel
 		hasUpgradeMaterials := u.HasUpgrade
 		button := NewUpgradeButton(
 			loc,
@@ -117,7 +119,13 @@ func (w *UpgradeSelector) Draw(screen *ebiten.Image, context *core.GameContext) 
 }
 
 func (w *UpgradeSelector) Update(context *core.GameContext) []core.Action {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		// Return without upgrading
+		return []core.Action{
+			{Type: core.ActionPopState},
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		return []core.Action{
 			{Type: core.ActionPopState},
 			{Type: core.ActionDoUpgrade, UpgradeType: w.upgrades[w.currIdx].UpgradeType},
@@ -154,7 +162,7 @@ type UpgradeButton struct {
 	location            core.Location
 	isDisabled          bool
 	upgradeType         core.UpgradeType
-	nextLevel           int
+	currLevel           int
 	maxLevel            int
 	hasUpgradeMaterials bool
 	neededExp           int
@@ -169,7 +177,9 @@ func NewUpgradeButton(
 	hasUpgradeMaterials bool,
 	neededExp int, availableExp int) *UpgradeButton {
 
-	isDisabled := (upgradeType != core.UpgradeTypeNone) && (!hasUpgradeMaterials || neededExp > availableExp)
+	haveUpgradeStuff := hasUpgradeMaterials && neededExp <= availableExp
+	isMaxedOut := nextLevel > maxLevel
+	isDisabled := (upgradeType != core.UpgradeTypeNone) && (!haveUpgradeStuff || isMaxedOut)
 	weaponImage := getIconImage(upgradeType, false, isDisabled)
 	upgradeImage := getIconImage(upgradeType, true, !hasUpgradeMaterials)
 	return &UpgradeButton{
@@ -177,7 +187,7 @@ func NewUpgradeButton(
 		location:            location,
 		isDisabled:          isDisabled,
 		upgradeType:         upgradeType,
-		nextLevel:           nextLevel,
+		currLevel:           nextLevel,
 		maxLevel:            maxLevel,
 		hasUpgradeMaterials: hasUpgradeMaterials,
 		neededExp:           neededExp,
@@ -250,9 +260,13 @@ func (b *UpgradeButton) Draw(screen *ebiten.Image) {
 	weaponBoxLoc := core.Location{X: b.location.X + 3, Y: b.location.Y + buttonIconOffsetY}
 	drawIcon(screen, weaponBoxLoc, b.weaponImage)
 
-	levString := fmt.Sprintf("L%d/%d:", b.nextLevel, b.maxLevel)
+	levString := fmt.Sprintf("L%d/%d:", b.currLevel, b.maxLevel)
 	textColor := getTextColor(b.isDisabled)
 	drawTextAt(screen, levString, b.location.X+22, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
+	if b.currLevel >= b.maxLevel {
+		drawTextAt(screen, "(max)", b.location.X+50, b.location.Y+buttonTextOffsetY, text.AlignStart, textColor)
+		return
+	}
 
 	upgradeBoxLoc := core.Location{X: b.location.X + 50, Y: b.location.Y + buttonIconOffsetY}
 	drawIcon(screen, upgradeBoxLoc, b.upgradeImage)

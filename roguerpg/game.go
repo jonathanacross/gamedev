@@ -77,7 +77,7 @@ func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {
 		actions = append(actions, action)
 	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		action := core.Action{
 			Type:      core.ActionPushState,
 			GameState: NewUpgradeSelector(player),
@@ -131,7 +131,7 @@ func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {
 	}
 
 	// Interact with objects
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		playerPushBox := player.GetPushBox()
 
 		// Check all objects for interaction
