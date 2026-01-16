@@ -295,11 +295,11 @@ func (g *Game) executeActions(actions []core.Action) {
 			newHeart := objects.NewHeart(action.Location)
 			lvl.Objects = append(lvl.Objects, newHeart)
 		case core.ActionShowChestItem:
-			newChestItem := objects.NewChestItem(action.UpgradeType, action.Location)
+			newChestItem := objects.NewChestItem(action.UpgradeType, action.Location, action.FirstFound)
 			g.Player.AddUpgrade(action.UpgradeType)
 			lvl.Objects = append(lvl.Objects, newChestItem)
 		case core.ActionDoUpgrade:
-			g.Player.DoUpgrade(action.UpgradeType)
+			g.Player.DoUpgrade(action.UpgradeType, action.UpgradeCost)
 		default:
 		}
 	}

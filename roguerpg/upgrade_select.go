@@ -46,8 +46,8 @@ type UpgradeExp struct {
 
 func getPlayerUpgrades(player core.Player) []Upgrade {
 	upgradeExps := []UpgradeExp{
-		{core.UpgradeTypeNone, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeHeart, []int{0, 0, 0, 0, 2, 10, 50}},
+		{core.UpgradeTypeNone, []int{999999}},
+		{core.UpgradeTypeHeart, []int{0, 0, 0, 2, 6, 18, 54}},
 		{core.UpgradeTypeSword, []int{0, 2, 10, 50}},
 		{core.UpgradeTypeBoomerang, []int{0, 2, 10, 50}},
 		{core.UpgradeTypeBow, []int{0, 2, 10, 50}},
@@ -127,8 +127,14 @@ func (w *UpgradeSelector) Update(context *core.GameContext) []core.Action {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		return []core.Action{
-			{Type: core.ActionPopState},
-			{Type: core.ActionDoUpgrade, UpgradeType: w.upgrades[w.currIdx].UpgradeType},
+			{
+				Type: core.ActionPopState,
+			},
+			{
+				Type:        core.ActionDoUpgrade,
+				UpgradeType: w.upgrades[w.currIdx].UpgradeType,
+				UpgradeCost: w.upgrades[w.currIdx].NeededExp,
+			},
 		}
 	}
 	numUpgrades := len(w.upgrades)

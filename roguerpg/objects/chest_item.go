@@ -18,19 +18,23 @@ type ChestItem struct {
 	timer       *core.Timer
 }
 
-func NewChestItem(upgradeType core.UpgradeType, location core.Location) *ChestItem {
+func NewChestItem(upgradeType core.UpgradeType, location core.Location, firstFound bool) *ChestItem {
 	spriteSheet := core.NewSpriteSheet(16, 16, 8, 3)
 	typeToIndex := map[core.UpgradeType]int{
-		core.UpgradeTypeHeart:     8,
-		core.UpgradeTypeSword:     9,
-		core.UpgradeTypeBoomerang: 10,
-		core.UpgradeTypeShield:    11,
-		core.UpgradeTypeBomb:      12,
-		core.UpgradeTypeBow:       13,
-		core.UpgradeTypeWand:      14,
+		core.UpgradeTypeHeart:     0,
+		core.UpgradeTypeSword:     1,
+		core.UpgradeTypeBoomerang: 2,
+		core.UpgradeTypeShield:    3,
+		core.UpgradeTypeBomb:      4,
+		core.UpgradeTypeBow:       5,
+		core.UpgradeTypeWand:      6,
 	}
 	startIdx := typeToIndex[upgradeType]
-
+	if !firstFound {
+		// If this isn't the first time we've seen this upgrade type,
+		// offset to show the upgrade version of the icon.
+		startIdx += 8
+	}
 	return &ChestItem{
 		BaseSprite: core.BaseSprite{
 			Loc:     location,

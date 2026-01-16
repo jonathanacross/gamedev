@@ -79,11 +79,14 @@ func (c *Chest) Update(level core.Level, p core.Player) core.UpdateResult {
 			c.State = ChestOpen
 		}
 		if !c.releasedItem {
+			upgradeType := c.Contents
+			firstFound := p.GetCurrentStats()[upgradeType] == 0
 			c.releasedItem = true
 			return core.UpdateResult{Actions: []core.Action{{
 				Type:        core.ActionShowChestItem,
 				Location:    c.Loc,
-				UpgradeType: c.Contents,
+				UpgradeType: upgradeType,
+				FirstFound:  firstFound,
 			}}}
 		}
 	case ChestOpen:

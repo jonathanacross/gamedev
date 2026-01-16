@@ -135,7 +135,9 @@ type Action struct {
 	Experience   int           // used for ActionGainXP
 	Target       Character     // used for ActionCreateStar
 	UpgradeType  UpgradeType   // used for ActionShowChestItem
+	FirstFound   bool          // used for ActionShowChestItem
 	Level        int           // used for weapon attacks
+	UpgradeCost  int           // used for ActionDoUpgrade
 }
 
 type UpdateResult struct {

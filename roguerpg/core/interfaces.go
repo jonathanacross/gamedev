@@ -79,7 +79,7 @@ type Player interface {
 	GetSecondaryWeapon() WeaponType
 	GetWeaponProgress(weapon WeaponType) float64
 	AddUpgrade(upgradeType UpgradeType)
-	DoUpgrade(upgradeType UpgradeType)
+	DoUpgrade(upgradeType UpgradeType, cost int)
 	GetCurrentStats() PlayerUpgrades
 	GetFutureUpgrades() PlayerUpgrades
 }

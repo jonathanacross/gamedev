@@ -254,18 +254,32 @@ func (p *Player) GetWeaponProgress(weaponType core.WeaponType) float64 {
 }
 
 func (p *Player) AddUpgrade(upgradeType core.UpgradeType) {
+	if upgradeType == core.UpgradeTypeNone {
+		return
+	}
+
 	p.futureUpgrades[upgradeType]++
+
+	if p.currentStats[upgradeType] == 0 {
+		// If the player doesn't have the weapon yet, give it to them immediately
+		p.DoUpgrade(upgradeType, 0)
+	}
 }
 
-func (p *Player) DoUpgrade(upgradeType core.UpgradeType) {
+func (p *Player) DoUpgrade(upgradeType core.UpgradeType, cost int) {
 	if upgradeType == core.UpgradeTypeNone {
 		return
 	}
 	if p.futureUpgrades[upgradeType] <= 0 {
 		return
 	}
+	if p.Experience < cost {
+		return
+	}
+
 	p.futureUpgrades[upgradeType]--
 	p.currentStats[upgradeType]++
+	p.Experience -= cost
 
 	switch upgradeType {
 	case core.UpgradeTypeHeart:
