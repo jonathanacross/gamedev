@@ -1,6 +1,7 @@
 package player
 
 import (
+	"fmt"
 	"image/color"
 	"roguerpg/assets"
 	"roguerpg/character"
@@ -253,50 +254,73 @@ func (p *Player) GetWeaponProgress(weaponType core.WeaponType) float64 {
 	return 0.0
 }
 
-func (p *Player) AddUpgrade(upgradeType core.UpgradeType) {
+func (p *Player) AddUpgrade(upgradeType core.UpgradeType) []core.Action {
 	if upgradeType == core.UpgradeTypeNone {
-		return
+		return []core.Action{}
 	}
 
 	p.futureUpgrades[upgradeType]++
 
 	if p.currentStats[upgradeType] == 0 {
 		// If the player doesn't have the weapon yet, give it to them immediately
-		p.DoUpgrade(upgradeType, 0)
+		return p.DoUpgrade(upgradeType, 0)
 	}
+
+	return []core.Action{}
 }
 
-func (p *Player) DoUpgrade(upgradeType core.UpgradeType, cost int) {
+func (p *Player) DoUpgrade(upgradeType core.UpgradeType, cost int) []core.Action {
 	if upgradeType == core.UpgradeTypeNone {
-		return
+		return []core.Action{}
 	}
 	if p.futureUpgrades[upgradeType] <= 0 {
-		return
+		return []core.Action{}
 	}
 	if p.Experience < cost {
-		return
+		return []core.Action{}
 	}
+
+	justObtained := p.currentStats[upgradeType] == 0
 
 	p.futureUpgrades[upgradeType]--
 	p.currentStats[upgradeType]++
 	p.Experience -= cost
 
+	upgradeName := ""
 	switch upgradeType {
 	case core.UpgradeTypeHeart:
 		p.MaxHealth += 2
 		p.Health += 2
+		upgradeName = "Life"
 	case core.UpgradeTypeSword:
 		p.weapons[core.WeaponSword].SetLevel(p.currentStats[core.UpgradeTypeSword])
+		upgradeName = "Sword"
 	case core.UpgradeTypeBomb:
 		p.weapons[core.WeaponBomb].SetLevel(p.currentStats[core.UpgradeTypeBomb])
+		upgradeName = "Bomb"
 	case core.UpgradeTypeBoomerang:
 		p.weapons[core.WeaponBoomerang].SetLevel(p.currentStats[core.UpgradeTypeBoomerang])
+		upgradeName = "Boomerang"
 	case core.UpgradeTypeShield:
 		p.weapons[core.WeaponShield].SetLevel(p.currentStats[core.UpgradeTypeShield])
+		upgradeName = "Shield"
 	case core.UpgradeTypeBow:
 		p.weapons[core.WeaponBow].SetLevel(p.currentStats[core.UpgradeTypeBow])
+		upgradeName = "Bow"
 	case core.UpgradeTypeWand:
 		p.weapons[core.WeaponWand].SetLevel(p.currentStats[core.UpgradeTypeWand])
+		upgradeName = "Wand"
+	}
+
+	upgradeMessage := fmt.Sprintf("Upgraded %s to level %d!", upgradeName, p.currentStats[upgradeType])
+	if justObtained {
+		upgradeMessage = fmt.Sprintf("Obtained %s!", upgradeName)
+	}
+	return []core.Action{
+		{
+			Type:    core.ActionShowMessage,
+			Message: upgradeMessage,
+		},
 	}
 }
 

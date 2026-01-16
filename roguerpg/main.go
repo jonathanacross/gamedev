@@ -177,12 +177,10 @@ func (g *Game) Update() error {
 
 	// Global Game-World Updates
 	if mainState, ok := activeState.(*MainGameState); ok {
-		// Access level, player, camera via the embedded Context field
 		for _, ds := range g.DamageSources {
 			mainState.handleDamageSource(ctx, ds)
 		}
 
-		// Use type assertions/helpers to update Level enemies/objects if context is holding core.Level
 		if lvl, ok := g.Level.(*level.Level); ok {
 			lvl.Enemies = g.cleanupDeadEnemies(lvl.Enemies)
 			lvl.Objects = g.cleanupObjects(lvl.Objects)
@@ -296,10 +294,14 @@ func (g *Game) executeActions(actions []core.Action) {
 			lvl.Objects = append(lvl.Objects, newHeart)
 		case core.ActionShowChestItem:
 			newChestItem := objects.NewChestItem(action.UpgradeType, action.Location, action.FirstFound)
-			g.Player.AddUpgrade(action.UpgradeType)
+			addUpgradeActions := g.Player.AddUpgrade(action.UpgradeType)
 			lvl.Objects = append(lvl.Objects, newChestItem)
+			g.executeActions(addUpgradeActions)
 		case core.ActionDoUpgrade:
-			g.Player.DoUpgrade(action.UpgradeType, action.UpgradeCost)
+			doUpgradeActions := g.Player.DoUpgrade(action.UpgradeType, action.UpgradeCost)
+			g.executeActions(doUpgradeActions)
+		case core.ActionShowMessage:
+			g.StateStack = append(g.StateStack, NewMessageWindow(action.Message))
 		default:
 		}
 	}

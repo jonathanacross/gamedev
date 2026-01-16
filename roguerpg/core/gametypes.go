@@ -93,6 +93,7 @@ const (
 	ActionDropHeart
 	ActionShowChestItem
 	ActionDoUpgrade
+	ActionShowMessage
 )
 
 type WeaponType int
@@ -138,6 +139,7 @@ type Action struct {
 	FirstFound   bool          // used for ActionShowChestItem
 	Level        int           // used for weapon attacks
 	UpgradeCost  int           // used for ActionDoUpgrade
+	Message      string        // used for ActionShowMessage
 }
 
 type UpdateResult struct {

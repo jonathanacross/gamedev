@@ -78,8 +78,8 @@ type Player interface {
 	GetPrimaryWeapon() WeaponType
 	GetSecondaryWeapon() WeaponType
 	GetWeaponProgress(weapon WeaponType) float64
-	AddUpgrade(upgradeType UpgradeType)
-	DoUpgrade(upgradeType UpgradeType, cost int)
+	AddUpgrade(upgradeType UpgradeType) []Action
+	DoUpgrade(upgradeType UpgradeType, cost int) []Action
 	GetCurrentStats() PlayerUpgrades
 	GetFutureUpgrades() PlayerUpgrades
 }
