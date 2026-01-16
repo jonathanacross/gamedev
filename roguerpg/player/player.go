@@ -117,6 +117,7 @@ func NewPlayer() *Player {
 	weaponMap[core.WeaponShield] = weapons.NewShield()
 	weaponMap[core.WeaponBomb] = weapons.NewBomb()
 	weaponMap[core.WeaponBoomerang] = weapons.NewBoomerang()
+	weaponMap[core.WeaponNone] = nil
 
 	return &Player{
 		BaseCharacter: character.BaseCharacter{
@@ -140,7 +141,7 @@ func NewPlayer() *Player {
 		state:               Idle,
 		direction:           core.Down,
 		primaryWeapon:       core.WeaponSword,
-		secondaryWeapon:     core.WeaponBoomerang,
+		secondaryWeapon:     core.WeaponNone,
 		currentStats:        currentStats,
 		futureUpgrades:      futureUpgrades,
 		weapons:             weaponMap,
@@ -204,25 +205,30 @@ func (p *Player) StopMoving() {
 	}
 }
 
-func (p *Player) attackWith(weaponType core.WeaponType) *core.Action {
+func (p *Player) attackWith(weaponType core.WeaponType) {
+	if p.weapons[weaponType] == nil {
+		return
+	}
+
 	if p.activeWeapon != nil && p.activeWeapon != p.weapons[weaponType] && p.activeWeapon.IsAttacking() {
-		return nil
+		return
 	}
 
 	if weapon, ok := p.weapons[weaponType]; ok {
 		p.activeWeapon = weapon
 		weapon.OnAttack(p)
-		return nil
+		return
 	}
-	return nil
 }
 
 func (p *Player) PrimaryAttack() *core.Action {
-	return p.attackWith(p.primaryWeapon)
+	p.attackWith(p.primaryWeapon)
+	return nil
 }
 
 func (p *Player) SecondaryAttack() *core.Action {
-	return p.attackWith(p.secondaryWeapon)
+	p.attackWith(p.secondaryWeapon)
+	return nil
 }
 
 func (p *Player) SwitchWeapon(weapon core.WeaponType) {
@@ -239,6 +245,9 @@ func (p *Player) GetSecondaryWeapon() core.WeaponType {
 
 func (p *Player) GetWeaponProgress(weaponType core.WeaponType) float64 {
 	if weapon, ok := p.weapons[weaponType]; ok {
+		if weapon == nil {
+			return 0.0
+		}
 		return weapon.GetCooldownProgress()
 	}
 	return 0.0
@@ -425,6 +434,9 @@ func (p *Player) Update(level core.Level, _ core.Player) core.UpdateResult {
 	p.SrcRect = p.spriteSheet.Rect(animation.Frame())
 
 	for _, w := range p.weapons {
+		if w == nil {
+			continue
+		}
 		w.Update(p, level)
 	}
 

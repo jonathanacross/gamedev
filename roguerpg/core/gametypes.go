@@ -104,6 +104,7 @@ const (
 	WeaponShield
 	WeaponBow
 	WeaponWand
+	WeaponNone
 )
 
 type UpgradeType int

@@ -72,7 +72,7 @@ func (mg *MainGameState) handleInput(ctx *core.GameContext) []core.Action {
 	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		action := core.Action{
 			Type:      core.ActionPushState,
-			GameState: WeaponSelectorInstance,
+			GameState: NewWeaponSelector(player),
 		}
 		actions = append(actions, action)
 	}

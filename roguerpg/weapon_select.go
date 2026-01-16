@@ -18,15 +18,21 @@ type WeaponSelector struct {
 	secondaryWeapons []*WeaponBox
 }
 
-var WeaponSelectorInstance *WeaponSelector = NewWeaponSelector()
+func getWeaponType(player core.Player, upgradeType core.UpgradeType, weaponType core.WeaponType) core.WeaponType {
+	playerStats := player.GetCurrentStats()
+	if playerStats[upgradeType] > 0 {
+		return weaponType
+	}
+	return core.WeaponNone
+}
 
-func NewWeaponSelector() *WeaponSelector {
+func NewWeaponSelector(player core.Player) *WeaponSelector {
 	weaponTable := []core.WeaponType{
-		core.WeaponBoomerang,
-		core.WeaponBomb,
-		core.WeaponShield,
-		core.WeaponBow,
-		core.WeaponWand,
+		getWeaponType(player, core.UpgradeTypeBoomerang, core.WeaponBoomerang),
+		getWeaponType(player, core.UpgradeTypeBomb, core.WeaponBomb),
+		getWeaponType(player, core.UpgradeTypeShield, core.WeaponShield),
+		getWeaponType(player, core.UpgradeTypeBow, core.WeaponBow),
+		getWeaponType(player, core.UpgradeTypeWand, core.WeaponWand),
 	}
 
 	windowX := float64(ScreenWidth-assets.UiWeaponSelectWindowImage.Bounds().Dx()) / 2.0
