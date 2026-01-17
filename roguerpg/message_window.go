@@ -3,6 +3,7 @@ package main
 import (
 	"image/color"
 	"roguerpg/core"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -12,12 +13,15 @@ import (
 const (
 	messageWindowWidth  = 200
 	messageWindowHeight = 40
+
+	autoCloseDelay = 1500 * time.Millisecond
 )
 
 // Implements GameState
 type MessageWindow struct {
-	Window  *core.Window
-	message string
+	Window         *core.Window
+	message        string
+	autoCloseTimer *core.Timer
 }
 
 func NewMessageWindow(message string) *MessageWindow {
@@ -31,7 +35,8 @@ func NewMessageWindow(message string) *MessageWindow {
 			Right:  windowX + messageWindowWidth,
 			Bottom: windowY + messageWindowHeight,
 		}),
-		message: message,
+		message:        message,
+		autoCloseTimer: core.NewTimer(autoCloseDelay),
 	}
 }
 
@@ -43,6 +48,12 @@ func (w *MessageWindow) Draw(screen *ebiten.Image, context *core.GameContext) {
 }
 
 func (w *MessageWindow) Update(context *core.GameContext) []core.Action {
+	w.autoCloseTimer.Update()
+	if w.autoCloseTimer.IsReady() {
+		return []core.Action{
+			{Type: core.ActionPopState},
+		}
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) ||
 		inpututil.IsKeyJustPressed(ebiten.KeyTab) ||
 		inpututil.IsKeyJustPressed(ebiten.KeyEnter) ||
