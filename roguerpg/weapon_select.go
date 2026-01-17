@@ -1,17 +1,23 @@
 package main
 
 import (
+	"image/color"
 	"roguerpg/assets"
 	"roguerpg/core"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+)
+
+const (
+	weaponSelectWindowWidth  = 148
+	weaponSelectWindowHeight = 72
 )
 
 // Implements GameState
 type WeaponSelector struct {
-	windowImage      *ebiten.Image
-	windowLoc        core.Location
+	Window           *core.Window
 	weaponIndex      int
 	weaponTable      []core.WeaponType
 	primaryWeapon    *WeaponBox
@@ -35,12 +41,12 @@ func NewWeaponSelector(player core.Player) *WeaponSelector {
 		getWeaponType(player, core.UpgradeTypeWand, core.WeaponWand),
 	}
 
-	windowX := float64(ScreenWidth-assets.UiWeaponSelectWindowImage.Bounds().Dx()) / 2.0
-	windowY := float64(ScreenHeight-assets.UiWeaponSelectWindowImage.Bounds().Dy()) / 2.0
+	windowX := float64(ScreenWidth-weaponSelectWindowWidth) / 2.0
+	windowY := float64(ScreenHeight-weaponSelectWindowHeight) / 2.0
 
 	firstStart := 8
 	xStart := 40
-	yStart := 36
+	yStart := 40
 	weaponSpacing := assets.UiSelectRectImage.Bounds().Dx()
 
 	primaryWeapon := NewWeaponBox(core.Location{
@@ -48,15 +54,28 @@ func NewWeaponSelector(player core.Player) *WeaponSelector {
 		Y: windowY + float64(yStart)},
 		core.WeaponSword, false)
 	secondaryWeapons := []*WeaponBox{}
+	weaponIndex := 0
+	foundWeapon := false
+	currentWeapon := player.GetSecondaryWeapon()
 	for i, weapon := range weaponTable {
 		wb := NewWeaponBox(
 			core.Location{X: windowX + float64(xStart+i*weaponSpacing),
 				Y: windowY + float64(yStart)}, weapon, false)
 		secondaryWeapons = append(secondaryWeapons, wb)
+
+		if weapon == currentWeapon && !foundWeapon {
+			weaponIndex = i
+			foundWeapon = true
+		}
 	}
 	return &WeaponSelector{
-		windowImage:      assets.UiWeaponSelectWindowImage,
-		windowLoc:        core.Location{X: windowX, Y: windowY},
+		Window: core.NewWindow(core.Rect{
+			Left:   windowX,
+			Top:    windowY,
+			Right:  windowX + weaponSelectWindowWidth,
+			Bottom: windowY + weaponSelectWindowHeight,
+		}),
+		weaponIndex:      weaponIndex,
 		weaponTable:      weaponTable,
 		primaryWeapon:    primaryWeapon,
 		secondaryWeapons: secondaryWeapons,
@@ -64,10 +83,17 @@ func NewWeaponSelector(player core.Player) *WeaponSelector {
 }
 
 func (w *WeaponSelector) Draw(screen *ebiten.Image, context *core.GameContext) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(w.windowLoc.X, w.windowLoc.Y)
+	w.Window.Draw(screen)
 
-	screen.DrawImage(w.windowImage, op)
+	// Draw Text
+	titleLoc := core.Location{X: w.Window.Rect.Left + 8, Y: w.Window.Rect.Top + 8}
+	drawTextAt(screen, "Select your weapon", titleLoc.X, titleLoc.Y, text.AlignStart, color.White)
+
+	primaryButtonLoc := core.Location{X: w.Window.Rect.Left + 14, Y: w.Window.Rect.Top + 24}
+	drawTextAt(screen, "X", primaryButtonLoc.X, primaryButtonLoc.Y, text.AlignStart, color.White)
+
+	secondaryButtonLoc := core.Location{X: w.Window.Rect.Left + 80, Y: w.Window.Rect.Top + 24}
+	drawTextAt(screen, "Z", secondaryButtonLoc.X, secondaryButtonLoc.Y, text.AlignStart, color.White)
 
 	// Draw sword
 	w.primaryWeapon.Draw(screen)

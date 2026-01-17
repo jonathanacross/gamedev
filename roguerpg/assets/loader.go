@@ -45,7 +45,6 @@ var ChestSpritesImage = loadImage("objects/chest.png")
 var HeartSpritesImage = loadImage("objects/heart.png")
 
 var UiHealthHeartImage = loadImage("ui/heart.png")
-var UiWeaponSelectWindowImage = loadImage("ui/weapon_select_window.png")
 var UiIconsImage = loadImage("ui/icons.png")
 var UiSelectRectImage = loadImage("ui/select_rect.png")
 
