@@ -13,6 +13,11 @@ const (
 	vertical = 2
 )
 
+const (
+	terrainSheetCols = 16
+	terrainSheetRows = 3
+)
+
 type LevelBlueprint struct {
 	Width   int
 	Height  int
@@ -324,9 +329,9 @@ func BuildLevelBlueprint(width, height int) *LevelBlueprint {
 func (lb *LevelBlueprint) GetSheetIdxForTerrain(x, y int) int {
 	switch lb.Squares[y][x] {
 	case floor:
-		return rand.IntN(5) + 5
+		return rand.IntN(terrainSheetCols) + terrainSheetCols
 	case wall:
-		return 10
+		return 2 * terrainSheetCols
 	case vertical:
 		return rand.IntN(3) + 0
 	default:
@@ -393,7 +398,7 @@ func BuildLevel(width, height int) *Level {
 	blueprint := BuildLevelBlueprint(width, height)
 	terrainTiles := [][]*core.Tile{}
 
-	terrainSpriteSheet := core.NewSpriteSheet(core.TileSize, core.TileSize, 5, 3)
+	terrainSpriteSheet := core.NewSpriteSheet(core.TileSize, core.TileSize, terrainSheetCols, terrainSheetRows)
 	wallEdgeBlobSpriteSheet := core.NewBlobSpriteSheet(core.TileSize, core.TileSize)
 
 	for y := 0; y < blueprint.Height; y++ {
