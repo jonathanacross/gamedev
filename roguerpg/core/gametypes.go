@@ -94,6 +94,8 @@ const (
 	ActionShowChestItem
 	ActionDoUpgrade
 	ActionShowMessage
+	ActionStartGame
+	ActionReturnToTitle
 )
 
 type WeaponType int

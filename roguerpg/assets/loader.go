@@ -47,6 +47,7 @@ var HeartSpritesImage = loadImage("objects/heart.png")
 var UiHealthHeartImage = loadImage("ui/heart.png")
 var UiIconsImage = loadImage("ui/icons.png")
 var UiSelectRectImage = loadImage("ui/select_rect.png")
+var TitleScreenImage = loadImage("ui/title_screen.png")
 
 var TextFaceSource = loadFaceSource("m5x7.ttf")
 

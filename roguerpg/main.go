@@ -149,19 +149,23 @@ func buildLevels() []*level.Level {
 	return levels
 }
 
-func NewGame() *Game {
+func createInitialGameContext() core.GameContext {
 	levels := buildLevels()
 	p := player.NewPlayer()
 	p.SetLocation(levels[0].FindRandomFloorLocation())
 
+	return core.GameContext{
+		Level:         levels[0],
+		Player:        p,
+		Camera:        NewCamera(ScreenWidth, ScreenHeight), // Camera is in main (camera.go is main package)
+		DamageSources: []*core.DamageSource{},
+	}
+}
+
+func NewGame() *Game {
 	return &Game{
-		GameContext: core.GameContext{
-			Level:         levels[0],
-			Player:        p,
-			Camera:        NewCamera(ScreenWidth, ScreenHeight), // Camera is in main (camera.go is main package)
-			DamageSources: []*core.DamageSource{},
-		},
-		StateStack: []core.GameState{&MainGameState{}},
+		GameContext: createInitialGameContext(),
+		StateStack:  []core.GameState{&TitleScreenState{}},
 	}
 }
 
@@ -302,6 +306,13 @@ func (g *Game) executeActions(actions []core.Action) {
 			g.executeActions(doUpgradeActions)
 		case core.ActionShowMessage:
 			g.StateStack = append(g.StateStack, NewMessageWindow(action.Message))
+		case core.ActionStartGame:
+			// Reset game state
+			g.GameContext = createInitialGameContext()
+			// Switch to MainGameState
+			g.StateStack = []core.GameState{&MainGameState{}}
+		case core.ActionReturnToTitle:
+			g.StateStack = []core.GameState{&TitleScreenState{}}
 		default:
 		}
 	}
