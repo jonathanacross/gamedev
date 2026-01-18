@@ -48,18 +48,7 @@ func (level *Level) IsTileSolid(tx, ty int) bool {
 	return level.Tiles[ty][tx].Solid
 }
 
-func (level *Level) FindRandomFloorLocation() core.Location {
-	for {
-		x := rand.Intn(level.WidthInTiles)
-		y := rand.Intn(level.HeightInTiles)
-		tile := level.Tiles[y][x]
-		if !tile.Solid {
-			return level.TileToWorld(x, y)
-		}
-	}
-}
-
-func (level *Level) FindRandomEmptyFloorLocation(objects []core.GameObject) core.Location {
+func (level *Level) FindValidLocation(validator func(core.Location) bool) core.Location {
 	for {
 		x := rand.Intn(level.WidthInTiles)
 		y := rand.Intn(level.HeightInTiles)
@@ -68,22 +57,66 @@ func (level *Level) FindRandomEmptyFloorLocation(objects []core.GameObject) core
 			continue
 		}
 
-		occupied := false
+		location := level.TileToWorld(x, y)
+		if validator(location) {
+			return location
+		}
+	}
+}
+
+func (level *Level) FindRandomFloorLocation() core.Location {
+	return level.FindValidLocation(func(l core.Location) bool {
+		return true
+	})
+}
+
+func (level *Level) FindRandomEmptyFloorLocation(objects []core.GameObject) core.Location {
+	return level.FindValidLocation(func(location core.Location) bool {
+		x, y := level.WorldToTile(location)
 		for _, obj := range objects {
 			if physObj, ok := obj.(core.PhysicalObject); ok {
 				loc := physObj.Location()
 				tx, ty := level.WorldToTile(loc)
 				if tx == x && ty == y {
-					occupied = true
-					break
+					return false
 				}
 			}
 		}
+		return true
+	})
+}
 
-		if !occupied {
-			return level.TileToWorld(x, y)
+// AreNeighborsFree checks if the tile at (centerTx, centerTy) and all 8 surrounding tiles are not solid
+func (level *Level) AreNeighborsFree(centerTx, centerTy int) bool {
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			if level.IsTileSolid(centerTx+dx, centerTy+dy) {
+				return false
+			}
 		}
 	}
+	return true
+}
+
+func (level *Level) IsLocationOccupiedByEnemy(loc core.Location) bool {
+	tx, ty := level.WorldToTile(loc)
+	for _, e := range level.Enemies {
+		ex, ey := level.WorldToTile(e.Location())
+		if ex == tx && ey == ty {
+			return true
+		}
+	}
+	return false
+}
+
+func (level *Level) IsLocationTooCloseTo(loc core.Location, targets []core.Location, minDist float64) bool {
+	for _, target := range targets {
+		d := core.Vector(loc).Minus(core.Vector(target)).Length()
+		if d <= minDist {
+			return true
+		}
+	}
+	return false
 }
 
 // Returns the nearest enemy to the given location within the maxDist

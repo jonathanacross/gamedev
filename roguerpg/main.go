@@ -67,11 +67,34 @@ func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
 	}
 	dist := core.NewDiscreteDistribution(eventDist)
 
+	getStairLocations := func() []core.Location {
+		locs := []core.Location{}
+		for _, obj := range lvl.Objects {
+			if _, ok := obj.(*objects.Stairs); ok {
+				locs = append(locs, obj.(core.PhysicalObject).Location())
+			}
+		}
+		return locs
+	}
+	stairLocs := getStairLocations()
+
 	for range numEnemies {
-		pos := lvl.FindRandomFloorLocation()
+		pos := lvl.FindValidLocation(func(loc core.Location) bool {
+			if lvl.IsLocationOccupiedByEnemy(loc) {
+				return false
+			}
+			minDist := 2.0 * float64(core.TileSize)
+			if lvl.IsLocationTooCloseTo(loc, stairLocs, minDist) {
+				return false
+			}
+
+			return true
+		})
+
 		enemyId := dist.Sample()
 		var newEnemy core.Character
-		newEnemy = enemy.NewGolemEnemy(pos)
+		// Default
+		newEnemy = enemy.NewBatEnemy(pos)
 
 		switch enemyId {
 		case 0:
@@ -88,14 +111,28 @@ func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
 			newEnemy = enemy.NewLichEnemy(pos)
 		default:
 			log.Printf("Invalid enemy type: %d", enemyId)
-			newEnemy = enemy.NewBatEnemy(pos)
 		}
 		lvl.Enemies = append(lvl.Enemies, newEnemy)
 	}
 
 	// Add the golem on the final level
 	if difficulty == 4 {
-		pos := lvl.FindRandomFloorLocation()
+		pos := lvl.FindValidLocation(func(loc core.Location) bool {
+			if lvl.IsLocationOccupiedByEnemy(loc) {
+				return false
+			}
+			// Golem should be in an open area
+			tx, ty := lvl.WorldToTile(loc)
+			if !lvl.AreNeighborsFree(tx, ty) {
+				return false
+			}
+			minDist := 2.0 * float64(core.TileSize)
+			if lvl.IsLocationTooCloseTo(loc, stairLocs, minDist) {
+				return false
+			}
+			return true
+		})
+
 		golem := enemy.NewGolemEnemy(pos)
 		lvl.Enemies = append(lvl.Enemies, golem)
 	}
@@ -151,7 +188,21 @@ func buildLevels() []*level.Level {
 func createInitialGameContext() core.GameContext {
 	levels := buildLevels()
 	p := player.NewPlayer()
-	p.SetLocation(levels[0].FindRandomFloorLocation())
+
+	firstLevel := levels[0]
+	// Place player away from enemies
+	playerStart := firstLevel.FindValidLocation(func(loc core.Location) bool {
+		minDist := 2.0 * float64(core.TileSize)
+		enemyLocs := make([]core.Location, len(firstLevel.Enemies))
+		for i, e := range firstLevel.Enemies {
+			enemyLocs[i] = e.Location()
+		}
+		if firstLevel.IsLocationTooCloseTo(loc, enemyLocs, minDist) {
+			return false
+		}
+		return true
+	})
+	p.SetLocation(playerStart)
 
 	return core.GameContext{
 		Level:         levels[0],
