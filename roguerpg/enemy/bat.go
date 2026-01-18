@@ -19,6 +19,9 @@ const (
 	// Movement constants
 	BatMoveSpeed         float64 = 0.8
 	BatVelocityFrequency float64 = 0.05
+
+	BatHp  int = 4
+	BatExp int = 4
 )
 
 type BatEnemy struct {
@@ -75,9 +78,9 @@ func NewBatEnemy(startLoc core.Location) *BatEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          3,
-			MaxHealth:       3,
-			Experience:      3,
+			Health:          BatHp,
+			MaxHealth:       BatHp,
+			Experience:      BatExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},

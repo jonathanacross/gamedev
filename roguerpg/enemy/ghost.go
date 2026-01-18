@@ -22,6 +22,9 @@ const (
 	GhostAttractSpeed  float64 = 0.7
 	GhostXFrequency    float64 = 0.02 // radians per frame
 	GhostYFrequency    float64 = 0.03 // radians per frame
+
+	GhostHp  int = 5
+	GhostExp int = 5
 )
 
 type GhostEnemy struct {
@@ -82,9 +85,9 @@ func NewGhostEnemy(startLoc core.Location) *GhostEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          5,
-			MaxHealth:       5,
-			Experience:      5,
+			Health:          GhostHp,
+			MaxHealth:       GhostHp,
+			Experience:      GhostExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},

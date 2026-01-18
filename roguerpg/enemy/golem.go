@@ -23,6 +23,9 @@ const (
 	GolemWalkSpeed        float64       = 0.6
 	GolemTurnFrames       int           = 60 * 3 // every 3 seconds
 	GolemThrowBoulderTime time.Duration = 1 * time.Second
+
+	GolemHp  int = 80
+	GolemExp int = 80
 )
 
 type GolemEnemy struct {
@@ -117,9 +120,9 @@ func NewGolemEnemy(startLoc core.Location) *GolemEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          5,
-			MaxHealth:       5,
-			Experience:      6,
+			Health:          GolemHp,
+			MaxHealth:       GolemHp,
+			Experience:      GolemExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},

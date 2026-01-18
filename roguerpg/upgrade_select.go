@@ -46,14 +46,14 @@ type UpgradeExp struct {
 
 func getPlayerUpgrades(player core.Player) []Upgrade {
 	upgradeExps := []UpgradeExp{
-		{core.UpgradeTypeNone, []int{999999}},
-		{core.UpgradeTypeHeart, []int{0, 0, 0, 2, 6, 18, 54}},
-		{core.UpgradeTypeSword, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeBoomerang, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeBow, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeShield, []int{0, 2, 10}},
-		{core.UpgradeTypeBomb, []int{0, 2, 10, 50}},
-		{core.UpgradeTypeWand, []int{0, 2, 10, 50}},
+		{core.UpgradeTypeNone, []int{9999}},
+		{core.UpgradeTypeHeart, []int{0, 0, 0, 10, 20, 30, 40}},
+		{core.UpgradeTypeSword, []int{0, 10, 100, 9999}},
+		{core.UpgradeTypeBoomerang, []int{0, 10, 60, 9999}},
+		{core.UpgradeTypeBow, []int{0, 10, 100, 9999}},
+		{core.UpgradeTypeShield, []int{0, 10, 50}},
+		{core.UpgradeTypeBomb, []int{0, 10, 100, 9999}},
+		{core.UpgradeTypeWand, []int{0, 15, 150, 9999}},
 	}
 
 	playerStats := player.GetCurrentStats()

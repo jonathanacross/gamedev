@@ -19,6 +19,9 @@ const (
 	// Movement constants
 	BlobMoveSpeed float64 = 0.5
 	MaxWaitFrames int     = 60 // Max 1 second wait (up to 60 frames)
+
+	BlobHp  int = 3
+	BlobExp int = 3
 )
 
 type BlobEnemy struct {
@@ -64,9 +67,9 @@ func NewBlobEnemy(startLoc core.Location) *BlobEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          3,
-			MaxHealth:       3,
-			Experience:      2,
+			Health:          BlobHp,
+			MaxHealth:       BlobHp,
+			Experience:      BlobExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},

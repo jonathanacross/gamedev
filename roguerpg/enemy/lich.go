@@ -25,6 +25,9 @@ const (
 	LichTurnFrames int     = 60 * 3 // every 3 seconds
 
 	LichFireCooldown time.Duration = 3000 * time.Millisecond
+
+	LichHp  int = 20
+	LichExp int = 20
 )
 
 type LichEnemy struct {
@@ -98,9 +101,9 @@ func NewLichEnemy(startLoc core.Location) *LichEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          5,
-			MaxHealth:       5,
-			Experience:      6,
+			Health:          LichHp,
+			MaxHealth:       LichHp,
+			Experience:      LichExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},

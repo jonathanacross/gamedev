@@ -23,6 +23,9 @@ const (
 	GoblinWalkSpeed  float64 = 0.6
 	GoblinRunSpeed   float64 = 1.2
 	GoblinTurnFrames int     = 60 * 3 // every 3 seconds
+
+	GoblinHp  int = 10
+	GoblinExp int = 10
 )
 
 type GoblinEnemy struct {
@@ -120,9 +123,9 @@ func NewGoblinEnemy(startLoc core.Location) *GoblinEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          5,
-			MaxHealth:       5,
-			Experience:      6,
+			Health:          GoblinHp,
+			MaxHealth:       GoblinHp,
+			Experience:      GoblinExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},

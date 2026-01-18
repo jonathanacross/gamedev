@@ -39,7 +39,7 @@ func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 	}
 
 	// Add Chests
-	numChests := 10
+	numChests := 2
 	for range numChests {
 		upgradeType := core.UpgradeType(rand.IntN(7))
 		pos := lvl.FindRandomFloorLocation()

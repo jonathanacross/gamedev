@@ -23,6 +23,9 @@ const (
 	SpikeTurtleFlipDuration time.Duration = 4000 * time.Millisecond
 	// Delay after a hit before registering another hit
 	SpikeTurtleHitDuration time.Duration = 100 * time.Millisecond
+
+	SpikeTurtleHp  int = 7
+	SpikeTurtleExp int = 7
 )
 
 type SpikeTurtleEnemy struct {
@@ -74,9 +77,9 @@ func NewSpikeTurtleEnemy(startLoc core.Location) *SpikeTurtleEnemy {
 				},
 				PushBoxOffset: hitbox,
 			},
-			Health:          3,
-			MaxHealth:       3,
-			Experience:      3,
+			Health:          SpikeTurtleHp,
+			MaxHealth:       SpikeTurtleHp,
+			Experience:      SpikeTurtleExp,
 			Dead:            false,
 			KnockbackFrames: 0,
 		},
