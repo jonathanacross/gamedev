@@ -32,6 +32,7 @@ func (t *Timer) Reset() {
 	t.currentTicks = 0
 }
 
+// TODO: rename to PercentDone?
 func (t *Timer) GetProgress() float64 {
 	return float64(t.currentTicks) / float64(t.targetTicks)
 }

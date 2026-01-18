@@ -15,10 +15,15 @@ type TitleScreenState struct {
 }
 
 func (t *TitleScreenState) Update(context *core.GameContext) []core.Action {
-	// Check for any key press to start the game
 	if len(inpututil.AppendJustPressedKeys(nil)) > 0 {
 		return []core.Action{
-			{Type: core.ActionStartGame},
+			{
+				Type: core.ActionPushState,
+				GameState: NewFadeOutState([]core.Action{
+					{Type: core.ActionStartGame}, // Clears the stack and adds MainGameState
+					{Type: core.ActionPushState, GameState: NewFadeInState()},
+				}),
+			},
 		}
 	}
 	return nil

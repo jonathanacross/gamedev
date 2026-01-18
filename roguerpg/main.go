@@ -204,10 +204,13 @@ func createInitialGameContext() core.GameContext {
 	})
 	p.SetLocation(playerStart)
 
+	cam := NewCamera(ScreenWidth, ScreenHeight)
+	cam.CenterOn(playerStart)
+
 	return core.GameContext{
 		Level:         levels[0],
 		Player:        p,
-		Camera:        NewCamera(ScreenWidth, ScreenHeight), // Camera is in main (camera.go is main package)
+		Camera:        cam,
 		DamageSources: []*core.DamageSource{},
 	}
 }
@@ -271,6 +274,7 @@ func (g *Game) GoDownLevel() {
 			newLoc = newLvl.FindRandomFloorLocation()
 		}
 		g.Player.SetLocation(newLoc)
+		g.Camera.CenterOn(newLoc)
 	}
 }
 
@@ -290,6 +294,7 @@ func (g *Game) GoUpLevel() {
 			newLoc = newLvl.FindRandomFloorLocation()
 		}
 		g.Player.SetLocation(newLoc)
+		g.Camera.CenterOn(newLoc)
 	}
 }
 
