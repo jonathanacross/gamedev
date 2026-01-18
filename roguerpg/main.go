@@ -29,12 +29,12 @@ type Game struct {
 // AddObjectsToLevel populates the level with objects (stairs, chests).
 func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 	if !isFirstLevel {
-		pos := lvl.FindRandomFloorLocation()
+		pos := lvl.FindRandomEmptyFloorLocation(lvl.Objects)
 		lvl.Objects = append(lvl.Objects, objects.NewStairs(pos, true))
 	}
 
 	if !isFinalLevel {
-		pos := lvl.FindRandomFloorLocation()
+		pos := lvl.FindRandomEmptyFloorLocation(lvl.Objects)
 		lvl.Objects = append(lvl.Objects, objects.NewStairs(pos, false))
 	}
 
@@ -42,7 +42,7 @@ func AddObjectsToLevel(lvl *level.Level, isFirstLevel, isFinalLevel bool) {
 	numChests := 2
 	for range numChests {
 		upgradeType := core.UpgradeType(rand.IntN(7))
-		pos := lvl.FindRandomFloorLocation()
+		pos := lvl.FindRandomEmptyFloorLocation(lvl.Objects)
 		lvl.Objects = append(lvl.Objects, objects.NewChest(pos, upgradeType))
 	}
 }
@@ -70,7 +70,6 @@ func AddEnemiesToLevel(lvl *level.Level, difficulty int) {
 	for range numEnemies {
 		pos := lvl.FindRandomFloorLocation()
 		enemyId := dist.Sample()
-		// enemyType := rand.IntN(7)
 		var newEnemy core.Character
 		newEnemy = enemy.NewGolemEnemy(pos)
 
@@ -307,9 +306,7 @@ func (g *Game) executeActions(actions []core.Action) {
 		case core.ActionShowMessage:
 			g.StateStack = append(g.StateStack, NewMessageWindow(action.Message))
 		case core.ActionStartGame:
-			// Reset game state
 			g.GameContext = createInitialGameContext()
-			// Switch to MainGameState
 			g.StateStack = []core.GameState{&MainGameState{}}
 		case core.ActionReturnToTitle:
 			g.StateStack = []core.GameState{&TitleScreenState{}}

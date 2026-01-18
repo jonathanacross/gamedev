@@ -59,6 +59,33 @@ func (level *Level) FindRandomFloorLocation() core.Location {
 	}
 }
 
+func (level *Level) FindRandomEmptyFloorLocation(objects []core.GameObject) core.Location {
+	for {
+		x := rand.Intn(level.WidthInTiles)
+		y := rand.Intn(level.HeightInTiles)
+		tile := level.Tiles[y][x]
+		if tile.Solid {
+			continue
+		}
+
+		occupied := false
+		for _, obj := range objects {
+			if physObj, ok := obj.(core.PhysicalObject); ok {
+				loc := physObj.Location()
+				tx, ty := level.WorldToTile(loc)
+				if tx == x && ty == y {
+					occupied = true
+					break
+				}
+			}
+		}
+
+		if !occupied {
+			return level.TileToWorld(x, y)
+		}
+	}
+}
+
 // Returns the nearest enemy to the given location within the maxDist
 // If no enemy is found within the maxDist, returns nil
 func (level *Level) FindNearestEnemy(location core.Location, maxDist float64) core.Character {
