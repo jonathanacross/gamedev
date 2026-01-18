@@ -96,6 +96,8 @@ const (
 	ActionShowMessage
 	ActionStartGame
 	ActionReturnToTitle
+	ActionInternalGoUpLevel
+	ActionInternalGoDownLevel
 )
 
 type WeaponType int

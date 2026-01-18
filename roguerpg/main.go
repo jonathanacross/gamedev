@@ -342,9 +342,20 @@ func (g *Game) executeActions(actions []core.Action) {
 			lvl.Objects = append(lvl.Objects, newBoulder)
 		case core.ActionSwitchWeapon:
 			g.Player.SwitchWeapon(action.WeaponType)
+
 		case core.ActionGoUpLevel:
-			g.GoUpLevel()
+			g.StateStack = append(g.StateStack, NewFadeOutState([]core.Action{
+				{Type: core.ActionInternalGoUpLevel},
+				{Type: core.ActionPushState, GameState: NewFadeInState()},
+			}))
 		case core.ActionGoDownLevel:
+			g.StateStack = append(g.StateStack, NewFadeOutState([]core.Action{
+				{Type: core.ActionInternalGoDownLevel},
+				{Type: core.ActionPushState, GameState: NewFadeInState()},
+			}))
+		case core.ActionInternalGoUpLevel:
+			g.GoUpLevel()
+		case core.ActionInternalGoDownLevel:
 			g.GoDownLevel()
 		case core.ActionGainXP:
 			g.Player.AddExperience(action.Experience)

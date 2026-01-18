@@ -125,6 +125,7 @@ func NewPlayer() *Player {
 			BasePhysical: core.BasePhysical{
 				BaseSprite: core.BaseSprite{
 					Loc:        core.Location{X: 0, Y: 0},
+					Image:      charImages[Idle],
 					DrawOffset: core.Location{X: 25, Y: 38},
 					SrcRect:    spriteSheet.Rect(0),
 				},
